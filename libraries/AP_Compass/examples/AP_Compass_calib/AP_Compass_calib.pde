@@ -484,12 +484,6 @@ void loop()
     }else{
 	    hal.scheduler->delay(1);
     }
-    
-    //print result
-
-    /*
-            Result generated after this point will be fed again to the above loop but with new data_set
-    */
 }
 
 AP_HAL_MAIN();
