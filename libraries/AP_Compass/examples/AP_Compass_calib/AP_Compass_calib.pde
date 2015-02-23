@@ -1,5 +1,6 @@
 /*
- *       Compass Calibration Prototype Code
+ *       Example of APM_Compass library (HMC5843 sensor).
+ *       Code by Jordi MuÒoz and Jose Julio. DIYDrones.com
  */
 
 #include <AP_Common.h>
@@ -39,20 +40,6 @@
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
 #define CONFIG_COMPASS HAL_COMPASS_DEFAULT
-#define AIMED_FITNESS  1.0     //desired max value of fitness
-#define MAX_ITERS      10    //no. of iterations after which if convergence doesn't happen calib process is said to be failed
-#define SAMPLE_RATE    5     //no. of samples/sec
-#define MAX_OFF_VAL    1000  //this value makes sure no insane value get through
-#define MIN_OFF_VAL   -1000
-#define SAMPLE_DIST    50
-#define GRADIENT       10
-/*GRADIENT value specify the speed with which the optimiser will try to converge
-very high value means very low chance of convergence as the steps taken will
-be too large, while very low value will ensure the convergence will occur but
-may take huge amount of time. Striking balance with this factor is the key to
--wards successful result in viable time period.
-*/
-#define JACOB_DELTA 0.000000001
 
 #if CONFIG_COMPASS == HAL_COMPASS_PX4
 static AP_Compass_PX4 compass;
@@ -69,288 +56,9 @@ static AP_Compass_AK8963_MPU9250 compass;
 #endif
 
 uint32_t timer;
-int calib_complete;
 
-using namespace std;
-
-struct Vector{
-    int x,y,z;
-};
-
-/* calculates fitness of points to sphere
-args:
-param[] --- radius=param[0], offset1=param[1], offset2=param[2], offset3=param[3]
-data[]  --- samples collected from magnetometer
-*/
-void sphere_fitness(double param[],Vector data[],double delta[])
-{
-    double a = 1/(param[0]*param[0]);
-    for(int i=0;i<100;i++){
-        delta[i] = 1 - a*((data[i].x+param[1])*(data[i].x+param[1]) +
-                          (data[i].y+param[2])*(data[i].y+param[2]) +
-                          (data[i].z+param[3])*(data[i].z+param[3]));
-    }
-}
-/*matrix inverse code 
-copied from gluInvertMatrix implementation in opengl for 4x4 matrices
-*/
-int inverse(double m[],double invOut[])
-{
-    double inv[16], det;
-    int i;
-
-    inv[0] = m[5]  * m[10] * m[15] - 
-             m[5]  * m[11] * m[14] - 
-             m[9]  * m[6]  * m[15] + 
-             m[9]  * m[7]  * m[14] +
-             m[13] * m[6]  * m[11] - 
-             m[13] * m[7]  * m[10];
-
-    inv[4] = -m[4]  * m[10] * m[15] + 
-              m[4]  * m[11] * m[14] + 
-              m[8]  * m[6]  * m[15] - 
-              m[8]  * m[7]  * m[14] - 
-              m[12] * m[6]  * m[11] + 
-              m[12] * m[7]  * m[10];
-
-    inv[8] = m[4]  * m[9] * m[15] - 
-             m[4]  * m[11] * m[13] - 
-             m[8]  * m[5] * m[15] + 
-             m[8]  * m[7] * m[13] + 
-             m[12] * m[5] * m[11] - 
-             m[12] * m[7] * m[9];
-
-    inv[12] = -m[4]  * m[9] * m[14] + 
-               m[4]  * m[10] * m[13] +
-               m[8]  * m[5] * m[14] - 
-               m[8]  * m[6] * m[13] - 
-               m[12] * m[5] * m[10] + 
-               m[12] * m[6] * m[9];
-
-    inv[1] = -m[1]  * m[10] * m[15] + 
-              m[1]  * m[11] * m[14] + 
-              m[9]  * m[2] * m[15] - 
-              m[9]  * m[3] * m[14] - 
-              m[13] * m[2] * m[11] + 
-              m[13] * m[3] * m[10];
-
-    inv[5] = m[0]  * m[10] * m[15] - 
-             m[0]  * m[11] * m[14] - 
-             m[8]  * m[2] * m[15] + 
-             m[8]  * m[3] * m[14] + 
-             m[12] * m[2] * m[11] - 
-             m[12] * m[3] * m[10];
-
-    inv[9] = -m[0]  * m[9] * m[15] + 
-              m[0]  * m[11] * m[13] + 
-              m[8]  * m[1] * m[15] - 
-              m[8]  * m[3] * m[13] - 
-              m[12] * m[1] * m[11] + 
-              m[12] * m[3] * m[9];
-
-    inv[13] = m[0]  * m[9] * m[14] - 
-              m[0]  * m[10] * m[13] - 
-              m[8]  * m[1] * m[14] + 
-              m[8]  * m[2] * m[13] + 
-              m[12] * m[1] * m[10] - 
-              m[12] * m[2] * m[9];
-
-    inv[2] = m[1]  * m[6] * m[15] - 
-             m[1]  * m[7] * m[14] - 
-             m[5]  * m[2] * m[15] + 
-             m[5]  * m[3] * m[14] + 
-             m[13] * m[2] * m[7] - 
-             m[13] * m[3] * m[6];
-
-    inv[6] = -m[0]  * m[6] * m[15] + 
-              m[0]  * m[7] * m[14] + 
-              m[4]  * m[2] * m[15] - 
-              m[4]  * m[3] * m[14] - 
-              m[12] * m[2] * m[7] + 
-              m[12] * m[3] * m[6];
-
-    inv[10] = m[0]  * m[5] * m[15] - 
-              m[0]  * m[7] * m[13] - 
-              m[4]  * m[1] * m[15] + 
-              m[4]  * m[3] * m[13] + 
-              m[12] * m[1] * m[7] - 
-              m[12] * m[3] * m[5];
-
-    inv[14] = -m[0]  * m[5] * m[14] + 
-               m[0]  * m[6] * m[13] + 
-               m[4]  * m[1] * m[14] - 
-               m[4]  * m[2] * m[13] - 
-               m[12] * m[1] * m[6] + 
-               m[12] * m[2] * m[5];
-
-    inv[3] = -m[1] * m[6] * m[11] + 
-              m[1] * m[7] * m[10] + 
-              m[5] * m[2] * m[11] - 
-              m[5] * m[3] * m[10] - 
-              m[9] * m[2] * m[7] + 
-              m[9] * m[3] * m[6];
-
-    inv[7] = m[0] * m[6] * m[11] - 
-             m[0] * m[7] * m[10] - 
-             m[4] * m[2] * m[11] + 
-             m[4] * m[3] * m[10] + 
-             m[8] * m[2] * m[7] - 
-             m[8] * m[3] * m[6];
-
-    inv[11] = -m[0] * m[5] * m[11] + 
-               m[0] * m[7] * m[9] + 
-               m[4] * m[1] * m[11] - 
-               m[4] * m[3] * m[9] - 
-               m[8] * m[1] * m[7] + 
-               m[8] * m[3] * m[5];
-
-    inv[15] = m[0] * m[5] * m[10] - 
-              m[0] * m[6] * m[9] - 
-              m[4] * m[1] * m[10] + 
-              m[4] * m[2] * m[9] + 
-              m[8] * m[1] * m[6] - 
-              m[8] * m[2] * m[5];
-
-    det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
-
-    if (det == 0)
-        return -1;
-
-    det = 1.0 / det;
-
-    for (i = 0; i < 16; i++)
-        invOut[i] = inv[i] * det;
-    return 0;
-}
-
-/* does Squared Sum with provided set of fitness data(delta) as generated in sphere_fitness
-args:
-delta[] --- fitness of single point to sphere with said parameters[4]
-*/
-double square_sum(double delta[])
-{
-    double sqsum=0;
-    for(int i=0;i<100;i++){
-        sqsum = sqsum + delta[i]*delta[i];
-    }
-    return sqsum;
-}
-/* generate Jacobian Matrix
-args:
-param[] --- radius=param[0], offset1=param[1], offset2=param[2], offset3=param[3]
-data[]  --- samples collected from magnetometer
-*/
-void calc_jacob(double param[],Vector data[],double jacob[],double delta[])
-{
-    double temp[100]={0};
-    sphere_fitness(param,data,delta);
-    int l;
-    for(int i=0;i<4;i++){
-        param[i] = param[i] + JACOB_DELTA;
-        sphere_fitness(param,data,temp);
-
-        for(int j=0;j<100;j++){
-            jacob[i*100+j] = delta[j] - temp[j];                //note the change with response to slight variation(JACOB_DELTA)
-        }                                                       // in parameters
-        param[i] = param[i] - JACOB_DELTA;
-    }
-
-}
-/*calculates Transpose(Jacobian_Matrix)*Jacobian_Matrix
-args:
-param[] --- radius=param[0], offset1=param[1], offset2=param[2], offset3=param[3]
-data[]  --- samples collected from magnetometer
-*/
-void calc_JTJ_LI(double jacob[],double lambda,double JTJ_LI[])
-{
-    for(int i=0;i<4;i++){
-        for(int j=0;j<4;j++){
-            for(int k=0;k<100;k++){
-                JTJ_LI[i*4+j] = JTJ_LI[i*4+j] + jacob[i*100+k]*jacob[j*100+k];    //linear array used to minimise memory footprint
-            }
-        }
-    }
-    for(int i=0;i<4;i++){
-            JTJ_LI[i*4+i] = JTJ_LI[i*4+i]+lambda;
-    }    
-    inverse(JTJ_LI,JTJ_LI);                                                //calc and return Inverse of JTJ_LI = [(JT).J + L.I]
-}
-/*calculates Transpose(Jacobian_Matrix)*Fitness_Matrix
-args:
-param[] --- radius=param[0], offset1=param[1], offset2=param[2], offset3=param[3]
-data[]  --- samples collected from magnetometer
-*/
-void calc_JTFI(double param[],Vector data[],double jacob[],double JTFI[],double delta[])
-{
-    sphere_fitness(param,data,delta);
-    for(int i=0;i<4;i++){
-        for(int j=0;j<100;j++){
-            JTFI[i] = JTFI[i] + jacob[i*100+j]*delta[j];
-        }
-    }
-}
-
-
-double evaluatelm(Vector data[], double param[])
-{
-    double l=1,last_fitness,delta[100]={0},global_best[4],global_best_f;  //initial state
-    double jacob[400]={0},JTJ_LI[16]={0},JTFI[4]={0},cur_fitness;   //initialise values to be used again
-    sphere_fitness(param,data,delta);
-    last_fitness = square_sum(delta);
-    global_best_f = last_fitness;
-    
-    for(int i=0;i<20;i++){                                 //close results are generated in 10-20 steps most of the time
-        calc_jacob(param,data,jacob,delta);                    //step  1
-        calc_JTJ_LI(jacob,l,JTJ_LI);                           //step  2
-        calc_JTFI(param,data,jacob,JTFI,delta);                //step  3
-        for(int j=0;j<4;j++){
-            for(int p=0;p<4;p++){
-                param[j]=param[j]+JTFI[p]*JTJ_LI[j*4+p];    //final step
-            }
-        }                                                   //LM iteration complete
-        
-        //pass generated result through conditions
-        sphere_fitness(param,data,delta);
-        cur_fitness = square_sum(delta);
-        if(cur_fitness > last_fitness){
-            l*=GRADIENT;
-        }else if(cur_fitness < last_fitness){
-            l/=GRADIENT;
-        }
-        if(cur_fitness < global_best_f){
-            global_best_f = cur_fitness;
-            for(int j=0;j<4;j++)
-                global_best[j] = param[j];
-        }
-        //Initialise everything
-        for(int j=0;j<400;j++)
-            jacob[j]=0;
-        for(int j=0;j<16;j++)
-            JTJ_LI[j]=0;
-        for(int j=0;j<4;j++)
-            JTFI[j]=0;
-        last_fitness = cur_fitness;
-        if(cur_fitness<AIMED_FITNESS/2){
-            break;
-        }
-    }
-
-    for(int i=0;i<4;i++){
-        param[i] = global_best[i];
-    }
-    return global_best_f;
-}
-bool validate_sample(Vector data[],int count){
-    for(int i=0;i<count;i++){
-        if((data[i].x == data[count].x) && (data[i].z == data[count].z) && (data[i].y == data[count].y)){
-            return false;
-        }
-    }
-    return true;
-}
-void setup()
-{
-    hal.console->println("Compass Calibration");
+void setup() {
+    hal.console->println("Compass library test");
 
     if (!compass.init()) {
         hal.console->println("compass initialisation failed!");
@@ -384,104 +92,72 @@ void setup()
     }
 
     hal.scheduler->delay(1000);
-    calib_complete = 0;
     timer = hal.scheduler->micros();
 }
+
 void loop()
-{   
-    double param[4] = {20,0,0,0},global_best_f,best_past_param[4]={20,0,0,0}, best_past_f;  
-    int iters = 0,sat = 0,passed = 0;
-    bool ofb;
-    Vector data[100];
-    
-    if((hal.scheduler->micros()- timer) > 100000L && !calib_complete){
+{
+    static float min[3], max[3], offset[3];
+
+    compass.accumulate();
+
+    if((hal.scheduler->micros()- timer) > 100000L)
+    {
         timer = hal.scheduler->micros();
+        compass.read();
+        unsigned long read_time = hal.scheduler->micros() - timer;
+        float heading;
+
+        if (!compass.healthy()) {
+            hal.console->println("not healthy");
+            return;
+        }
+        compass.magcalib();
         
-        hal.console->print("\r");
-        do{
-            //collect Samples
-            int c=0;
-            while(c < 100){
-                compass.read();
-                if (!compass.healthy()) {
-                    hal.console->print("not healthy      \r");
-                    continue;
-                }
-                const Vector3f &mag = compass.get_field();
-                if( c >= 1){
-                    if((abs(data[c-1].x - (int)mag.x) > SAMPLE_DIST) ||
-                        (abs(data[c-1].y - (int)mag.y) > SAMPLE_DIST) ||
-                        (abs(data[c-1].z - (int)mag.z) > SAMPLE_DIST)){
-                        data[c].x = mag.x;
-                        data[c].y = mag.y;
-                        data[c].z = mag.z;
-                        if(validate_sample(data,c)){
-                            c++;
-                            hal.console->printf("Sample Collection Progress[%d] [%d][%d][%d]      \r",c,(int)mag.x,(int)mag.y,(int)mag.z);
-                        }
-                    }
-                }else{
-                    data[c].x = mag.x;
-                    data[c].y = mag.y;
-                    data[c].z = mag.z;
-                    c++;
-                }
-                hal.scheduler->delay(1000/SAMPLE_RATE);                  //5 samples/second
-            }
-            //Samples collected, let's start crunching data
-            global_best_f = evaluatelm(data,param);
+	Matrix3f dcm_matrix;
+	// use roll = 0, pitch = 0 for this example
+	dcm_matrix.from_euler(0, 0, 0);
+        heading = compass.calculate_heading(dcm_matrix);
+        compass.learn_offsets();
 
-            while(global_best_f > AIMED_FITNESS/2){
-                global_best_f = evaluatelm(data,param);             //crunching data
-                hal.console->printf("\nOff1: %.2f Off2: %.2f Off3: %.2f fitness: %.5f \n\n",param[1],param[2],param[3],global_best_f);
-                
-                if(best_past_f == global_best_f){                
-                    break;                                          //result saturation, we need a fresh start
-                }
-                for(int i=0;i<4;i++){                
-                    if(param[i] > MAX_OFF_VAL or param[i] < MIN_OFF_VAL){            //check if result is not out of bounds
-                        ofb = true;
-                        break;
-                    }
-                    else{
-                        ofb = false;
-                    }
-                }
-                if(ofb){                                                //break iteration if ofb, we need a fresh start
-                    break;
-                }
-                for(int i=0;i<4;i++){
-                    best_past_param[i] = param[i];                      //store best past parameters to be used if anything
-                }                                                       //goes downhill within the iteration
-                best_past_f = global_best_f;
-            }
-            for(int i=0;i<4;i++){
-                param[i] = best_past_param[i];                          //get ready for next iteration
-            }
+        // capture min
+        const Vector3f &mag = compass.get_field();
+        if( mag.x < min[0] )
+            min[0] = mag.x;
+        if( mag.y < min[1] )
+            min[1] = mag.y;
+        if( mag.z < min[2] )
+            min[2] = mag.z;
 
+        // capture max
+        if( mag.x > max[0] )
+            max[0] = mag.x;
+        if( mag.y > max[1] )
+            max[1] = mag.y;
+        if( mag.z > max[2] )
+            max[2] = mag.z;
 
-            hal.console->printf("\nOff1: %.2f Off2: %.2f Off3: %.2f fitness: %.5f \n\n",param[1],param[2],param[3],global_best_f);
-            iters++;
-            //check if we are getting close
-            if(global_best_f <= AIMED_FITNESS){
-                passed += 1;                      //total consecutive fitness test passed
-                hal.console->printf("Good Fitness Test Passed:  %d\n",passed);
-            }else{
-                passed=0;
-            }
-            //check if this is it
-            if(passed == 3){
-                calib_complete = 1;                             //we are done no more processing
-                hal.console->printf("\nCalibration Completed!!!! Best Match: \nOff1: %.2f Off2: %.2f Off3: %.2f ",param[1],param[2],param[3]);
-                hal.scheduler->delay(10);
-                return;
-            }
-        }while(iters < MAX_ITERS);             //if false means good covergence didn't occured in 10 iters: Callibration failed
-        hal.console->printf("\nCalibration Failed!!!!");
-        calib_complete = 1;
-        hal.scheduler->delay(10);
-        return;
-    }else{
+        // calculate offsets
+        offset[0] = -(max[0]+min[0])/2;
+        offset[1] = -(max[1]+min[1])/2;
+        offset[2] = -(max[2]+min[2])/2;
+
+        // display all to user
+        hal.console->printf("Heading: %.2f (%3d,%3d,%3d) i2c error: %u",
+			    ToDeg(heading),
+			    (int)mag.x,
+			    (int)mag.y,
+			    (int)mag.z, 
+			    (unsigned)hal.i2c->lockup_count());
+
+        // display offsets
+        hal.console->printf(" offsets(%.2f, %.2f, %.2f)",
+                      offset[0], offset[1], offset[2]);
+
+        hal.console->printf(" t=%u", (unsigned)read_time);
+
+        hal.console->println();
+    } else {
 	    hal.scheduler->delay(1);
     }
 }

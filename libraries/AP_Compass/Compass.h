@@ -251,6 +251,36 @@ public:
     ///
     virtual uint8_t get_primary(void) const { return 0; }
 
+
+    /// magnetometer Calibration Routine
+	void magcalib(void);
+
+    /// Collect Samples for Magnetometer Callibration
+    void collect_samples(void);
+    bool process_samples(int id);
+    bool validate_sample(Vector3i samples[],int count);
+
+    /// Returns Squared Sum with provided set of fitness data(delta) as generated in sphere_fitness
+	double square_sum(void);
+
+    /// calculates fitness of points to sphere
+	void sphere_fitness(Vector3i data[], double param[],double delta[]);
+
+    /// generate Jacobian Matrix
+	void calc_jacob(Vector3i data[], double param[]);
+
+    /// calculates Transpose(Jacobian_Matrix)*Jacobian_Matrix + lambda*Identity_Matrix
+	void calc_JTJ_LI(double lambda);
+
+    /// calculates Transpose(Jacobian_Matrix)*Fitness_Matrix
+	void calc_JTFI(Vector3i data[], double param[]);
+
+    /// calculate inverse of 4x4 matrix
+    bool inverse4x4(double m[],double invOut[]);
+
+    /// do iterations of Levenberg_Marquadt on Samples
+    double evaluatelm(Vector3i data[], double param[]);
+
     static const struct AP_Param::GroupInfo var_info[];
 
     // settable parameters
@@ -287,7 +317,14 @@ protected:
 
     // board orientation from AHRS
     enum Rotation _board_orientation;
-    
+
+    //Magnetometer Callibration Matrices
+    double *JTJ_LI,*JTFI;
+    double *jacob, *delta;
+    double sphere_param[COMPASS_MAX_INSTANCES][4];
+    Vector3i *callib_samples[COMPASS_MAX_INSTANCES];
+    int _passed[COMPASS_MAX_INSTANCES];
+    bool calib_complete[COMPASS_MAX_INSTANCES];
     void apply_corrections(Vector3f &mag, uint8_t i);
 };
 #endif
