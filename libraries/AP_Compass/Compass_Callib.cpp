@@ -117,6 +117,8 @@ void Compass::collect_samples()
 {
     //collect Samples
     int count[COMPASS_MAX_INSTANCES]={0},c=0,scomp = 0;
+    int r1[COMPASS_MAX_INSTANCES] = {0},r2[COMPASS_MAX_INSTANCES] = {0},r3[COMPASS_MAX_INSTANCES] = {0};
+    
     while(1){
         for(int i=0;i<get_count();i++){
             c = count[i];
@@ -130,23 +132,47 @@ void Compass::collect_samples()
             }
             const Vector3f &mag = get_field(i);
 
-
-            if( c >= 1){
-                if((abs(callib_samples[i][c-1].x - (int)mag.x) > SAMPLE_DIST) ||
-                    (abs(callib_samples[i][c-1].y - (int)mag.y) > SAMPLE_DIST) ||
-                    (abs(callib_samples[i][c-1].z - (int)mag.z) > SAMPLE_DIST)){
+            if( c < 1){
+                    callib_samples[i][c].x = mag.x;
+                    callib_samples[i][c].y = mag.y;
+                    callib_samples[i][c].z = mag.z;
+                    c++;
+            }
+            if(c >= 1 && r1[i] <= 34){
+                if((abs(callib_samples[i][c-1].y - (int)mag.y) > SAMPLE_DIST) &&
+                (abs(callib_samples[i][c-1].z - (int)mag.z) > SAMPLE_DIST)){
                     callib_samples[i][c].x = mag.x;
                     callib_samples[i][c].y = mag.y;
                     callib_samples[i][c].z = mag.z;
                     if(validate_sample(callib_samples[i],c)){
                         c++;
+                        r1[i]++;
                     }
                 }
-            }else{
-                callib_samples[i][c].x = mag.x;
-                callib_samples[i][c].y = mag.y;
-                callib_samples[i][c].z = mag.z;
-                c++;
+            }
+            if(c >= 1 && r2[i] <= 34){
+                if((abs(callib_samples[i][c-1].x - (int)mag.x) > SAMPLE_DIST) &&
+                (abs(callib_samples[i][c-1].z - (int)mag.z) > SAMPLE_DIST)){
+                    callib_samples[i][c].x = mag.x;
+                    callib_samples[i][c].y = mag.y;
+                    callib_samples[i][c].z = mag.z;
+                    if(validate_sample(callib_samples[i],c)){
+                        c++;
+                        r2[i]++;
+                    }
+                }
+            }
+            if(c >= 1 && r3[i] <= 34){
+                if((abs(callib_samples[i][c-1].x - (int)mag.x) > SAMPLE_DIST) &&
+                (abs(callib_samples[i][c-1].y - (int)mag.y) > SAMPLE_DIST)){
+                    callib_samples[i][c].x = mag.x;
+                    callib_samples[i][c].y = mag.y;
+                    callib_samples[i][c].z = mag.z;
+                    if(validate_sample(callib_samples[i],c)){
+                        c++;
+                        r3[i]++;
+                    }
+                }
             }
             if(c == 100){
                 scomp++;
@@ -155,7 +181,7 @@ void Compass::collect_samples()
             count[i] = c;
             hal.console->printf("%d/%d :",scomp,get_count());
             for(int j=0;j<COMPASS_MAX_INSTANCES;j++){
-                hal.console->printf("[%d]       ",count[j]);
+                hal.console->printf("[%d]--[%d]--[%d]--[%d]       ",count[j], r1[j],r2[j],r3[j]);
             }
 
             hal.console->printf("\r");
