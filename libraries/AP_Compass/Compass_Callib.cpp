@@ -17,227 +17,311 @@
 /*
  *       AP_Compass_Callib.cpp 
  *       Code by Siddharth Bharat Purohit. 3DRobotics Inc.
+ *  Credit:
+ *    Parts of the work are specifically Levenberg-Marquadt inplementation
+ *    based on Efficient Java Matrix Library 
+ *       by Peter Abeles <https://github.com/lessthanoptimal/ejml>
+ *    distributed with Apache 2.0 license <http://www.apache.org/licenses/LICENSE-2.0>
  *
  */
 
 #include "Compass.h"
 
-#define AIMED_FITNESS  1.0     //desired max value of fitness
-#define MAX_ITERS      10    //no. of iterations after which if convergence doesn't happen calib process is said to be failed
-#define SAMPLE_RATE    5     //no. of samples/sec
-#define MAX_OFF_VAL    1000  //this value makes sure no insane value get through
-#define MIN_OFF_VAL   -1000
+
+#define NUM_PARAMS 4
+#define NUM_SAMPLES 100
+
+#define AIMED_FITNESS  1.0f     //desired max value of fitness
+#define MAX_ITERS      10       //no. of iterations after which if convergence doesn't happen calib process is said to be failed
+#define SAMPLE_RATE    5        //no. of samples/sec
+#define MAX_OFF_VAL    1000     //this value makes sure no insane value get through (unused)
+#define MIN_OFF_VAL   -1000     //(unused)
 #define SAMPLE_DIST    50
 #define GRADIENT       5
-#define MAX_RAD        500
-/*GRADIENT value specify the speed with which the optimiser will try to converge
-very high value means very low chance of convergence as the steps taken will
-be too large, while very low value will ensure the convergence will occur but
-may take huge amount of time. Striking balance with this factor is the key to
--wards successful result in viable time period.
+#define GRADIENT_POW_LIMIT 8    //highest power of GRADIENT to be reached, can be read as saturation limit too
+/*  
+    GRADIENT value specify the speed with which the optimiser will try to converge
+    very high value means very low chance of convergence as the steps taken will
+    be too large, while very low value will ensure the convergence will occur but
+    may take huge amount of time. Striking balance with this factor is the key to
+    -wards successful result in viable time period.
 */
-#define JACOB_DELTA 0.000000001
+
+#define MAX_RAD        500      //(unused)
+
+#define JACOB_DELTA 0.000000001f
 
 extern const AP_HAL::HAL& hal;
+struct Calibration{
+    double JTJ_LI[NUM_PARAMS*NUM_PARAMS];           //JTJ_LI = [Jacobian]*[Jacobian]^T + L*[Identity_Matrix]
+    double JTFI[NUM_SAMPLES];                       //JTFI   = [Jacobian]^T * [Fitness_Matrix]
+    double jacob[NUM_SAMPLES*NUM_PARAMS];           // [Jacobian]
+    double sample_fitness[NUM_SAMPLES];             // [Fitness]
+    double sphere_param[NUM_PARAMS];                // Parameters: Radius, Offset1, Offset2, Offset3
+    Vector3f samples[NUM_SAMPLES];                  // Collected Magnetometer Samples
+    uint8_t count;                                  // No. of Sample collected
+    uint8_t passed;                                 // No. of times Square Sum fitness passed
+    bool complete;                                  // Callibration Completed or not
+    bool fault;                                     // Is there any fault:
+                                                    // Singular Matrix Inversion 
+                                                    // or Memory allocation failure
 
-/// magnetometer Calibration Routine
-void Compass::magcalib(void)
+    uint8_t instance;                               // Magnetometer Instance no.
+};
+
+
+/* magnetometer Calibration Routine
+ @known issues/improvements:
+            -better way to let the user know of Calibration status
+             but using console until maths and algos are finalised
+*/
+bool Compass::magnetometer_calib(void)
 {
-    int iters = 0;
-    bool done;
-    for(int i=0;i<COMPASS_MAX_INSTANCES;i++){
-        callib_samples[i] = new Vector3i[100];
-        calib_complete[i] = false;
-        for(int j=0;j<4;j++){
-            sphere_param[i][j]=20;
-        }
+    uint8_t iters = 0;
+    bool done = false;
+    struct Calibration *calib;
+    calib = NULL;
+    calib = new struct Calibration[2];
+    if(calib == NULL){
+        return false;
     }
-    while((iters < MAX_ITERS) || !done){             //if false means good covergence didn't occured in 10 iters: Callibration failed
+    // Initialise everything
+    for(int instance=0; instance < get_count(); instance++){
+        for(uint8_t cnt = 0; cnt < NUM_PARAMS; cnt++){
+            calib[instance].sphere_param[cnt] = 20;
+        }
+        calib[instance].passed = 0;
+        calib[instance].count = 0;
+        calib[instance].complete = false;
+        calib[instance].fault = false;
+        calib[instance].instance = instance; 
+    }
+
+    while((iters < MAX_ITERS) && !done){            //break when number of iterations are exceeded or
+                                                    //callibration has completed
+        iters++;
+        for(int i=0;i < get_count(); i++){
+            calib[i].count = 0;
+        }
+
+        collect_samples(calib);
         
-        collect_samples();
-        for(int i=0;i<get_count();i++){
-            if(calib_complete[i]){
-                hal.console->printf("Calibration Completed!!!! I[%d]: Best Match: \nOff1: %.2f Off2: %.2f Off3: %.2f \n\n\n",
-                                    i,sphere_param[i][1],sphere_param[i][2],sphere_param[i][3]);
+
+        for(uint8_t instance = 0; instance < get_count(); instance++){
+
+            if(calib[instance].complete){
+                hal.console->printf("Calibration Completed!!!! I[%d]: Best Match: \nOff1: %.2f Off2: %.2f Off3: %.2f \n\n",
+                                    instance, calib[instance].sphere_param[1],
+                                    calib[instance].sphere_param[2],
+                                    calib[instance].sphere_param[3]);
                 continue;
             }
-            if(process_samples(i)){
-                calib_complete[i] = true;
+
+            process_samples(calib[instance]);
+
+            if(calib[instance].fault){
+                hal.console->printf("Critical Fault occured during sample processing...");
+                return false;
             }
         }
-        for(int i=0;i<get_count();i++){
-            if(calib_complete[i]){
-                done = true;
-            }else{
+
+        done = true;
+        for(uint8_t instance = 0; instance < get_count(); instance++){
+            if(!calib[instance].complete){
                 done = false;
+                break;
             }
         }
     }
+
     if(!done){
         hal.console->printf("\nCalibration Failed!!!!");
-        hal.scheduler->delay(10);
-    }
-    for(int j=0;j<COMPASS_MAX_INSTANCES;j++){
-        delete[] callib_samples[j];
+        return false;
     }
     
+    delete[] calib;
+    return true;
 }
 
-bool Compass::process_samples(int id)
+/*
+    Process collected samples to generate closest parameters (Radius, Off1, Off2, Off3)
+    Known Issues/Possible enhancements:
+                    -check sanity of generated results probably by passing them through limits
+*/
+void Compass::process_samples(struct Calibration &calib)
 {
-    double global_best_f, best_past_f = 0;
+    double global_best_f;
     bool ofb;
+    calib.fault = false;
 
-    global_best_f = evaluatelm(callib_samples[id],sphere_param[id]);
-    while(global_best_f > AIMED_FITNESS/2){
-        global_best_f = evaluatelm(callib_samples[id],sphere_param[id]);             //crunching data        
-        if(best_past_f <= global_best_f){                
-            break;
-        }                                                      //goes downhill within the iteration
+    if(calib.fault){
+        return;
     }
+    
+    
+    global_best_f = evaluatelm(calib);             //Evaluate Levenberg-Marquadt Iterations
 
-    hal.console->printf("I[%d]: \nRad: %.2f Off1: %.2f Off2: %.2f Off3: %.2f fitness: %.5f \n\n",id,sphere_param[id][0],
-    sphere_param[id][1], sphere_param[id][2],sphere_param[id][3],global_best_f);
+    
+    hal.console->printf("I[%d]: \nRad: %.2f Off1: %.2f Off2: %.2f Off3: %.2f fitness: %.5f \n\n",
+                        calib.instance,
+                        calib.sphere_param[0],
+                        calib.sphere_param[1], 
+                        calib.sphere_param[2],
+                        calib.sphere_param[3],
+                        global_best_f);
+
     //check if we are getting close
     if(global_best_f <= AIMED_FITNESS){
-        _passed[id]++;                      //total consecutive fitness test passed
-        hal.console->printf("Good Fitness Test Passed:  %d\n",_passed[id]);
+        calib.passed++;                      //total consecutive fitness test passed
+        hal.console->printf("Good Fitness Test Passed:  %d\n",calib.passed);
     }else{
-        _passed[id] = 0;
+        calib.passed = 0;
     }
     //check if this is it
-    if(_passed[id] == 2){
-        hal.scheduler->delay(10);
-        return true;
+    if(calib.passed == 2){
+        calib.complete = true;
+    }else{
+        calib.complete = false;
     }
-    return false;
 }
 
-void Compass::collect_samples()
+
+/*
+    Collect Raw samples from all available Magnetometers whenever distance between
+    consecutive samples satisfies a lower limit
+    
+    Known Issues/Possible enhancements:
+                    -Very Rudimentary implementation, needs a total make over
+                    -Needs Timeout else will loop forever until sample buffer is filled
+*/
+
+void Compass::collect_samples(struct Calibration calib[])
 {
     //collect Samples
-    int count[COMPASS_MAX_INSTANCES]={0},c=0,scomp = 0;
-    int r1[COMPASS_MAX_INSTANCES] = {0},r2[COMPASS_MAX_INSTANCES] = {0},r3[COMPASS_MAX_INSTANCES] = {0};
-    
+    uint8_t c=0,sampling_over_cnt = 0;
+    Vector3f distance;
+
     while(1){
-        for(int i=0;i<get_count();i++){
-            c = count[i];
-            if(c == 100){
+
+        for(uint8_t instance = 0; instance < get_count(); instance++){
+            c = calib[instance].count;
+
+            if(c == NUM_SAMPLES){
                 continue;
             }
+
+            // Read a Sample from Magnetometer
             read();
-            if (!healthy()) {
-                hal.console->print("not healthy      \r");
+            if (!healthy(instance)) {
+                hal.console->print("not healthy      \n");
                 continue;
             }
-            const Vector3f &mag = get_field(i);
+            const Vector3f &mag = get_field(instance);
+            
+            if( c >= 1){
+                distance = calib[instance].samples[c - 1] - mag;
+                
+                if(distance.length() > SAMPLE_DIST){
+                    calib[instance].samples[c] = mag;
+                    if(validate_sample(calib[instance])){
+                        c++;
+                    }
+                }
+            }else{
+                calib[instance].samples[c] = mag;
+                c++;
+            }
 
-            if( c < 1){
-                    callib_samples[i][c].x = mag.x;
-                    callib_samples[i][c].y = mag.y;
-                    callib_samples[i][c].z = mag.z;
-                    c++;
-            }
-            if(c >= 1 && r1[i] <= 34){
-                if((abs(callib_samples[i][c-1].y - (int)mag.y) > SAMPLE_DIST) &&
-                (abs(callib_samples[i][c-1].z - (int)mag.z) > SAMPLE_DIST)){
-                    callib_samples[i][c].x = mag.x;
-                    callib_samples[i][c].y = mag.y;
-                    callib_samples[i][c].z = mag.z;
-                    if(validate_sample(callib_samples[i],c)){
-                        c++;
-                        r1[i]++;
-                    }
-                }
-            }
-            if(c >= 1 && r2[i] <= 34){
-                if((abs(callib_samples[i][c-1].x - (int)mag.x) > SAMPLE_DIST) &&
-                (abs(callib_samples[i][c-1].z - (int)mag.z) > SAMPLE_DIST)){
-                    callib_samples[i][c].x = mag.x;
-                    callib_samples[i][c].y = mag.y;
-                    callib_samples[i][c].z = mag.z;
-                    if(validate_sample(callib_samples[i],c)){
-                        c++;
-                        r2[i]++;
-                    }
-                }
-            }
-            if(c >= 1 && r3[i] <= 34){
-                if((abs(callib_samples[i][c-1].x - (int)mag.x) > SAMPLE_DIST) &&
-                (abs(callib_samples[i][c-1].y - (int)mag.y) > SAMPLE_DIST)){
-                    callib_samples[i][c].x = mag.x;
-                    callib_samples[i][c].y = mag.y;
-                    callib_samples[i][c].z = mag.z;
-                    if(validate_sample(callib_samples[i],c)){
-                        c++;
-                        r3[i]++;
-                    }
-                }
-            }
+
             if(c == 100){
-                scomp++;
+                sampling_over_cnt++;            //Count for how many instances Calibration is over
             }
 
-            count[i] = c;
-            hal.console->printf("%d/%d :",scomp,get_count());
-            for(int j=0;j<COMPASS_MAX_INSTANCES;j++){
-                hal.console->printf("[%d]--[%d]--[%d]--[%d]       ",count[j], r1[j],r2[j],r3[j]);
-            }
 
-            hal.console->printf("\r");
+            calib[instance].count = c;
+            hal.console->printf("[%d]  ",c);
         }
-        
-        if(scomp == get_count()){
+
+        hal.console->printf("\r");
+        if(sampling_over_cnt == get_count()){
             break;
         }
-        hal.scheduler->delay(1000/(SAMPLE_RATE)); 
+        hal.scheduler->delay(1000/(SAMPLE_RATE));       //Delay before reading next sample so samples are
+                                                        //not very close
     }
+
     hal.console->printf("Sampling Over \n");
 }
 
-bool Compass::validate_sample(Vector3i samples[],int count){
-    for(int i=0;i<count;i++){
-        if((samples[i].x == samples[count].x) && (samples[i].z == samples[count].z) && (samples[i].y == samples[count].y)){
+
+/*
+    Validates if sample should be utilised or not, currently returns
+    true if new sample is exclusive from the rest.
+    
+    Known Issues/enhancements:
+            -needs more conditions to ensure user rotates the vehicle
+             in all directions
+*/
+bool Compass::validate_sample(struct Calibration &calib){
+    for(uint8_t i = 0; i < calib.count; i++){
+        if(calib.samples[i] == calib.samples[calib.count]){
             return false;
         }
     }
     return true;
 }
 
-/// Returns Squared Sum with provided set of fitness data(delta) as generated in sphere_fitness
-double Compass::square_sum(void)
+
+/*
+     Returns Squared Sum with set of fitness data(sample_fitness)
+     as generated in sphere_fitness.
+*/
+double Compass::square_sum(struct Calibration &calib)
 {
     double sqsum=0;
-    for(int i=0;i<100;i++){
-        sqsum = sqsum + delta[i]*delta[i];
+    for(uint16_t i=0; i < NUM_SAMPLES; i++){
+        sqsum += calib.sample_fitness[i] * calib.sample_fitness[i];
     }
     return sqsum;
 }
 
-/// calculates fitness of points to sphere
-void Compass::sphere_fitness(Vector3i data[], double param[], double fit[])
+/* 
+    Calculates fitness of sample points to sphere with calculated parameters
+*/
+void Compass::sphere_fitness(struct Calibration &calib)
 {
     double a;
-    if(param[0] == 0){
+    if(abs(calib.sphere_param[0]) < 1){
         a = 1;
-        param[0] = 1;
+        calib.sphere_param[0] = 1;
     }else{
-        a = 1/(param[0]*param[0]);
+        a = 1/(calib.sphere_param[0] * calib.sphere_param[0]);
     }
-    for(int i=0;i<100;i++){
-        fit[i] = 1 - a*((data[i].x+param[1])*(data[i].x+param[1]) +
-                          (data[i].y+param[2])*(data[i].y+param[2]) +
-                          (data[i].z+param[3])*(data[i].z+param[3]));
+    for(uint16_t i=0; i < NUM_SAMPLES; i++){
+        calib.sample_fitness[i] = 1 - a * ((calib.samples[i].x + calib.sphere_param[1]) * (calib.samples[i].x + calib.sphere_param[1]) +
+                                        (calib.samples[i].y + calib.sphere_param[2]) * (calib.samples[i].y + calib.sphere_param[2]) +
+                                        (calib.samples[i].z + calib.sphere_param[3]) * (calib.samples[i].z + calib.sphere_param[3]));
     }
 }
 
-/*matrix inverse code only for 4x4 square matrix
-copied from gluInvertMatrix implementation in opengl for 4x4 matrices
+
+/*
+    matrix inverse code only for 4x4 square matrix copied from 
+    gluInvertMatrix implementation in 
+    opengl for 4x4 matrices.
+
+    @param     m,           input 4x4 matrix
+    @param     invOut,      Output inverted 4x4 matrix
+    @returns                false = matrix is Singular, true = matrix inversion successful
+    Known Issues/ Possible Enhancements:
+                -Will need a different implementation for more number
+                 of parameters like in the case of addition of soft
+                 iron calibration
 */
 bool Compass::inverse4x4(double m[],double invOut[])
 {
     double inv[16], det;
-    int i;
+    uint8_t i;
 
     inv[0] = m[5]  * m[10] * m[15] - 
              m[5]  * m[11] * m[14] - 
@@ -363,118 +447,167 @@ bool Compass::inverse4x4(double m[],double invOut[])
     return true;
 }
 
-/// generate Jacobian Matrix
-void Compass::calc_jacob(Vector3i data[], double param[])
+/*
+    Generate Jacobian Matrix by changing each parameter
+    by a very low value delta and noticing the change that
+    happened in sphere fitness of sample data.
+*/
+void Compass::calc_jacob(struct Calibration &calib)
 {
     double *temp;
-    temp = new double[100];
-    sphere_fitness(data,param,delta);
-    int l;
-    for(int i=0;i<4;i++){
-        param[i] = param[i] + JACOB_DELTA;
-        sphere_fitness(data,param,temp);
 
-        for(int j=0;j<100;j++){
-            jacob[i*100+j] = delta[j] - temp[j];                //note the change with response to slight variation(JACOB_DELTA)
-        }                                                       // in sphere_parameters
-        param[i] = param[i] - JACOB_DELTA;
+    temp = new double[NUM_SAMPLES];
+    if(temp == NULL){
+        calib.fault = true;
+        return;
     }
+
+
+    sphere_fitness(calib);
+    for(uint8_t i = 0; i < NUM_SAMPLES; i++){
+        temp[i] = calib.sample_fitness[i];
+    }
+
+
+
+    for(uint8_t row=0 ; row < NUM_PARAMS; row++){
+        calib.sphere_param[row] = calib.sphere_param[row] + JACOB_DELTA;
+        sphere_fitness(calib);
+
+        for(uint16_t col = 0; col < NUM_SAMPLES; col++){
+            calib.jacob[row*NUM_SAMPLES + col] = temp[col] - calib.sample_fitness[col];
+        }
+
+        calib.sphere_param[row] = calib.sphere_param[row] - JACOB_DELTA;
+    }
+
+
     delete[] temp;
 }
 
-/// calculates Transpose(Jacobian_Matrix)*Jacobian_Matrix + lambda*Identity_Matrix
-///@issue: handle inverse fault
-void Compass::calc_JTJ_LI(double lambda)
+/*
+    calculates Transpose(Jacobian_Matrix)*Jacobian_Matrix + lambda*Identity_Matrix
+    just doing matrix algebra for the optimiser
+*/
+void Compass::calc_JTJ_LI(struct Calibration &calib, double lambda)
 {
-    for(int i=0;i<4;i++){
-        for(int j=0;j<4;j++){
-            for(int k=0;k<100;k++){
-                JTJ_LI[i*4+j] = JTJ_LI[i*4+j] + jacob[i*100+k]*jacob[j*100+k];    //linear array used to minimise memory footprint
+    for(uint8_t i = 0;i < NUM_PARAMS; i++){
+        for(uint8_t j = 0; j < NUM_PARAMS; j++){
+            for(uint16_t k = 0;k < NUM_SAMPLES; k++){
+                calib.JTJ_LI[i*NUM_PARAMS + j] += calib.jacob[i*NUM_SAMPLES + k] * calib.jacob[j*NUM_SAMPLES + k];
             }
         }
     }
-    for(int i=0;i<4;i++){
-            JTJ_LI[i*4+i] = JTJ_LI[i*4+i]+lambda;
-    }    
-    inverse4x4(JTJ_LI,JTJ_LI);                                                //calc and return Inverse of JTJ_LI = [(JT).J + L.I]
+
+
+    for(uint8_t diag=0; diag < NUM_PARAMS; diag++){
+            calib.JTJ_LI[diag * NUM_PARAMS + diag] += lambda;
+    }
+
+
+    if(inverse4x4(calib.JTJ_LI, calib.JTJ_LI)){         //calc and return Inverse of JTJ_LI = [(JT).J + L.I]
+        return;
+    }else{
+        calib.fault = true;             //register fault if matrix is singular
+    }
 }
 
-/// calculates Transpose(Jacobian_Matrix)*Fitness_Matrix
-void Compass::calc_JTFI(Vector3i data[], double param[])
+/*
+    calculates Transpose(Jacobian_Matrix)*Fitness_Matrix
+    just doing matrix algebra for the optimiser
+*/
+void Compass::calc_JTFI(struct Calibration &calib)
 {
-    sphere_fitness(data,param,delta);
-    for(int i=0;i<4;i++){
-        for(int j=0;j<100;j++){
-            JTFI[i] = JTFI[i] + jacob[i*100+j]*delta[j];
+    sphere_fitness(calib);
+    for(uint8_t row = 0; row < NUM_PARAMS; row++){
+        for(uint16_t col = 0; col < NUM_SAMPLES; col++){
+            calib.JTFI[row] += calib.jacob[row*NUM_SAMPLES + col] * calib.sample_fitness[col];
         }
     }
 }
 
-/// do iterations of Levenberg_Marquadt on Samples
-double Compass::evaluatelm(Vector3i data[], double param[])
+/*
+    do iterations of Levenberg_Marquadt on Samples
+    
+    Known Issues:
+            -the iteration might go forever, addition of a timeout
+             might solve the issue
+*/
+double Compass::evaluatelm(struct Calibration &calib)
 {
-    double l=1,last_fitness,global_best[4],global_best_f;  //initial state
-    double cur_fitness, difference = 1;   //initialise values to be used again
-    int g = 0;
-    jacob = new double[400];
-    delta = new double[100];
-    JTJ_LI = new double[16];
-    JTFI = new double[4];
-    sphere_fitness(data,param,delta);
-    last_fitness = square_sum();
+    double lambda=1, last_fitness, global_best[NUM_SAMPLES] = {20,20,20,20};
+    double global_best_f;       //global best fitness
+    double cur_fitness;
+    int16_t gradient_power = 0;
+
+    sphere_fitness(calib);
+
+    last_fitness = square_sum(calib);
     global_best_f = last_fitness;
-    hal.console->printf("\n");
-    while(g <= 8 || difference < 1e-8){            //close results are generated in 10-20 steps most of the time
-        //Initialise everything
-        for(int j=0;j<400;j++)
-            jacob[j]=0;
-        for(int j=0;j<16;j++)
-            JTJ_LI[j]=0;
-        for(int j=0;j<4;j++)
-            JTFI[j]=0;
+    while(gradient_power <= GRADIENT_POW_LIMIT){
 
-        calc_jacob(data,param);                  //step  1
-        calc_JTJ_LI(l);                                //step  2
-        calc_JTFI(data,param);              //step  3
-        for(int j=0;j<4;j++){
-            for(int p=0;p<4;p++){
-                param[j]=param[j]+JTFI[p]*JTJ_LI[j*4+p];    //final step
+        //Initialise everything
+        for(uint16_t j = 0; j < (NUM_PARAMS * NUM_SAMPLES); j++)
+            calib.jacob[j] = 0;
+        for(uint16_t j = 0; j < (NUM_PARAMS * NUM_PARAMS); j++)
+            calib.JTJ_LI[j] = 0;
+        for(uint16_t j = 0;j < NUM_PARAMS; j++)
+            calib.JTFI[j] = 0;
+
+
+        calc_jacob(calib);          //step  1
+        if(calib.fault){
+          return -1;
+        }
+         
+        calc_JTJ_LI(calib,lambda);  //step  2
+        if(calib.fault){
+          return -1;
+        }
+
+        calc_JTFI(calib);           //step  3
+        
+
+        // Final Step
+        // [New_Params] = [Old_Params] + { [J^T * J + LI]^(-1) * [J^T * Fi] }
+        // T = Transpose, J= Jacobian, Fi = Fitness Matrix
+
+        for(uint8_t row=0; row < NUM_PARAMS; row++){
+            for(uint8_t col=0; col < NUM_PARAMS; col++){
+                calib.sphere_param[row] += calib.JTFI[col] * calib.JTJ_LI[row*4 + col];
             }
-        }                                                   //LM iteration complete
+        }
+        //LM iteration complete
         
         //pass generated result through conditions
-        sphere_fitness(data,param,delta);
-        cur_fitness = square_sum();
+        sphere_fitness(calib);
+        cur_fitness = square_sum(calib);
         
-        //hal.console->printf("%lf %lf %lf %lf %lf\n", param[0], param[1], param[2], param[3], cur_fitness);
-
         if(cur_fitness >= last_fitness){
-            l*=GRADIENT;
-            g++;
+            lambda *= GRADIENT;
+            gradient_power++;
         }else{
-            l/=GRADIENT;
-            difference = last_fitness - cur_fitness;
+            lambda /= GRADIENT;
             last_fitness = cur_fitness;
-            g--;
+            gradient_power--;
         }
+
+
         if(cur_fitness < global_best_f){
             global_best_f = cur_fitness;
-            for(int j=0;j<4;j++)
-                global_best[j] = param[j];
+            for(uint8_t j = 0; j < NUM_PARAMS; j++)
+                global_best[j] = calib.sphere_param[j];
         }
-        if(cur_fitness<AIMED_FITNESS/2){
+
+        if(cur_fitness < AIMED_FITNESS/2){
             break;
         }
     }
 
-    for(int i=0;i<4;i++){
-        param[i] = global_best[i];
+
+    for(uint8_t i=0; i < NUM_PARAMS; i++){
+        calib.sphere_param[i] = global_best[i];
     }
-    
-    //free memory
-    delete[] delta;
-    delete[] jacob;
-    delete[] JTJ_LI;
-    delete[] JTFI;
+
     return global_best_f;
 }

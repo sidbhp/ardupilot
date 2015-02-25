@@ -253,33 +253,33 @@ public:
 
 
     /// magnetometer Calibration Routine
-	void magcalib(void);
+	bool magnetometer_calib(void);
 
-    /// Collect Samples for Magnetometer Callibration
-    void collect_samples(void);
-    bool process_samples(int id);
-    bool validate_sample(Vector3i samples[],int count);
+    /// Collect and Process Samples for Magnetometer Callibration
+    void collect_samples(struct Calibration calib[]);
+    void process_samples(struct Calibration &calib);
+    bool validate_sample(struct Calibration &calib);
 
     /// Returns Squared Sum with provided set of fitness data(delta) as generated in sphere_fitness
-	double square_sum(void);
+	double square_sum(struct Calibration &calib);
 
     /// calculates fitness of points to sphere
-	void sphere_fitness(Vector3i data[], double param[],double delta[]);
+	void sphere_fitness(struct Calibration &calib);
 
     /// generate Jacobian Matrix
-	void calc_jacob(Vector3i data[], double param[]);
+	void calc_jacob(struct Calibration &calib);
 
     /// calculates Transpose(Jacobian_Matrix)*Jacobian_Matrix + lambda*Identity_Matrix
-	void calc_JTJ_LI(double lambda);
+	void calc_JTJ_LI(struct Calibration &calib,double lambda);
 
     /// calculates Transpose(Jacobian_Matrix)*Fitness_Matrix
-	void calc_JTFI(Vector3i data[], double param[]);
+	void calc_JTFI(struct Calibration &calib);
 
     /// calculate inverse of 4x4 matrix
     bool inverse4x4(double m[],double invOut[]);
 
     /// do iterations of Levenberg_Marquadt on Samples
-    double evaluatelm(Vector3i data[], double param[]);
+    double evaluatelm(struct Calibration &calib);
 
     static const struct AP_Param::GroupInfo var_info[];
 
@@ -318,13 +318,6 @@ protected:
     // board orientation from AHRS
     enum Rotation _board_orientation;
 
-    //Magnetometer Callibration Matrices
-    double *JTJ_LI,*JTFI;
-    double *jacob, *delta;
-    double sphere_param[COMPASS_MAX_INSTANCES][4];
-    Vector3i *callib_samples[COMPASS_MAX_INSTANCES];
-    int _passed[COMPASS_MAX_INSTANCES];
-    bool calib_complete[COMPASS_MAX_INSTANCES];
     void apply_corrections(Vector3f &mag, uint8_t i);
 };
 #endif
