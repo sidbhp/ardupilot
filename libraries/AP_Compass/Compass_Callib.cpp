@@ -88,7 +88,7 @@ bool Compass::magnetometer_calib(void)
     // Initialise everything
     for(int instance=0; instance < get_count(); instance++){
         for(uint8_t cnt = 0; cnt < NUM_PARAMS; cnt++){
-            calib[instance].sphere_param[cnt] = 20;
+            calib[instance].sphere_param[cnt] = 20;         //initialising with any random value except 0 will do
         }
         calib[instance].passed = 0;
         calib[instance].count = 0;
@@ -535,7 +535,7 @@ void Compass::calc_JTFI(struct Calibration &calib)
 */
 double Compass::evaluatelm(struct Calibration &calib)
 {
-    double lambda=1, last_fitness, global_best[NUM_SAMPLES] = {20,20,20,20};
+    double lambda=1, last_fitness, global_best[NUM_SAMPLES];
     double global_best_f;       //global best fitness
     double cur_fitness;
     int16_t gradient_power = 0;
@@ -544,6 +544,9 @@ double Compass::evaluatelm(struct Calibration &calib)
 
     last_fitness = square_sum(calib);
     global_best_f = last_fitness;
+    for(uint8_t i=0; i < NUM_PARAMS; i++){
+        global_best[i] = calib.sphere_param[i];
+    }
     while(gradient_power <= GRADIENT_POW_LIMIT){
 
         //Initialise everything
