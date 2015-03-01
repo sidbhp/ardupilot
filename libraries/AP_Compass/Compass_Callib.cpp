@@ -76,11 +76,11 @@
 
 extern const AP_HAL::HAL& hal;
 struct Calibration{
-    float JTJ[NUM_PARAMS*NUM_PARAMS];           //JTJ = [Jacobian]*[Jacobian]^T + L*[Identity_Matrix]
-    float JTFI[NUM_SAMPLES];                       //JTFI   = [Jacobian]^T * [Fitness_Matrix]
-    float jacob[NUM_SAMPLES*NUM_PARAMS];           // [Jacobian]
-    float sample_fitness[NUM_SAMPLES];             // [Fitness]
-    float sphere_param[NUM_PARAMS];                // Parameters: Radius, Offset1, Offset2, Offset3
+    float JTJ[NUM_PARAMS*NUM_PARAMS];               //JTJ = [Jacobian]*[Jacobian]^T
+    float JTFI[NUM_SAMPLES];                        //JTFI   = [Jacobian]^T * [Fitness_Matrix]
+    float jacob[NUM_SAMPLES*NUM_PARAMS];            // [Jacobian]
+    float sample_fitness[NUM_SAMPLES];              // [Fitness]
+    float sphere_param[NUM_PARAMS];                 // Parameters: Radius, Offset1, Offset2, Offset3
     Vector3f samples[NUM_SAMPLES];                  // Collected Magnetometer Samples
     uint8_t count;                                  // No. of Sample collected
     uint8_t passed;                                 // No. of times Square Sum fitness passed
@@ -295,14 +295,14 @@ bool Compass::validate_sample(struct Calibration &calib){
 
 
 /*
-     Returns Squared Sum with set of fitness data(sample_fitness)
+     Returns Sum with set of fitness data(sample_fitness)
      as generated in sphere_fitness.
 */
 float Compass::err_sum(struct Calibration &calib)
 {
     float sum=0;
     for(uint16_t i=0; i < NUM_SAMPLES; i++){
-        sum += calib.sample_fitness[i];// * calib.sample_fitness[i];
+        sum += calib.sample_fitness[i];
     }
     return fabs(sum);
 }
@@ -499,7 +499,7 @@ void Compass::calc_jacob(struct Calibration &calib)
 }
 
 /*
-    calculates Transpose(Jacobian_Matrix)*Jacobian_Matrix + lambda*Identity_Matrix
+    calculates Transpose(Jacobian_Matrix)*Jacobian_Matrix
     just doing matrix algebra for the optimiser
 */
 void Compass::calc_JTJ(struct Calibration &calib)
@@ -534,18 +534,14 @@ void Compass::calc_JTFI(struct Calibration &calib)
 }
 
 /*
-    do iterations of Levenberg_Marquadt on Samples
-    
-    Known Issues:
-            -the iteration might go forever, addition of a timeout
-             might solve the issue
+    do iterations of Gauss-Newton on Samples
 */
 float Compass::evaluategn(struct Calibration &calib)
 {
-    float lambda=0, last_fitness, global_best[NUM_SAMPLES];
-    float global_best_f;       //global best fitness
+    float last_fitness, global_best[NUM_SAMPLES];
+    float global_best_f;                    //global best fitness
     float cur_fitness;
-    int16_t gradient_power = 0, iters = 0;
+    int16_t iters = 0;
 
     sphere_fitness(calib);
 
