@@ -261,7 +261,7 @@ public:
     bool validate_sample(struct Calibration &calib);
 
     /// Returns Squared Sum with provided set of fitness data(delta) as generated in sphere_fitness
-	double square_sum(struct Calibration &calib);
+	float err_sum(struct Calibration &calib);
 
     /// calculates fitness of points to sphere
 	void sphere_fitness(struct Calibration &calib);
@@ -269,17 +269,17 @@ public:
     /// generate Jacobian Matrix
 	void calc_jacob(struct Calibration &calib);
 
-    /// calculates Transpose(Jacobian_Matrix)*Jacobian_Matrix + lambda*Identity_Matrix
-	void calc_JTJ_LI(struct Calibration &calib,double lambda);
+    /// calculates Transpose(Jacobian_Matrix)*Jacobian_Matrix
+	void calc_JTJ(struct Calibration &calib);
 
     /// calculates Transpose(Jacobian_Matrix)*Fitness_Matrix
 	void calc_JTFI(struct Calibration &calib);
 
     /// calculate inverse of 4x4 matrix
-    bool inverse4x4(double m[],double invOut[]);
+    bool inverse4x4(float m[],float invOut[]);
 
-    /// do iterations of Levenberg_Marquadt on Samples
-    double evaluatelm(struct Calibration &calib);
+    /// do iterations of Gauss-Newton on Samples
+    float evaluategn(struct Calibration &calib);
 
     static const struct AP_Param::GroupInfo var_info[];
 

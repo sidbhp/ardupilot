@@ -112,7 +112,7 @@ void loop()
             hal.console->println("not healthy");
             return;
         }
-        compass.magcalib();
+        compass.magnetometer_calib();
         
 	Matrix3f dcm_matrix;
 	// use roll = 0, pitch = 0 for this example
