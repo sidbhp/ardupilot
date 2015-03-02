@@ -277,9 +277,17 @@ public:
 
     /// calculate inverse of 4x4 matrix
     bool inverse4x4(float m[],float invOut[]);
-
+    bool inverse3x3(float m[], float invOut[]);
     /// do iterations of Gauss-Newton on Samples
     float evaluategn(struct Calibration &calib);
+
+    /// respective functions for ellipsoid sphere in contrast to above sphere fitness functions
+    /// this is just temporary, final goal is to make generic gauss-newton implementation
+    void ellipsoid_fitness(struct Calibration &calib);
+    void calc_ellipsoid_jacob(struct Calibration &calib);
+    void calc_ellipsoid_JTJ(struct Calibration &calib);
+    void calc_ellipsoid_JTFI(struct Calibration &calib);
+    float evaluategn_ellipsoid(struct Calibration &calib);
 
     static const struct AP_Param::GroupInfo var_info[];
 
