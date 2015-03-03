@@ -278,6 +278,8 @@ public:
     /// calculate inverse of 4x4 matrix
     bool inverse4x4(float m[],float invOut[]);
     bool inverse3x3(float m[], float invOut[]);
+    int32_t det3x3(Matrix3f m);
+
     /// do iterations of Gauss-Newton on Samples
     float evaluategn(struct Calibration &calib);
 

@@ -74,6 +74,32 @@
  *      d(fi)/d(sy) = -2 * sy * (y+off2)
  *      d(fi)/d(sz) = -2 * sz * (z+off3)
  *
+ *      Sampling
+        ========
+
+       1.Every point should be unique, no repeated samples
+
+       2.Every consecutive 4 samples should not be coplanar, as for every 4 non-coplanar point
+        in space there exists a distinct sphere. Therefore using this method we will be getting
+        set of atleast NUM_SAMPLES quadruples of coplanar point.
+
+       3.Every point should be atleast separated by D distance:
+
+                where:
+                    D = distance between any two sample points
+                    (Surface Area of Sphere)/(2 * (Area of equilateral triangle)) = NUM_SAMPLES
+                =>  D >= 5.5 * Radius / 10
+                but for the sake of leniency to the user let's halve this distance. This will ensure
+                atleast 50% coverage of sphere. The rest will be taken care of by Gauss-Newton.
+                    D >= 5.5 * Radius / 20
+
+        Explaination: If we are to consider a sphere and place discrete points which are uniformly
+                      spread. The simplest possible polygon that can be created using distinct closest
+                      points is an equilateral triangle. The number of such triangles will be NUM_SAMPLES
+                      and will all be totally distinct. The side of such triangles also represent the 
+                      minimum distance between any two samples for 100% coverage. But since this would 
+                      be very-difficult/impossible for user to achieve, we reduce it to minimum 50% coverage.
+ *
  */
 
 #include "Compass.h"
@@ -99,7 +125,7 @@
     -wards successful result in viable time period.
 */
 
-#define MAX_RAD        500      //(unused)
+#define INIT_RAD        300      //Initial radius for Sphere fitness
 
 extern const AP_HAL::HAL& hal;
 struct Calibration{
@@ -140,7 +166,9 @@ bool Compass::magnetometer_calib(void)
     }
     // Initialise everything
     for(int instance=0; instance < get_count(); instance++){
-        for(uint8_t cnt = 0; cnt < NUM_SPHERE_PARAMS; cnt++){
+        
+        calib[instance].sphere_param[0] = 300;
+        for(uint8_t cnt = 1; cnt < NUM_SPHERE_PARAMS; cnt++){
             calib[instance].sphere_param[cnt] = 1;         //initialising with any random value
         }
         for(uint8_t cnt = 0; cnt < NUM_ELLIPSOID_PARAMS; cnt++){
@@ -175,6 +203,7 @@ bool Compass::magnetometer_calib(void)
 
             if(calib[instance].fault){
                 hal.console->printf("Critical Fault occured during sample processing...");
+                delete[] calib;
                 return false;
             }
         }
@@ -242,6 +271,7 @@ void Compass::process_samples(struct Calibration &calib)
         for(uint8_t cnt = 0; cnt < NUM_ELLIPSOID_PARAMS; cnt++){
             calib.best_param[cnt + NUM_SPHERE_PARAMS] = calib.ellipsoid_param[cnt];
         }
+        calib.best_fitness = global_best_f;
     }
     //check if we are getting close
     if(global_best_f <= AIMED_FITNESS){
@@ -290,21 +320,11 @@ void Compass::collect_samples(struct Calibration calib[])
                 continue;
             }
             const Vector3f &mag = get_field(instance);
-            
-            if( c >= 1){
-                distance = calib[instance].samples[c - 1] - mag;
-                
-                if(distance.length() > SAMPLE_DIST){
-                    calib[instance].samples[c] = mag;
-                    if(validate_sample(calib[instance])){
-                        c++;
-                    }
-                }
-            }else{
-                calib[instance].samples[c] = mag;
+
+            calib[instance].samples[c] = mag;
+            if(validate_sample(calib[instance])){
                 c++;
             }
-
 
             if(c == 100){
                 sampling_over_cnt++;            //Count for how many instances Calibration is over
@@ -319,11 +339,14 @@ void Compass::collect_samples(struct Calibration calib[])
         if(sampling_over_cnt == get_count()){
             break;
         }
-        hal.scheduler->delay(1000/(SAMPLE_RATE));       //Delay before reading next sample so samples are
+        hal.scheduler->delay(1);       //Delay before reading next sample so samples are
                                                         //not very close
     }
-
-    hal.console->printf("Sampling Over \n");
+    hal.console->printf("\n\n");
+    for(uint32_t i=0; i < NUM_SAMPLES; i++){
+        hal.console->printf("[%d, %d, %d],\n", (int)calib[0].samples[i].x, (int)calib[0].samples[i].y, (int)calib[0].samples[i].z);
+    }
+    hal.console->printf("\nSampling Over \n");
 }
 
 
@@ -335,10 +358,33 @@ void Compass::collect_samples(struct Calibration calib[])
             -needs more conditions to ensure user rotates the vehicle
              in all directions
 */
-bool Compass::validate_sample(struct Calibration &calib){
-    for(uint8_t i = 0; i < calib.count; i++){
-        if(calib.samples[i] == calib.samples[calib.count]){
+bool Compass::validate_sample(struct Calibration &calib)
+{
+    for (uint16_t i = 0; i < calib.count; i++){
+        if (calib.samples[i] == calib.samples[calib.count]){
             return false;
+        }
+    }
+    if (calib.count >= 3){                    //check coplanarity with last three points return false if coplanar
+        Matrix3f m1 ( calib.samples[calib.count],     calib.samples[calib.count - 1],   calib.samples[calib.count - 2] );
+        Matrix3f m2 ( calib.samples[calib.count],     calib.samples[calib.count - 1],   calib.samples[calib.count - 3] );
+        Matrix3f m3 ( calib.samples[calib.count - 1], calib.samples[calib.count - 2],   calib.samples[calib.count - 3] );
+        Matrix3f m4 ( calib.samples[calib.count],     calib.samples[calib.count - 1],   calib.samples[calib.count - 3] );
+        if(det3x3(m1) == 0 && det3x3(m2) == 0 && det3x3(m3) == 0 && det3x3(m4) == 0){
+            return false;
+        }
+    }
+    
+    uint32_t D = fabs(5.4 * calib.sphere_param[0] / 20);            //NOTE: This is for NUM_SAMPLES == 100, won't hold
+                                                                    //      true for different sample counts. Recalculate
+                                                                    //      the equation using math written at start.
+
+    if (calib.count >= 1){
+        for (uint16_t i = 0; i < calib.count; i++){
+            Vector3f distance = calib.samples[i] - calib.samples[calib.count];
+            if (distance.length() < D){
+                return false;
+            }
         }
     }
     return true;
@@ -517,6 +563,13 @@ bool Compass::inverse4x4(float m[],float invOut[])
     return true;
 }
 
+int32_t Compass::det3x3(Matrix3f m)
+{
+    int32_t det =   (int32_t)m.a.x * ((int32_t)m.b.y * (int32_t)m.c.z - (int32_t)m.b.z * (int32_t)m.c.y) -
+                    (int32_t)m.a.y * ((int32_t)m.b.x * (int32_t)m.c.z - (int32_t)m.b.z * (int32_t)m.c.x) +
+                    (int32_t)m.a.z * ((int32_t)m.b.x * (int32_t)m.c.y - (int32_t)m.b.y * (int32_t)m.c.x);
+    return det;
+}
 /*
     Generate Jacobian Matrix by passing the parameters and sample values through differential equations
     derived by operating over fitness function as described at the start.
