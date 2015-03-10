@@ -1039,7 +1039,7 @@ float CompassCalibrator::det6x6(const float C[36])
     }
 
     f = A[0];
-    isodd = FALSE;
+    isodd = false;
     for (jy = 0; jy < 5; jy++) {
         f *= A[(jy + 6 * (1 + jy)) + 1];
         if (ipiv[jy] > 1 + jy) {
@@ -1128,7 +1128,7 @@ float CompassCalibrator::det9x9(const float C[81])
   }
 
   f = A[0];
-  isodd = FALSE;
+  isodd = false;
   for (jy = 0; jy < 8; jy++) {
     f *= A[(jy + 9 * (1 + jy)) + 1];
     if (ipiv[jy] > 1 + jy) {
