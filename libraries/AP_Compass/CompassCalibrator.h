@@ -41,6 +41,8 @@ public:
     uint8_t get_attempt() const { return _attempt; }
 
 private:
+    Optimiser optimise;
+
     class param_t {
     public:
         float* get_sphere_params() {
@@ -57,17 +59,8 @@ private:
         Vector3f offdiag;
     };
 
-    class CompassSample {
-    public:
-        Vector3f get() const;
-        void set(const Vector3f &in);
-    private:
-        int16_t x;
-        int16_t y;
-        int16_t z;
-    };
-
-
+    static Vector3f get_sample(const Vector3i in[], uint16_t num);
+    void set_sample(const Vector3f& in, uint16_t num);
 
     enum compass_cal_status_t _status;
 
@@ -85,7 +78,7 @@ private:
     //fit state
     struct param_t _params;
     uint16_t _fit_step;
-    CompassSample *_sample_buffer;
+    Vector3i *_sample_buffer;
     float _fitness; // mean squared residuals
     float _initial_fitness;
     float _sphere_lambda;
@@ -97,7 +90,6 @@ private:
 
     // returns true if sample should be added to buffer
     bool accept_sample(const Vector3f &sample);
-    bool accept_sample(const CompassSample &sample);
 
     // returns true if fit is acceptable
     bool fit_acceptable();
@@ -110,22 +102,15 @@ private:
     // thins out samples between step one and step two
     void thin_samples();
 
-    float calc_residual(const Vector3f& sample, const param_t& params) const;
-    float calc_mean_squared_residuals(const param_t& params) const;
-    float calc_mean_squared_residuals() const;
+    static float calc_sphere_residual(const Vector3f& sample,const float params[], const float const_params[]);
+    static float calc_ellipsoid_residual(const Vector3f& sample,const float params[], const float const_params[]);
 
-    void calc_sphere_jacob(const Vector3f& sample, const param_t& params, float* ret) const;
-    void run_sphere_fit();
+    float calc_mean_squared_residuals();
 
-    void calc_ellipsoid_jacob(const Vector3f& sample, const param_t& params, float* ret) const;
-    void run_ellipsoid_fit();
+    static void calc_sphere_jacob(const Vector3f& sample, const float params[], float* ret, const float const_params[]);
+
+    static void calc_ellipsoid_jacob(const Vector3f& sample, const float params[], float* ret, const float const_params[]);
 
     // math helpers
-    bool inverse9x9(const float m[],float invOut[]);
-    float det9x9(const float m[]);
-    bool inverse6x6(const float m[],float invOut[]);
-    float det6x6(const float m[]);
-    bool inverse4x4(float m[],float invOut[]);
-    bool inverse3x3(float m[], float invOut[]);
     uint16_t get_random();
 };
