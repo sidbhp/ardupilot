@@ -86,8 +86,7 @@ void CompassCalibrator::run_fit_chunk() {
     if(!fitting()) {
         return;
     }
-
-    if (_fit_step == 0){                                             //initialise optimiser for sphere fit
+    if (_fit_step == 0){                                               //initialise optimiser for sphere fit
         optimise.set_fitness_function(&calc_sphere_residual);
         optimise.set_jacobian_function(&calc_sphere_jacob);
         optimise.set_preprocess_sample_function(&get_sample);
@@ -117,8 +116,10 @@ void CompassCalibrator::run_fit_chunk() {
     } else if(_status == COMPASS_CAL_RUNNING_STEP_TWO) {
         if(_fit_step < 15) {
             optimise.do_levenberg_marquardt_fit(10.0f);
+            _fit_step++;
         } else if(_fit_step < 35) {
             optimise.do_levenberg_marquardt_fit(10.0f);                     //ellipsoid fit
+            _fit_step++;
         } else {
             if(fit_acceptable()) {
                 set_status(COMPASS_CAL_SUCCESS);
@@ -126,7 +127,6 @@ void CompassCalibrator::run_fit_chunk() {
                 set_status(COMPASS_CAL_FAILED);
             }
         }
-        _fit_step++;
     }
 }
 
