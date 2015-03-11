@@ -33,6 +33,8 @@
 #define DEG_TO_RAD 0.017453292519943295769236907684886f
 #define RAD_TO_DEG 57.295779513082320876798154814105f
 
+
+#define TINY_FLOAT 1e-20
 //GPS Specific double precision conversions
 //The precision here does matter when using the wsg* functions for converting
 //between LLH and ECEF coordinates. Test code in examlpes/location/location.pde
@@ -183,6 +185,8 @@ float sq(float v);
 float pythagorous2(float a, float b);
 float pythagorous3(float a, float b, float c);
 
+// matrix algebra
+bool inverse(float x[], float y[], uint16_t dim);
 #ifdef radians
 #error "Build is including Arduino base headers"
 #endif
