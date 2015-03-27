@@ -26,6 +26,8 @@ void CompassCalibrator::start(bool retry, bool autosave, float delay) {
     _retry = retry;
     _delay_start_sec = delay;
     _start_time_ms = hal.scheduler->millis();
+    _sampling_complete = false;
+
     set_status(COMPASS_CAL_WAITING_TO_START);
 }
 
@@ -75,9 +77,12 @@ void CompassCalibrator::new_sample(const Vector3f& sample) {
         set_status(COMPASS_CAL_RUNNING_STEP_ONE);
     }
 
+
     if(running() && _samples_collected < COMPASS_CAL_NUM_SAMPLES && accept_sample(sample)) {
         _sample_buffer[_samples_collected].set(sample);
         _samples_collected++;
+    } else if(_status == COMPASS_CAL_RUNNING_STEP_TWO && _samples_collected == COMPASS_CAL_NUM_SAMPLES && !_sampling_complete){
+        _sampling_complete = do_uniform_spread(sample);
     }
 }
 
@@ -99,7 +104,7 @@ void CompassCalibrator::update(bool &failure) {
             run_sphere_fit();
             _fit_step++;
         }
-    } else if(_status == COMPASS_CAL_RUNNING_STEP_TWO) {
+    } else if(_status == COMPASS_CAL_RUNNING_STEP_TWO && _sampling_complete) {
         if (_fit_step >= 35) {
             if(fit_acceptable()) {
                 set_status(COMPASS_CAL_SUCCESS);
@@ -148,6 +153,7 @@ void CompassCalibrator::reset_state() {
     _params.offset.zero();
     _params.diag = Vector3f(1.0f,1.0f,1.0f);
     _params.offdiag.zero();
+    _sampling_complete = false;
 
     initialize_fit();
 }
@@ -287,13 +293,52 @@ void CompassCalibrator::thin_samples() {
     }
 }
 
+// Longitudinal sample regions
+// [-180 , -120)        region 1
+// [-120 ,  -60)        region 2
+// [-60  ,    0)        region 3
+// [0    ,   60)        region 4
+// [60   ,  120)        region 5
+// [120  ,  180)        region 6
+uint8_t CompassCalibrator::get_region(const Vector3f& sample)
+{
+    int16_t longitude;
+
+    float tan_l = (sample.y + _params.offset.y)/(sample.x + _params.offset.x);
+    //calculate longitude i.e. the first coordinate of geodetic coordinate system
+    longitude = (int16_t)(atan2f((sample.y + _params.offset.y),(sample.x + _params.offset.x))*180.0f/PI);
+
+    if(longitude >= -180 && longitude < -120){
+        return 0;
+    } else if(longitude < -60){
+        return 1;
+    } else if(longitude < 0){
+        return 2;
+    } else if(longitude < 60){
+        return 3;
+    } else if(longitude < 120){
+        return 4;
+    } else if(longitude < 180){
+        return 5;
+    }
+    return 0;
+}
+
+void CompassCalibrator::calc_regional_distribution()
+{
+    memset(_regional_buffer_size,0,sizeof(uint16_t)*6);
+    for(uint16_t i = 0; i<_samples_collected; i++){
+        _regional_buffer_size[get_region(_sample_buffer[i].get())]++;
+    }
+}
+
 bool CompassCalibrator::accept_sample(const Vector3f& sample)
 {
     if(_sample_buffer == NULL) {
         return false;
     }
 
-    float max_distance = fabsf(5.38709f * _params.radius / sqrtf((float)COMPASS_CAL_NUM_SAMPLES)) / 3.0f;
+    float max_distance = fabsf(5.38709f * _params.radius / sqrtf((float)COMPASS_CAL_NUM_SAMPLES)) * MIN_SPHERE_COVERAGE;
 
     for (uint16_t i = 0; i<_samples_collected; i++){
         float distance = (sample - _sample_buffer[i].get()).length();
@@ -301,7 +346,33 @@ bool CompassCalibrator::accept_sample(const Vector3f& sample)
             return false;
         }
     }
+
     return true;
+}
+
+bool CompassCalibrator::do_uniform_spread(const Vector3f& sample)
+{
+    if(!accept_sample(sample)){
+        return false;
+    }
+    calc_regional_distribution();
+    if(_regional_buffer_size[get_region(sample)] < MIN_SAMPLES_PER_REGION){
+        for (uint16_t i = 0; i<_samples_collected; i++){
+            if(_regional_buffer_size[get_region(_sample_buffer[i].get())] > MIN_SAMPLES_PER_REGION){
+                _sample_buffer[i].set(sample);
+                return false;
+            }
+        }
+        return false;
+    }
+
+    uint8_t ret = true;
+    for(uint8_t i = 0; i < 6; i++){
+        if(_regional_buffer_size[i] < MIN_SAMPLES_PER_REGION){
+            ret = false;
+        }
+    }
+    return ret;
 }
 
 bool CompassCalibrator::accept_sample(const CompassSample& sample) {

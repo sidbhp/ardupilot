@@ -3,6 +3,9 @@
 #define COMPASS_CAL_NUM_SPHERE_PARAMS 4
 #define COMPASS_CAL_NUM_ELLIPSOID_PARAMS 9
 #define COMPASS_CAL_NUM_SAMPLES 300
+#define MIN_SAMPLES_PER_REGION  (40)        //NUMBER OF REGIONS IS 6 divided longitudinally,
+                                                //WARNING: MIN_SAMPLES_PER_REGION * 6 < COMPASS_CAL_NUM_SAMPLES
+#define MIN_SPHERE_COVERAGE     0.25            //25%
 
 //RMS tolerance
 #define COMPASS_CAL_DEFAULT_TOLERANCE 5.0f
@@ -92,6 +95,8 @@ private:
     float _ellipsoid_lambda;
     uint16_t _samples_collected;
     uint16_t _samples_thinned;
+    uint16_t _regional_buffer_size[6];
+    bool _sampling_complete:1;
 
     bool set_status(compass_cal_status_t status);
 
@@ -99,6 +104,9 @@ private:
     bool accept_sample(const Vector3f &sample);
     bool accept_sample(const CompassSample &sample);
 
+    uint8_t get_region(const Vector3f& sample);
+    void calc_regional_distribution();
+    bool do_uniform_spread(const Vector3f& sample);
     // returns true if fit is acceptable
     bool fit_acceptable();
 
