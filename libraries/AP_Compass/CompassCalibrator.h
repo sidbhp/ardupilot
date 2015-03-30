@@ -44,6 +44,8 @@ public:
     uint8_t get_attempt() const { return _attempt; }
 
 private:
+    Optimiser optimise;
+    
     class param_t {
     public:
         float* get_sphere_params() {
@@ -108,22 +110,15 @@ private:
     // thins out samples between step one and step two
     void thin_samples();
 
-    float calc_residual(const Vector3f& sample, const param_t& params) const;
-    float calc_mean_squared_residuals(const param_t& params) const;
-    float calc_mean_squared_residuals() const;
+    static float calc_sphere_residual(const Vector3f& sample,const float params[], const float const_params[]);
+    static float calc_ellipsoid_residual(const Vector3f& sample,const float params[], const float const_params[]);
 
-    void calc_sphere_jacob(const Vector3f& sample, const param_t& params, float* ret) const;
-    void run_sphere_fit();
+    float calc_mean_squared_residuals();
 
-    void calc_ellipsoid_jacob(const Vector3f& sample, const param_t& params, float* ret) const;
-    void run_ellipsoid_fit();
+    static void calc_sphere_jacob(const Vector3f& sample, const float params[], float* ret, const float const_params[]);
+
+    static void calc_ellipsoid_jacob(const Vector3f& sample, const float params[], float* ret, const float const_params[]);
 
     // math helpers
-    bool inverse9x9(const float m[],float invOut[]);
-    float det9x9(const float m[]);
-    bool inverse6x6(const float m[],float invOut[]);
-    float det6x6(const float m[]);
-    bool inverse4x4(float m[],float invOut[]);
-    bool inverse3x3(float m[], float invOut[]);
     uint16_t get_random();
 };
