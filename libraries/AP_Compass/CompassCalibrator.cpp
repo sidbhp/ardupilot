@@ -79,7 +79,7 @@ void CompassCalibrator::new_sample(const Vector3f& sample) {
 
 
     if(running() && _samples_collected < COMPASS_CAL_NUM_SAMPLES && accept_sample(sample)) {
-        _sample_buffer[_samples_collected].set(sample);
+        set_sample(sample, _samples_collected);
         _samples_collected++;
     } else if(_status == COMPASS_CAL_RUNNING_STEP_TWO && _samples_collected == COMPASS_CAL_NUM_SAMPLES && !_sampling_complete){
         _sampling_complete = do_uniform_spread(sample);
@@ -196,7 +196,7 @@ bool CompassCalibrator::set_status(compass_cal_status_t status) {
                 return true;
             }
 
-            _sample_buffer = (CompassSample*)malloc(sizeof(CompassSample)*COMPASS_CAL_NUM_SAMPLES);
+            _sample_buffer = (Vector3i*)malloc(sizeof(Vector3i)*COMPASS_CAL_NUM_SAMPLES);
 
             if(_sample_buffer != NULL) {
                 initialize_fit();
@@ -279,13 +279,13 @@ void CompassCalibrator::thin_samples() {
     // this is so that adjacent samples don't get sequentially eliminated
     for(uint16_t i=_samples_collected-1; i>=1; i--) {
         uint16_t j = get_random() % (i+1);
-        CompassSample temp = _sample_buffer[i];
+        Vector3i temp = _sample_buffer[i];
         _sample_buffer[i] = _sample_buffer[j];
         _sample_buffer[j] = temp;
     }
 
     for(uint16_t i=0; i < _samples_collected; i++) {
-        if(!accept_sample(_sample_buffer[i])) {
+        if(!accept_sample(get_sample(_sample_buffer, i))) {
             _sample_buffer[i] = _sample_buffer[_samples_collected-1];
             _samples_collected --;
             _samples_thinned ++;
@@ -303,8 +303,6 @@ void CompassCalibrator::thin_samples() {
 uint8_t CompassCalibrator::get_region(const Vector3f& sample)
 {
     int16_t longitude;
-
-    float tan_l = (sample.y + _params.offset.y)/(sample.x + _params.offset.x);
     //calculate longitude i.e. the first coordinate of geodetic coordinate system
     longitude = (int16_t)(atan2f((sample.y + _params.offset.y),(sample.x + _params.offset.x))*180.0f/PI);
 
@@ -328,7 +326,7 @@ void CompassCalibrator::calc_regional_distribution()
 {
     memset(_regional_buffer_size,0,sizeof(uint16_t)*6);
     for(uint16_t i = 0; i<_samples_collected; i++){
-        _regional_buffer_size[get_region(_sample_buffer[i].get())]++;
+        _regional_buffer_size[get_region(get_sample(_sample_buffer,i))]++;
     }
 }
 
@@ -341,7 +339,7 @@ bool CompassCalibrator::accept_sample(const Vector3f& sample)
     float max_distance = fabsf(5.38709f * _params.radius / sqrtf((float)COMPASS_CAL_NUM_SAMPLES)) * MIN_SPHERE_COVERAGE;
 
     for (uint16_t i = 0; i<_samples_collected; i++){
-        float distance = (sample - _sample_buffer[i].get()).length();
+        float distance = (sample - get_sample(_sample_buffer, i)).length();
         if(distance < max_distance) {
             return false;
         }
@@ -358,8 +356,8 @@ bool CompassCalibrator::do_uniform_spread(const Vector3f& sample)
     calc_regional_distribution();
     if(_regional_buffer_size[get_region(sample)] < MIN_SAMPLES_PER_REGION){
         for (uint16_t i = 0; i<_samples_collected; i++){
-            if(_regional_buffer_size[get_region(_sample_buffer[i].get())] > MIN_SAMPLES_PER_REGION){
-                _sample_buffer[i].set(sample);
+            if(_regional_buffer_size[get_region(get_sample(_sample_buffer, i))] > MIN_SAMPLES_PER_REGION){
+                set_sample(sample, i);
                 return false;
             }
         }
@@ -1230,16 +1228,16 @@ uint16_t CompassCalibrator::get_random(void)
 //////////// CompassSample public interface //////////////
 //////////////////////////////////////////////////////////
 
-Vector3f CompassCalibrator::CompassSample::get() const {
+Vector3f CompassCalibrator::get_sample(const Vector3i in[], uint16_t num) {
     Vector3f out;
-    out.x = (float)x*2048.0f/32700.0f;
-    out.y = (float)y*2048.0f/32700.0f;
-    out.z = (float)z*2048.0f/32700.0f;
+    out.x = (float)in[num].x*2048.0f/32700.0f;
+    out.y = (float)in[num].y*2048.0f/32700.0f;
+    out.z = (float)in[num].z*2048.0f/32700.0f;
     return out;
 }
 
-void CompassCalibrator::CompassSample::set(const Vector3f &in) {
-    x = (int16_t)(in.x*32700.0f/2048.0f + 0.5f);
-    y = (int16_t)(in.y*32700.0f/2048.0f + 0.5f);
-    z = (int16_t)(in.z*32700.0f/2048.0f + 0.5f);
+void CompassCalibrator::set_sample(const Vector3f& in, uint16_t num) {
+    _sample_buffer[num].x = (int16_t)(in.x*32700.0f/2048.0f + 0.5f);
+    _sample_buffer[num].y = (int16_t)(in.y*32700.0f/2048.0f + 0.5f);
+    _sample_buffer[num].z = (int16_t)(in.z*32700.0f/2048.0f + 0.5f);
 }

@@ -60,17 +60,8 @@ private:
         Vector3f offdiag;
     };
 
-    class CompassSample {
-    public:
-        Vector3f get() const;
-        void set(const Vector3f &in);
-    private:
-        int16_t x;
-        int16_t y;
-        int16_t z;
-    };
-
-
+    static Vector3f get_sample(const Vector3i in[], uint16_t num);
+    void set_sample(const Vector3f& in, uint16_t num);
 
     enum compass_cal_status_t _status;
 
@@ -88,7 +79,7 @@ private:
     //fit state
     struct param_t _params;
     uint16_t _fit_step;
-    CompassSample *_sample_buffer;
+    Vector3i *_sample_buffer;
     float _fitness; // mean squared residuals
     float _initial_fitness;
     float _sphere_lambda;
@@ -102,7 +93,6 @@ private:
 
     // returns true if sample should be added to buffer
     bool accept_sample(const Vector3f &sample);
-    bool accept_sample(const CompassSample &sample);
 
     uint8_t get_region(const Vector3f& sample);
     void calc_regional_distribution();
