@@ -72,17 +72,40 @@ bool CompassCalibrator::check_for_timeout() {
 
 void CompassCalibrator::new_sample(const Vector3f& sample) {
     _last_sample_ms = hal.scheduler->millis();
-
+    Vector3f filtered_sample;
+ 
     if(_status == COMPASS_CAL_WAITING_TO_START) {
         set_status(COMPASS_CAL_RUNNING_STEP_ONE);
     }
+    //implementation of vector median filter
+    if(_acc_size < 2){
+        _sample_accumulator[_acc_size] = sample;
+        _acc_size++;
+        return;
+    } else{
+        _sample_accumulator[_acc_size] = sample;
+        float d1 = (_sample_accumulator[0] - _sample_accumulator[1]).length();		//distance between acc_sample 1 and acc_sample 2
+        float d2 = (_sample_accumulator[0] - _sample_accumulator[2]).length();		//distance between acc_sample 1 and acc_sample 3
+        float d3 = (_sample_accumulator[1] - _sample_accumulator[2]).length();		//distance between acc_sample 2 and acc_sample 3
+        
+        float sumD1 = d1+d2;
+        float sumD2 = d1+d3;
+        float sumD3 = d2+d3;
+        if(sumD1 < sumD2 && sumD1 < sumD3){                     //select the one closest to the remaining two
+            filtered_sample = _sample_accumulator[0];
+        } else if(sumD2 < sumD3){
+            filtered_sample = _sample_accumulator[1];
+        } else {
+            filtered_sample = _sample_accumulator[2];
+        }
+        _acc_size = 0;
+    }
 
-
-    if(running() && _samples_collected < COMPASS_CAL_NUM_SAMPLES && accept_sample(sample)) {
-        set_sample(sample, _samples_collected);
+    if(running() && _samples_collected < COMPASS_CAL_NUM_SAMPLES && accept_sample(filtered_sample)) {
+        set_sample(filtered_sample, _samples_collected);
         _samples_collected++;
     } else if(_status == COMPASS_CAL_RUNNING_STEP_TWO && _samples_collected == COMPASS_CAL_NUM_SAMPLES && !_sampling_complete){
-        _sampling_complete = do_uniform_spread(sample);
+        _sampling_complete = do_uniform_spread(filtered_sample);
     }
 }
 

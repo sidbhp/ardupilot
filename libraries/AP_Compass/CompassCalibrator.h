@@ -89,6 +89,8 @@ private:
     uint16_t _samples_collected;
     uint16_t _samples_thinned;
     uint16_t _regional_buffer_size[6];
+    uint8_t _acc_size;
+    Vector3f _sample_accumulator[3];
     bool _sampling_complete:1;
 
     bool set_status(compass_cal_status_t status);
