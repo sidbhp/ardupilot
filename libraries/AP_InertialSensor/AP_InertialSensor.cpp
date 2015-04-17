@@ -627,9 +627,6 @@ void
 AP_InertialSensor::init_gyro()
 {
     _init_gyro();
-
-    // save calibration
-    _save_parameters();
 }
 
 // get_gyro_health_all - return true if all gyros are healthy
@@ -672,6 +669,9 @@ AP_InertialSensor::_init_gyro()
 {
     if(!_calibrating){
         for(uint8_t i = 0; i<get_gyro_count();i++){
+            _gyro_offset[i].set(Vector3f());
+        }
+        for(uint8_t i = 0; i<get_gyro_count();i++){
             gyro_calib[i].init(_board_orientation);
             _calibrating = true;
         }
@@ -688,6 +688,7 @@ AP_InertialSensor::gyro_calib_step()
     if(!_calibrating){
         return;
     }
+    
     for(uint8_t i = 0; i<get_gyro_count();i++){
         if(gyro_calib[i].get_status() == WAITING){
             return;
@@ -702,8 +703,10 @@ AP_InertialSensor::gyro_calib_step()
         
         if(gyro_calib[i].step(get_accel(0))){
             if(gyro_calib[i].get_new_offsets(_board_orientation, _gyro_offset[i])){
+                hal.console->printf_P(PSTR("\nGYRO[%d] CALIBRATION COMPLETED!!!\n"),i);
                 _gyro_cal_ok[i] = true;
             } else{
+                hal.console->printf_P(PSTR("\nGYRO[%d] CALIBRATION FAILED!!!\n"),i);
                 _gyro_cal_ok[i] = false;
             }
             num_calibrated++;
@@ -711,6 +714,17 @@ AP_InertialSensor::gyro_calib_step()
     }
     if(num_calibrated == get_gyro_count()){
         _calibrating = false;
+        // save calibration
+        _save_parameters();
+        //show calib results
+        for(uint8_t i = 0; i<get_gyro_count();i++){
+            hal.console->printf_P(PSTR("\nNew GYRO OFFSETS[%d]: %f\t%f\t%f\n"),
+                                        i,
+                                        ((Vector3f)_gyro_offset[i]).x,
+                                        ((Vector3f)_gyro_offset[i]).y,
+                                        ((Vector3f)_gyro_offset[i]).z);
+        }
+        hal.console->printf("\n\n\n");
     }
 }
 
