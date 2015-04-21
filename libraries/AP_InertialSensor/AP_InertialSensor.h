@@ -19,11 +19,17 @@
 #define INS_MAX_BACKENDS  1
 #endif
 
+//Gyro Calibrator type
+#define GYRO_CAL_TYPE_NONBLOCK      1
+#define GYRO_CAL_TYPE_BLOCK         2
+
+#define GYRO_CAL_TYPE GYRO_CAL_TYPE_BLOCK
 
 #include <stdint.h>
 #include <AP_HAL.h>
 #include <AP_Math.h>
 #include "AP_InertialSensor_UserInteract.h"
+#include "GyroCalibrator.h"
 
 class AP_InertialSensor_Backend;
 
@@ -148,8 +154,10 @@ public:
     bool get_gyro_health(void) const { return get_gyro_health(_primary_gyro); }
     bool get_gyro_health_all(void) const;
     uint8_t get_gyro_count(void) const { return _gyro_count; }
-    bool gyro_calibrated_ok(uint8_t instance) const;
-    bool gyro_calibrated_ok_all() const;
+    bool gyro_calibrated_ok(uint8_t instance);
+    bool gyro_calibrated_ok_all();
+    bool gyro_calibrated_complete(uint8_t instance);
+    bool gyro_calibrated_complete_all();    
 
     bool get_accel_health(uint8_t instance) const { return _accel_healthy[instance]; }
     bool get_accel_health(void) const { return get_accel_health(_primary_accel); }
@@ -208,6 +216,7 @@ public:
     // get the accel filter rate in Hz
     uint8_t get_accel_filter_hz(void) const { return _accel_filter_cutoff; }
 
+
 private:
 
     // load backend drivers
@@ -216,7 +225,8 @@ private:
 
     // gyro initialisation
     void _init_gyro();
-
+    void _blocking_gyro_cal();
+    void _update_gyro_cal();
 #if !defined( __AVR_ATmega1280__ )
     // Calibration routines borrowed from Rolfe Schmidt
     // blog post describing the method: http://chionophilous.wordpress.com/2011/10/24/accelerometer-calibration-iv-1-implementing-gauss-newton-on-an-atmega/
@@ -241,6 +251,8 @@ private:
     // backend objects
     AP_InertialSensor_Backend *_backends[INS_MAX_BACKENDS];
 
+    //Gyro Calibrator
+    GyroCalibrator _gyro_calibrator[INS_MAX_INSTANCES];
     // number of gyros and accel drivers. Note that most backends
     // provide both accel and gyro data, so will increment both
     // counters on initialisation
