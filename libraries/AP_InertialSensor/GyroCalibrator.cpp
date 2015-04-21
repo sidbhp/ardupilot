@@ -31,7 +31,7 @@ void GyroCalibrator::collect_samples(Vector3f sample, Vector3f accel_value)
             _accel_start = accel_value;
         }
         _gyro_sum += sample;
-        if(_sample_cnt == MAX_GYRO_CALIB_SAMPLES){
+        if((hal.scheduler->millis() - _sampling_start_time) >= MAX_GYRO_CALIB_SAMPLING_TIME){
             set_status(GYRO_CAL_CALIBRATE);
         }
         _sample_cnt++;
@@ -106,6 +106,7 @@ void GyroCalibrator::set_status(enum gyro_calib_status_t status)
         case GYRO_CAL_COLLECTION:
             _status = GYRO_CAL_COLLECTION;
             _sample_cnt = 0;
+            _sampling_start_time = hal.scheduler->millis();
             break;
         case GYRO_CAL_CALIBRATE:
             _status = GYRO_CAL_CALIBRATE;

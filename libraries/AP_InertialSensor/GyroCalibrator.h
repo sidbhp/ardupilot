@@ -3,8 +3,9 @@
 #ifndef __GYRO_CALIBRATOR_H__
 #define __GYRO_CALIBRATOR_H__
 
-#define MAX_GYRO_CALIB_SAMPLES  100
+#define MAX_GYRO_CALIB_SAMPLING_TIME  500       //average samples over 500ms
 #define MAX_GYRO_CALIB_STEPS    120
+
 enum gyro_calib_status_t {
     GYRO_CAL_WAITING=0,
     GYRO_CAL_INITIAL=1,
@@ -29,7 +30,7 @@ private:
     gyro_calib_status_t _status;
 
     //gyro init variables
-    uint16_t _sample_cnt;
+    uint16_t _sample_cnt, _sampling_start_time;
     uint16_t _num_steps;
     Vector3f _last_average, _best_avg;
     Vector3f _new_gyro_offset;
