@@ -21,7 +21,7 @@ public:
     void start();
     bool get_new_offsets(AP_Vector3f &offsets);
     void collect_samples(Vector3f sample, Vector3f accel_value);
-    gyro_calib_status_t get_status(){ return _status;}
+    gyro_calib_status_t get_status() const{ return _status;}
     bool update(Vector3f gyro, Vector3f accel_value);
 
 private:

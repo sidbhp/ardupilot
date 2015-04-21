@@ -659,12 +659,13 @@ bool AP_InertialSensor::get_accel_health_all(void) const
     return (get_accel_count() > 0);
 }
 
-bool AP_InertialSensor::gyro_calibrated_ok(uint8_t i){
-    return _gyro_calibrator[i].get_status() == GYRO_CAL_SUCCESS;
+bool AP_InertialSensor::gyro_calibrated_ok(uint8_t i) const
+{
+    return _gyro_cal_ok[i];
 }
 
 // gyro_calibration_ok_all - returns true if all gyros were calibrated successfully
-bool AP_InertialSensor::gyro_calibrated_ok_all()
+bool AP_InertialSensor::gyro_calibrated_ok_all() const
 {
     for (uint8_t i=0; i<get_gyro_count(); i++) {
         if (!gyro_calibrated_ok(i)) {
@@ -674,12 +675,14 @@ bool AP_InertialSensor::gyro_calibrated_ok_all()
     return (get_gyro_count() > 0);
 }
 
-bool AP_InertialSensor::gyro_calibrated_complete(uint8_t i){
+bool AP_InertialSensor::gyro_calibrated_complete(uint8_t i) const
+{
     return _gyro_calibrator[i].get_status() == GYRO_CAL_SUCCESS || _gyro_calibrator[i].get_status() == GYRO_CAL_FAILED;
 }
 // gyro_calibrated_complete_all - returns true if all gyro calibrators are finished
 // NOTE: it doesnot return true if the calibration was successful, only that calibration process is completed
-bool AP_InertialSensor::gyro_calibrated_complete_all(){
+bool AP_InertialSensor::gyro_calibrated_complete_all() const
+{
     for (uint8_t i=0; i<get_gyro_count(); i++) {
         if (!gyro_calibrated_complete(i)) {
             return false;

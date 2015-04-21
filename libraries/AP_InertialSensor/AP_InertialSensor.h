@@ -154,10 +154,10 @@ public:
     bool get_gyro_health(void) const { return get_gyro_health(_primary_gyro); }
     bool get_gyro_health_all(void) const;
     uint8_t get_gyro_count(void) const { return _gyro_count; }
-    bool gyro_calibrated_ok(uint8_t instance);
-    bool gyro_calibrated_ok_all();
-    bool gyro_calibrated_complete(uint8_t instance);
-    bool gyro_calibrated_complete_all();    
+    bool gyro_calibrated_ok(uint8_t instance) const;
+    bool gyro_calibrated_ok_all() const;
+    bool gyro_calibrated_complete(uint8_t instance) const;
+    bool gyro_calibrated_complete_all() const;    
 
     bool get_accel_health(uint8_t instance) const { return _accel_healthy[instance]; }
     bool get_accel_health(void) const { return get_accel_health(_primary_accel); }
