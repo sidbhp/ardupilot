@@ -23,7 +23,7 @@
 #define GYRO_CAL_TYPE_NONBLOCK      1
 #define GYRO_CAL_TYPE_BLOCK         2
 
-#define GYRO_CAL_TYPE GYRO_CAL_TYPE_BLOCK
+#define GYRO_CAL_TYPE GYRO_CAL_TYPE_NONBLOCK
 
 #include <stdint.h>
 #include <AP_HAL.h>

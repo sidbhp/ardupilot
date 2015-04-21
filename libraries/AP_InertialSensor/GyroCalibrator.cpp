@@ -27,7 +27,6 @@ void GyroCalibrator::collect_samples(Vector3f sample, Vector3f accel_value)
 {
     if(_status == GYRO_CAL_COLLECTION){
         if(_sample_cnt == 0){
-            _diff_norm = 0;
             _gyro_sum.zero();
             _accel_start = accel_value;
         }
@@ -45,6 +44,7 @@ void GyroCalibrator::calibrate(Vector3f accel_value)
 {
     Vector3f accel_diff = accel_value - _accel_start;
     Vector3f gyro_avg, gyro_diff;
+    float diff_length;
 
     if (accel_diff.length() > 0.2f) {
         // the accelerometers changed during the gyro sum. Skip
@@ -56,10 +56,10 @@ void GyroCalibrator::calibrate(Vector3f accel_value)
 
     gyro_avg = _gyro_sum / _sample_cnt;
     gyro_diff = _last_average - gyro_avg;
-    _diff_norm = gyro_diff.length();
+    diff_length = gyro_diff.length();
 
     if (_num_steps == 0) {
-        _best_diff = _diff_norm;
+        _best_diff = diff_length;
         _best_avg = gyro_avg;
     } else if (gyro_diff.length() < ToRad(0.1f)) {
         // we want the average to be within 0.1 bit, which is 0.04 degrees/s
@@ -70,11 +70,12 @@ void GyroCalibrator::calibrate(Vector3f accel_value)
         if (!_converged) {
             _converged = true;
         }
-    } else if (_diff_norm < _best_diff) {
-        _best_diff = _diff_norm;
+    } else if (diff_length < _best_diff) {
+        _best_diff = diff_length;
         _best_avg = (gyro_avg * 0.5f) + (_last_average * 0.5f);
     }
     _last_average = gyro_avg;
+    _num_steps++;
 }
 
 bool GyroCalibrator::get_new_offsets(AP_Vector3f &offsets){
@@ -133,7 +134,6 @@ bool GyroCalibrator::update(Vector3f gyro, Vector3f accel_value)
         }
         calibrate(accel_value);
         set_status(GYRO_CAL_COLLECTION);
-        _num_steps++;
     } else if(_status == GYRO_CAL_COLLECTION){
         collect_samples(gyro, accel_value);
     }

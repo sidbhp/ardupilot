@@ -711,7 +711,6 @@ void AP_InertialSensor::_blocking_gyro_cal()
     for (uint8_t k=0; k<num_gyros; k++) {
         _gyro_calibrator[k].start();
     }
-
     while(!gyro_calibrated_complete_all()) {            //do loop until calibrator is done with the process
         hal.scheduler->delay(update_dt_milliseconds);
         update(); // calls update_gyro_cal with new data
@@ -724,29 +723,34 @@ void AP_InertialSensor::_blocking_gyro_cal()
     }
     hal.console->printf("\n");
 
-    // record calibration complete
-    _calibrating = false;
-
-    // stop flashing leds
-    AP_Notify::flags.initialising = false;
 }
 
 void AP_InertialSensor::_update_gyro_cal()
 {
+    if(!_calibrating){
+        return;
+    }
     uint8_t num_gyros = min(get_gyro_count(), INS_MAX_INSTANCES);
     for (uint8_t k=0; k<num_gyros; k++) {
-        if (!gyro_calibrated_ok(k)) {
+        if (!gyro_calibrated_complete(k)) {
             Vector3f gyro = get_gyro(k);
             gyro.rotate_inverse(_board_orientation);
             _gyro_calibrator[k].update(gyro+get_gyro_offsets(k), get_accel());
         }
     }
-    //fetch offsets from calibrator and Notify AP_InertialSensor if process was successful
-    for (uint8_t k=0; k<num_gyros; k++) {
-        if(gyro_calibrated_complete(k)){
+    if(gyro_calibrated_complete_all()){
+        // record calibration complete
+        _calibrating = false;
+        // stop flashing leds
+        AP_Notify::flags.initialising = false;
+        //fetch best offsets from calibrator and Notify AP_InertialSensor if process was successful
+        for (uint8_t k=0; k<num_gyros; k++) {
             _gyro_cal_ok[k] = _gyro_calibrator[k].get_new_offsets(_gyro_offset[k]);
         }
+        //save offsets
+        _save_parameters();
     }
+
 }
 
 void
@@ -755,7 +759,25 @@ AP_InertialSensor::_init_gyro()
 #if GYRO_CAL_TYPE == GYRO_CAL_TYPE_BLOCK
     _blocking_gyro_cal();
 #else
-    
+    uint8_t num_gyros = min(get_gyro_count(), INS_MAX_INSTANCES);
+
+    // exit immediately if calibration is already in progress
+    if (_calibrating) {
+        return;
+    }
+
+    // record that we are calibrating
+    _calibrating = true;
+
+    // flash leds to tell user to keep the IMU still
+    AP_Notify::flags.initialising = true;
+
+    // cold start
+    hal.console->print_P(PSTR("Gyro Calibration Started...\n"));
+
+    for (uint8_t k=0; k<num_gyros; k++) {
+        _gyro_calibrator[k].start();
+    }
 #endif
 }
 

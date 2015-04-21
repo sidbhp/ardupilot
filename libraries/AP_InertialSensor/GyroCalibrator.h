@@ -37,7 +37,6 @@ private:
     Vector3f _gyro_sum;
     bool _converged;
     Vector3f _accel_start;
-    float _diff_norm;
 };
 
 #endif
