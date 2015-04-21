@@ -647,6 +647,22 @@ bool AP_InertialSensor::get_gyro_health_all(void) const
     return (get_gyro_count() > 0);
 }
 
+// get_accel_health_all - return true if all accels are healthy
+bool AP_InertialSensor::get_accel_health_all(void) const
+{
+    for (uint8_t i=0; i<get_accel_count(); i++) {
+        if (!get_accel_health(i)) {
+            return false;
+        }
+    }
+    // return true if we have at least one accel
+    return (get_accel_count() > 0);
+}
+
+bool gyro_calibrated_ok(uint8_t i) const {
+    return _gyro_calibrator[i].status() == GYRO_CAL_SUCCESS;
+}
+
 // gyro_calibration_ok_all - returns true if all gyros were calibrated successfully
 bool AP_InertialSensor::gyro_calibrated_ok_all() const
 {
@@ -658,16 +674,45 @@ bool AP_InertialSensor::gyro_calibrated_ok_all() const
     return (get_gyro_count() > 0);
 }
 
-// get_accel_health_all - return true if all accels are healthy
-bool AP_InertialSensor::get_accel_health_all(void) const
+void AP_InertialSensor::_blocking_gyro_cal()
 {
-    for (uint8_t i=0; i<get_accel_count(); i++) {
-        if (!get_accel_health(i)) {
-            return false;
+    // exit immediately if calibration is already in progress
+    if (_calibrating) {
+        return;
+    }
+
+    // record that we are calibrating
+    _calibrating = true;
+
+    // flash leds to tell user to keep the IMU still
+    AP_Notify::flags.initialising = true;
+
+    // cold start
+    hal.console->print_P(PSTR("Init Gyro"));
+
+    const uint8_t update_dt_milliseconds = (uint8_t)(1000.0f/get_sample_rate()+0.5f);
+
+    for (uint8_t k=0; k<num_gyros; k++) {
+        _gyro_calibrator[k].start();
+    }
+
+    while(!gyro_calibrated_ok_all()) {
+        hal.scheduler->delay(update_dt_milliseconds);
+        update(); // calls update_gyro_cal with new data
+    }
+
+    _calibrating = false;
+}
+
+void AP_InertialSensor::_update_gyro_cal()
+{
+    for (uint8_t k=0; k<num_gyros; k++) {
+        if (!gyro_calibrated_ok(k)) {
+            Vector3f gyro = get_gyro(k);
+            gyro.rotate_inverse(_board_orientation);
+            _gyro_calibrator[k].update(gyro+get_gyro_offsets(k), get_accel());
         }
     }
-    // return true if we have at least one accel
-    return (get_accel_count() > 0);
 }
 
 void
@@ -1099,6 +1144,8 @@ void AP_InertialSensor::update(void)
     }
 
     _have_sample = false;
+
+    _update_gyro_cal();
 }
 
 /*
