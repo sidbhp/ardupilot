@@ -124,12 +124,8 @@ public:
     ///     actual position target will be moved no faster than the speed_down and speed_up
     ///     target will also be stopped if the motors hit their limits or leash length is exceeded
     ///     set force_descend to true during landing to allow target to move low enough to slow the motors
-    void set_alt_target_from_climb_rate(float climb_rate_cms, float dt, bool force_descend);
-
-    /// add_takeoff_climb_rate - adjusts alt target up or down using a climb rate in cm/s
-    ///     should be called continuously (with dt set to be the expected time between calls)
-    ///     almost no checks are performed on the input
-    void add_takeoff_climb_rate(float climb_rate_cms, float dt);
+    void set_alt_target_from_climb_rate_ff(float climb_rate_cms, float dt, bool force_descend = false);
+    void set_alt_target_from_climb_rate(float climb_rate_cms, float dt, bool force_descend = false);
 
     /// add_takeoff_climb_rate - adjusts alt target up or down using a climb rate in cm/s
     ///     should be called continuously (with dt set to be the expected time between calls)
