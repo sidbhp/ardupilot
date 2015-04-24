@@ -219,6 +219,8 @@ void AC_PosControl::set_alt_target_from_climb_rate_ff(float climb_rate_cms, floa
         // decelerate feed forward to zero
         _vel_desired.z = constrain_float(0.0f, _vel_desired.z-vel_change_limit, _vel_desired.z+vel_change_limit);
     }
+
+    _flags.enable_z_vel_ff = 1;
 }
 
 /// add_takeoff_climb_rate - adjusts alt target up or down using a climb rate in cm/s
@@ -243,7 +245,8 @@ void AC_PosControl::set_alt_target_from_climb_rate(float climb_rate_cms, float d
         _limit.pos_up = true;
     }
 
-    _vel_desired.z = 0.0f;
+    _vel_desired.z = climb_rate_cms;
+    _flags.enable_z_vel_ff = 0;
 }
 
 /// relax_alt_hold_controllers - set all desired and targets to measured
