@@ -722,5 +722,27 @@ void AP_AHRS_NavEKF::send_ekf_status_report(mavlink_channel_t chan)
     }    
 }
 
+void AP_AHRS_NavEKF::setTakeoffExpected(bool val)
+{
+    switch (active_EKF_type()) {
+    case EKF_TYPE1:
+    default:
+        EKF1.setTakeoffExpected(val);
+    case EKF_TYPE2:
+        EKF2.setTakeoffExpected(val);
+    }
+}
+
+void AP_AHRS_NavEKF::setTouchdownExpected(bool val)
+{
+    switch (active_EKF_type()) {
+    case EKF_TYPE1:
+    default:
+        EKF1.setTouchdownExpected(val);
+    case EKF_TYPE2:
+        EKF2.setTouchdownExpected(val);
+    }
+}
+
 #endif // AP_AHRS_NAVEKF_AVAILABLE
 
