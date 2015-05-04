@@ -20,6 +20,9 @@ public:
 
     static const struct AP_Param::GroupInfo var_info[];
 
+
+    bool get_safety_enable();
+
 private:
     AP_Int16 vehicleSerialNumber;
 
