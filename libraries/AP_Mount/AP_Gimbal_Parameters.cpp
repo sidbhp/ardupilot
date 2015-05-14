@@ -1,5 +1,5 @@
-#include <AP_Gimbal_Parameters.h>
-#include <AP_HAL.h>
+#include <AP_Mount/AP_Gimbal_Parameters.h>
+#include <AP_HAL/AP_HAL.h>
 
 extern const AP_HAL::HAL& hal;
 
