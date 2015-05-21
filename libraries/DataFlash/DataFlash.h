@@ -62,6 +62,7 @@ public:
     void Log_Write_Format(const struct LogStructure *structure);
     void Log_Write_Parameter(const char *name, float value);
     void Log_Write_GPS(const AP_GPS &gps, uint8_t instance, int32_t relative_alt);
+    void Log_Write_GPSdiag(const AP_GPS &gps, uint8_t instance);
     void Log_Write_IMU(const AP_InertialSensor &ins);
     void Log_Write_RCIN(void);
     void Log_Write_RCOUT(void);
@@ -173,6 +174,21 @@ struct PACKED log_GPS {
     float    vel_z;
     uint32_t apm_time;
 };
+
+struct PACKED log_GPSdiag {
+    LOG_PACKET_HEADER;
+    uint32_t timestamp;
+    uint8_t chn; 		/**< Channel number, 255 for SVs not assigned to a channel */
+    uint8_t svid; 		/**< Satellite ID */
+    uint8_t flags;
+    uint8_t quality;
+    uint8_t cno;		/**< Carrier to Noise Ratio (Signal Strength) [dbHz] */
+    int8_t elev; 		/**< Elevation [deg] */
+    int16_t azim; 		/**< Azimuth [deg] */
+    int32_t prRes; 		/**< Pseudo range residual [cm] */
+    uint32_t ttff;
+};
+
 
 struct PACKED log_GPS2 {
     LOG_PACKET_HEADER;
@@ -559,7 +575,9 @@ Format characters in the format string for binary log messages
     { LOG_COMPASS_MSG, sizeof(log_Compass), \
       "MAG", "IhhhhhhhhhB",    "TimeMS,MagX,MagY,MagZ,OfsX,OfsY,OfsZ,MOfsX,MOfsY,MOfsZ,Health" }, \
     { LOG_MODE_MSG, sizeof(log_Mode), \
-      "MODE", "IMB",         "TimeMS,Mode,ModeNum" }
+      "MODE", "IMB",         "TimeMS,Mode,ModeNum" }, \
+    { LOG_GPSDIAG_MSG, sizeof(log_GPSdiag), \
+      "GPSD", "IBBBBBbhiI",   "TimeMS,chn,svid,flags,quality,cno,elev,azim,prRes,ttff"}
 
 // messages for more advanced boards
 #define LOG_EXTRA_STRUCTURES \
@@ -664,6 +682,7 @@ Format characters in the format string for binary log messages
 #define LOG_COMPASS2_MSG  168
 #define LOG_COMPASS3_MSG  169
 #define LOG_MODE_MSG      170
+#define LOG_GPSDIAG_MSG   171
 
 // message types 200 to 210 reversed for GPS driver use
 // message types 211 to 220 reversed for autotune use
