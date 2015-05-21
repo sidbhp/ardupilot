@@ -1067,6 +1067,11 @@ static void one_hz_loop()
     if (should_log(MASK_LOG_ANY)) {
         Log_Write_Data(DATA_AP_STATE, ap.value);
     }
+    if(should_log(MASK_LOG_GPS)) {
+        for (uint8_t i=0; i<gps.num_sensors(); i++) {
+            DataFlash.Log_Write_GPSdiag(gps, i);
+        }
+    }
 
     // perform pre-arm checks & display failures every 2 seconds
     if (!motors.armed()) {
@@ -1086,7 +1091,6 @@ static void one_hz_loop()
             set_pre_arm_check(pre_arm_checks(false));
         }
     }
-
     gcs_send_message(MSG_ARMMASK);
 
     // auto disarm checks
