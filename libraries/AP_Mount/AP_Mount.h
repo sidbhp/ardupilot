@@ -22,7 +22,7 @@
 #ifndef __AP_MOUNT_H__
 #define __AP_MOUNT_H__
 
-#include <AP_Mount/AP_Gimbal_Parameters.h>
+#include "AP_Gimbal_Parameters.h"
 #include <AP_Math/AP_Math.h>
 #include <AP_Common/AP_Common.h>
 #include <AP_GPS/AP_GPS.h>
@@ -42,7 +42,6 @@ class AP_Mount_MAVLink;
 class AP_Mount_Alexmos;
 class AP_Mount_SToRM32;
 class AP_Mount_SToRM32_serial;
-
 /*
   This is a workaround to allow the MAVLink backend access to the
   SmallEKF. It would be nice to find a neater solution to this
