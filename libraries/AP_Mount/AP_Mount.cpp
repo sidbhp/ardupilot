@@ -401,7 +401,7 @@ AP_Mount::AP_Mount(const AP_AHRS_TYPE &ahrs, const struct Location &current_loc)
 }
 
 // init - detect and initialise all mounts
-void AP_Mount::init(const AP_SerialManager& serial_manager)
+void AP_Mount::init(DataFlash_Class *dataflash, const AP_SerialManager& serial_manager)
 {
     // check init has not been called before
     if (_num_instances != 0) {
@@ -417,6 +417,8 @@ void AP_Mount::init(const AP_SerialManager& serial_manager)
         }
     }
 
+    _dataflash = dataflash;
+    
     // primary is reset to the first instantiated mount
     bool primary_set = false;
 
