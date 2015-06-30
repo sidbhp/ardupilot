@@ -76,7 +76,7 @@ private:
     // write buffer
     uint8_t _buf[NUM_BUFFER_BLOCKS][BUFFER_BLOCK_SIZE];
     uint32_t _block_num[NUM_BUFFER_BLOCKS];
-
+    bool _is_format_param_block[NUM_BUFFER_BLOCKS] = {0};
     struct {
         // socket to telem2 on aircraft
         bool connected;

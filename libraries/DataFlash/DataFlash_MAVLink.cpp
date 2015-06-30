@@ -74,9 +74,28 @@ void DataFlash_MAVLink::WriteBlock(const void *pBuffer, uint16_t size)
     if (!_initialised || !_logging_started) {
         return;
     }
-
+    //only send format and parameter log data for some time
+    if(!_log_format_param_block && hal.scheduler->millis() < 45000) {
+          return;
+    }
+    //its been too long to save format and parameter log data
+    //GCS should have abandoned looking for the packets anyway
+    // so clear up format and param blocks
+    static bool cleared_format_param_blocks;
+    if(hal.scheduler->millis() > 120000) {
+        _log_format_param_block = false;
+        if(!cleared_format_param_blocks) {
+            memset(_is_format_param_block, 0, sizeof(_is_format_param_block));
+            cleared_format_param_blocks = true;
+        }
+    }
     uint16_t copied = 0;
+    static uint32_t last_fblock_retry;
+
     while (copied < size) {
+        if(_log_format_param_block) {
+            _is_format_param_block[_cur_block_address] = true;
+        }
         uint16_t remaining_to_copy = size - copied;
         uint16_t _curr_remaining = _block_max_size - _latest_block_len;
         uint16_t to_copy = (remaining_to_copy > _curr_remaining) ? _curr_remaining : remaining_to_copy;
@@ -95,10 +114,16 @@ void DataFlash_MAVLink::WriteBlock(const void *pBuffer, uint16_t size)
 //Get address of empty block to ovewrite
 int8_t DataFlash_MAVLink::next_block_address()
 {
+    //if everything is filled with faormat and param data, edit the last block which mostly is going to be 
+    //a parameter and wouldn't corrupt the file
+    uint8_t oldest_block_address = 79;
 
-    uint8_t oldest_block_address = 0;
     for(uint8_t block = 0; block < _total_blocks; block++){
         if(_block_num[oldest_block_address] > _block_num[block]){
+            if(_is_format_param_block[block]) {
+                continue;
+            }
+        
             oldest_block_address = block;
             if (_block_num[oldest_block_address] == 0) {
                 break;
@@ -136,6 +161,7 @@ void DataFlash_MAVLink::handle_ack(uint32_t block_num)
     for(uint8_t block = 0; block < _total_blocks; block++){
         if(_block_num[block] == block_num) {
             _block_num[block] = 0;                  //forget the block if ack is received
+            _is_format_param_block[block] = false;        //the block is ack'd forget that it was format_param block if it was
             return;
         }
     }
@@ -163,7 +189,7 @@ void DataFlash_MAVLink::set_channel(mavlink_channel_t chan)
 void DataFlash_MAVLink::send_log_block(uint32_t block_address)
 {
     mavlink_channel_t chan = mavlink_channel_t(_chan - MAVLINK_COMM_0);
-    if (!_initialised){
+    if (!_initialised || comm_get_txspace(chan) < 255){
        return; 
     }
     mavlink_message_t msg;
