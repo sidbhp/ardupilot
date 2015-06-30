@@ -65,7 +65,6 @@ private:
 
     mavlink_channel_t _chan;
     bool _initialised;
-    bool _logging_started;
 
     uint16_t _total_blocks;
     const uint16_t _block_max_size;
