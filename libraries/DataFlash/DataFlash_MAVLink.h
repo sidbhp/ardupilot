@@ -19,7 +19,7 @@
 #endif
 #include<stdio.h>
 
-#define NUM_BUFFER_BLOCKS 80
+#define NUM_BUFFER_BLOCKS 200
 #define BUFFER_BLOCK_SIZE 200
 
 

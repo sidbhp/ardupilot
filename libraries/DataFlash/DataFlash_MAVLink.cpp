@@ -74,24 +74,9 @@ void DataFlash_MAVLink::WriteBlock(const void *pBuffer, uint16_t size)
     if (!_initialised || !_logging_started) {
         return;
     }
-    //only send format and parameter log data for some time
-    if(!_log_format_param_block && hal.scheduler->millis() < 45000) {
-          return;
-    }
-    //its been too long to save format and parameter log data
-    //GCS should have abandoned looking for the packets anyway
-    // so clear up format and param blocks
-    static bool cleared_format_param_blocks;
-    if(hal.scheduler->millis() > 120000) {
-        _log_format_param_block = false;
-        if(!cleared_format_param_blocks) {
-            memset(_is_format_param_block, 0, sizeof(_is_format_param_block));
-            cleared_format_param_blocks = true;
-        }
-    }
-    uint16_t copied = 0;
-    static uint32_t last_fblock_retry;
 
+    uint16_t copied = 0;
+    static uint32_t last_fpblock_retry;
     while (copied < size) {
         if(_log_format_param_block) {
             _is_format_param_block[_cur_block_address] = true;
@@ -107,6 +92,14 @@ void DataFlash_MAVLink::WriteBlock(const void *pBuffer, uint16_t size)
             send_log_block(_cur_block_address);  //block full send it
             _cur_block_address = next_block_address();
             _latest_block_len = 0;
+        }
+    }
+    if(_latest_block_len != 0) { //just making sure there was no block sent out recently
+        for(uint8_t block = 0; block < _total_blocks; block++){
+            if(_is_format_param_block[block] && (last_fpblock_retry - hal.scheduler->millis()) >= 100) {
+                send_log_block(block);
+                last_fpblock_retry = hal.scheduler->millis();
+            }
         }
     }
 }
