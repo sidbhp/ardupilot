@@ -48,7 +48,7 @@ public:
 
     Vector3f getGimbalEstimateEF();
 
-    struct Measurament {
+    struct {
         float delta_time;
         Vector3f delta_angles;
         Vector3f delta_velocity;
@@ -65,8 +65,6 @@ public:
     bool lockedToBody;
 
 private:
-    
-
     // filtered yaw rate from the vehicle
     float vehicleYawRateFilt;
 
