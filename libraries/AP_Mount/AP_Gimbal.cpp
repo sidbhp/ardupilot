@@ -10,6 +10,8 @@
 #include <AP_NavEKF/AP_SmallEKF.h>
 #include <AP_Math/AP_Math.h>
 
+extern const AP_HAL::HAL& hal;
+
 void AP_Gimbal::receive_feedback(mavlink_channel_t chan, mavlink_message_t *msg)
 {
     _gimbalParams.update(chan);
@@ -29,6 +31,12 @@ void AP_Gimbal::receive_feedback(mavlink_channel_t chan, mavlink_message_t *msg)
                 _gimbalParams.set_param(chan, "GMB_POS_HOLD", 0);
             }
         }
+    }
+
+    if (hal.util->get_soft_armed()) {
+        _gimbalParams.set_param(chan, "GMB_MAX_TORQUE", 0);
+    } else {
+        _gimbalParams.set_param(chan, "GMB_MAX_TORQUE", 5000);
     }
 }
 
