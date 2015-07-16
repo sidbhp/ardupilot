@@ -46,6 +46,8 @@ public:
     void    receive_feedback(mavlink_channel_t chan, mavlink_message_t *msg);
     void    send_report(mavlink_channel_t chan) const;
 
+    bool present();
+
     Vector3f getGimbalEstimateEF();
 
     struct {
@@ -107,6 +109,8 @@ private:
     Quaternion vehicle_to_gimbal_quat_filt;
     Vector3f filtered_joint_angles;
     Vector3f last_vehicle_gyro;
+
+    uint32_t _last_report_msg_ms;
 };
 
 #endif // AP_AHRS_NAVEKF_AVAILABLE
