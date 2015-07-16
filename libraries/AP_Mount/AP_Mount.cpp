@@ -576,6 +576,15 @@ void AP_Mount::control(uint8_t instance, int32_t pitch_or_lat, int32_t roll_or_l
     _backends[instance]->control(pitch_or_lat, roll_or_lon, yaw_or_alt, mount_mode);
 }
 
+void AP_Mount::update_fast()
+{
+    for (uint8_t instance=0; instance<AP_MOUNT_MAX_INSTANCES; instance++) {
+        if (_backends[instance] != NULL) {
+            _backends[instance]->update_fast();
+        }
+    }
+}
+
 /// Return mount status information
 void AP_Mount::status_msg(mavlink_channel_t chan)
 {
