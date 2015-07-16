@@ -921,6 +921,8 @@ static void fast_loop()
     update_land_and_crash_detectors();
 
     update_motor_fail_detector();
+
+    camera_mount.update_fast();
 }
 
 // rc_loops - reads user input from transmitter/receiver
