@@ -87,6 +87,24 @@ void AP_InertialSensor_Backend::_notify_new_gyro_raw_sample(uint8_t instance,
     // save previous delta angle for coning correction
     _imu._last_delta_angle[instance] = delta_angle;
     _imu._last_raw_gyro[instance] = gyro;
+
+    if (_imu._accel_calibrator[instance].get_status() == ACCEL_CAL_COLLECTING_SAMPLE) {
+        Vector3f cal_sample = delta_velocity;
+
+        //remove rotation
+        cal_sample.rotate_inverse(_imu._board_orientation);
+
+        // remove scale factors
+        const Vector3f &accel_scale = _imu._accel_scale[instance].get();
+        cal_sample.x /= accel_scale.x;
+        cal_sample.y /= accel_scale.y;
+        cal_sample.z /= accel_scale.z;
+
+        //remove offsets
+        cal_sample += _imu._accel_offset[instance].get() * dt;
+
+        _imu._accel_calibrator[instance].new_sample(cal_sample, dt);
+    }
 }
 
 /*
