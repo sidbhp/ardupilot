@@ -24,6 +24,13 @@
 #include <AP_AccelCal/AP_AccelCal.h>
 
 
+enum gimbal_mode_t {
+    GIMBAL_MODE_IDLE=0,
+    GIMBAL_MODE_POS_HOLD,
+    GIMBAL_MODE_POS_HOLD_FF,
+    GIMBAL_MODE_STABILIZE
+};
+
 class AP_Gimbal : AP_AccelCal_Client
 {
 public:
@@ -72,6 +79,8 @@ public:
     bool lockedToBody;
 
 private:
+    gimbal_mode_t _mode;
+
     // filtered yaw rate from the vehicle
     float vehicleYawRateFilt;
 
@@ -93,6 +102,8 @@ private:
     void update_state();
     void extract_feedback(const mavlink_gimbal_report_t& report_msg);
     void update_joint_angle_est();
+
+    void update_mode();
 
     bool isCopterFlipped();
     bool joints_near_limits();
