@@ -179,6 +179,11 @@ public:
      */
     static bool find_by_mavtype(uint8_t mav_type, uint8_t &sysid, uint8_t &compid, mavlink_channel_t &channel) { return routing.find_by_mavtype(mav_type, sysid, compid, channel); }
 
+    /*
+      send a MAVLink message to all channels
+    */
+    static void send_on_all_channels(const mavlink_message_t* msg) { routing.send_on_all_channels(msg); }
+
 private:
     void        handleMessage(mavlink_message_t * msg);
 
