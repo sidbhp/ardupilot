@@ -37,6 +37,7 @@ Compass::compass_cal_update()
         hal.scheduler->delay(1000);
         hal.scheduler->reboot(false);
     }
+
 }
 
 bool
