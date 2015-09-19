@@ -1,0 +1,1 @@
+git subtree push --prefix library/GCS_MAVLINK/mavlink mavlink master --squash
