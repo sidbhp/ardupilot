@@ -78,6 +78,7 @@ void AP_Gimbal::receive_feedback(mavlink_channel_t chan, mavlink_message_t *msg)
             break;
 
         case GIMBAL_STATE_PRESENT_ALIGNING:
+            _gimbalParams.update();
             extract_feedback(report_msg);
             update_estimators();
             if (_ekf.getStatus()) {
@@ -88,6 +89,7 @@ void AP_Gimbal::receive_feedback(mavlink_channel_t chan, mavlink_message_t *msg)
             break;
 
         case GIMBAL_STATE_PRESENT_RUNNING:
+            _gimbalParams.update();
             extract_feedback(report_msg);
             update_estimators();
             update_gimbal_gyro_bias();
