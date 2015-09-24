@@ -262,6 +262,41 @@ private:
             uint8_t lli;
         } svinfo[UBLOX_MAX_RXM_RAW_SATS];
     };
+    struct PACKED ubx_aid_alm {
+        int32_t svid;
+        int32_t week
+        uint32_t dwrd[8];
+    };
+    struct PACKED ubx_aid_eph {
+        unt32_t svid;
+        uint32_t how;
+        PACKED struct ubx_aid_eph_sv {
+            uint32_t sf1d[8];
+            uint32_t sf2d[8];
+            uint32_t sf3d[8];
+        } sveph[UBLOX_MAX_RXM_RAWX_SATS];
+    };
+    struct PACKED ubx_aid_uhi {
+        uint32_t health;
+        double utcA0;
+        double utcA1;
+        int32_t utcTOW;
+        int8_t utcWNT;
+        int16_t utcLS;
+        int16_t utcWNF;
+        int16_t utcDN;
+        int16_t utcLSF;
+        int16_t utcSpare;
+        float klobA0;
+        float klobA1;
+        float klobA2;
+        float klobA3;
+        float klobB0;
+        float klobB1;
+        float klobB2;
+        float klobB3;
+        uint32_t flags;
+    };
     struct PACKED ubx_rxm_rawx {
         double rcvTow;
         uint16_t week;

@@ -375,6 +375,86 @@ void AP_GPS_UBLOX::log_rxm_rawx(const struct ubx_rxm_rawx &raw)
         gps._DataFlash->WriteBlock(&pkt, sizeof(pkt));
     }
 }
+
+void AP_GPS_UBLOX::log_alm(const struct ubx_aid_alm &alm)
+{
+    if (gps._DataFlash == NULL || !gps._DataFlash->logging_started()) {
+        return;
+    }
+    uint64_t now = hal.scheduler->micros64();
+
+    struct log_GPS_ALM pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_GPS_ALM)
+        time_us     : now,
+        svid        : alm.svid,
+        week        : alm.week,
+        dwrd[0]     : alm.dwrd[0],
+        dwrd[1]     : alm.dwrd[1],
+        dwrd[2]     : alm.dwrd[2],
+        dwrd[3]     : alm.dwrd[3],
+        dwrd[4]     : alm.dwrd[4],
+        dwrd[5]     : alm.dwrd[5],
+        dwrd[6]     : alm.dwrd[6],
+        dwrd[7]     : alm.dwrd[7]
+    };
+
+    gps._DataFlash->WriteBlock(&pkt, sizeof(pkt));
+}
+
+void AP_GPS_UBLOX::log_eph(const struct ubx_aid_eph &eph)
+{
+    if (gps._DataFlash == NULL || !gps._DataFlash->logging_started()) {
+        return;
+    }
+    uint64_t now = hal.scheduler->micros64();
+    for (uint8_t i=0; i<)
+        struct log_GPS_EPH pkt;
+        pkt.head1 = HEAD_BYTE1;
+        pkt.head1 = HEAD_BYTE1;
+        pkt.msgid = LOG_GPS_EPH;
+        pkt.time_us = now;
+        pkt.svid = eph.svid;
+        pkt.how = eph.how;
+        memcpy(pkt.sf1d, eph.sf1d,sizeof(eph.sf1d);
+        memcpy(pkt.sf2d, eph.sf2d,sizeof(eph.sf2d);
+        memcpy(pkt.sf3d, eph.sf3d,sizeof(eph.sf3d);
+     }
+     
+     gps._DataFlash->WriteBlock(&pkt, sizeof(pkt));
+}
+
+void AP_GPS_UBLOX::log_uhi(cont struct ubx_aid_uhi)
+{
+    if (gps._DataFlash == NULL || !gps._DataFlash->logging_started()) {
+        return;
+    }
+    uint64_t now = hal.scheduler->micros64();
+    
+    struct log_GPS_ALM pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_GPS_UHI),
+        timeus      : uhi.timeus;      
+        health      : uhi.health;       
+        utcA0       : uhi.utcA0;        
+        utcA1       : uhi.utcA1;         
+        utcTOW      : uhi.utcTOW;         
+        tcWNT       : uhi.tcWNT;        
+        utcLS       : uhi.utcLS;         
+        utcWNF      : uhi.utcWNF;         
+        utcDN       : uhi.utcDN;        
+        utcLSF      : uhi.utcLSF;         
+        utcSpare    : uhi.utcSpare;         
+        klobA0      : uhi.klobA0;
+        klobA1      : uhi.klobA1;
+        klobA2      : uhi.klobA2;
+        klobA3      : uhi.klobA3;  
+        klobB0      : uhi.klobB0;
+        klobB1      : uhi.klobB1;
+        klobB2      : uhi.klobB2;
+        klobB3      : uhi.klobB3;
+        flags       : uhi.flags;
+    }
+    gps._DataFlash->WriteBlock(&pkt, sizeof(pkt));
+}
 #endif // UBLOX_RXM_RAW_LOGGING
 
 void AP_GPS_UBLOX::unexpected_message(void)
