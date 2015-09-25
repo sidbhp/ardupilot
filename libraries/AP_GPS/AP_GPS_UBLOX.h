@@ -38,7 +38,9 @@
  * would mean we would never detect it.
  */
 #define UBLOX_SET_BINARY "\265\142\006\001\003\000\001\006\001\022\117$PUBX,41,1,0003,0001,38400,0*26\r\n"
-
+#define UBLOX_MAX_RXM_RAW_SATS 22
+#define UBLOX_MAX_RXM_RAWX_SATS 32
+#define UBLOX_RXM_RAW_LOGGING 1
 //Configuration Sub-Sections
 #define SAVE_CFG_IO     (1<<0)
 #define SAVE_CFG_MSG    (1<<1)
@@ -214,11 +216,86 @@ private:
         uint8_t clsID;
         uint8_t msgID;
     };
+
     struct PACKED ubx_cfg_cfg {
         uint32_t clearMask;
         uint32_t saveMask;
         uint32_t loadMask;
     };
+
+    struct PACKED ubx_aid_alm {
+        int32_t svid;
+        int32_t week;
+        uint32_t dwrd[8];
+    };
+    struct PACKED ubx_aid_eph {
+        uint32_t svid;
+        uint32_t how;
+        uint32_t sf1d[8];
+        uint32_t sf2d[8];
+        uint32_t sf3d[8];
+    };
+    struct PACKED ubx_aid_uhi {
+        uint32_t health;
+        double utcA0;
+        double utcA1;
+        int32_t utcTOW;
+        int8_t utcWNT;
+        int16_t utcLS;
+        int16_t utcWNF;
+        int16_t utcDN;
+        int16_t utcLSF;
+        int16_t utcSpare;
+        float klobA0;
+        float klobA1;
+        float klobA2;
+        float klobA3;
+        float klobB0;
+        float klobB1;
+        float klobB2;
+        float klobB3;
+        uint32_t flags;
+    };
+    struct PACKED ubx_rxm_rawx {
+        double rcvTow;
+        uint16_t week;
+        int8_t leapS;
+        uint8_t numMeas;
+        uint8_t recStat;
+        uint8_t reserved1[3];
+        PACKED struct ubx_rxm_rawx_sv {
+            double prMes;
+            double cpMes;
+            float doMes;
+            uint8_t gnssId;
+            uint8_t svId;
+            uint8_t reserved2;
+            uint8_t freqId;
+            uint16_t locktime;
+            uint8_t cno;
+            uint8_t prStdev;
+            uint8_t cpStdev;
+            uint8_t doStdev;
+            uint8_t trkStat;
+            uint8_t reserved3;
+        } svinfo[UBLOX_MAX_RXM_RAWX_SATS];
+    };
+    struct PACKED ubx_rxm_raw {
+        int32_t iTOW;
+        int16_t week;
+        uint8_t numSV;
+        uint8_t reserved1;
+        struct ubx_rxm_raw_sv {
+            double cpMes;
+            double prMes;
+            float doMes;
+            uint8_t sv;
+            int8_t mesQI;
+            int8_t cno;
+            uint8_t lli;
+        } svinfo[UBLOX_MAX_RXM_RAW_SATS];
+    };
+
     // Receive buffer
     union PACKED {
         ubx_nav_posllh posllh;
@@ -232,6 +309,10 @@ private:
         ubx_cfg_sbas sbas;
         ubx_nav_svinfo_header svinfo_header;
         ubx_ack_ack ack;
+        ubx_rxm_rawx rawx;
+        ubx_aid_uhi uhi;
+        ubx_aid_alm alm;
+        ubx_aid_eph eph;
         uint8_t bytes[];
     } _buffer;
 
@@ -242,6 +323,8 @@ private:
         CLASS_ACK = 0x05,
         CLASS_CFG = 0x06,
         CLASS_MON = 0x0A,
+        CLASS_AID = 0x0B,
+        CLASS_RXM = 0x02,
         MSG_ACK_NACK = 0x00,
         MSG_ACK_ACK = 0x01,
         MSG_POSLLH = 0x2,
@@ -256,7 +339,12 @@ private:
         MSG_CFG_SBAS = 0x16,
         MSG_MON_HW = 0x09,
         MSG_MON_HW2 = 0x0B,
-        MSG_NAV_SVINFO = 0x30
+        MSG_NAV_SVINFO = 0x30,
+        MSG_RXM_RAW = 0x10,
+        MSG_RXM_RAWX = 0x15,
+        MSG_AID_UHI = 0x02,
+        MSG_AID_EPH = 0x31,
+        MSG_AID_ALM = 0x30
     };
     enum ubs_nav_fix_type {
         FIX_NONE = 0,
@@ -287,9 +375,9 @@ private:
     uint16_t        _payload_length;
     uint16_t        _payload_counter;
 
-	// 8 bit count of fix messages processed, used for periodic
-	// processing
-    uint8_t			_fix_count;
+    // 8 bit count of fix messages processed, used for periodic
+    // processing
+    uint8_t         _fix_count;
     uint8_t         _class;
     bool            _cfg_saved;
 
@@ -318,8 +406,8 @@ private:
     void        _configure_message_rate(uint8_t msg_class, uint8_t msg_id, uint8_t rate);
     void        _configure_gps(void);
     void        _configure_sbas(bool enable);
-    void        _update_checksum(uint8_t *data, uint8_t len, uint8_t &ck_a, uint8_t &ck_b);
-    void        _send_message(uint8_t msg_class, uint8_t msg_id, void *msg, uint8_t size);
+    void        _update_checksum(uint8_t *data, uint16_t len, uint8_t &ck_a, uint8_t &ck_b);
+    void        _send_message(uint8_t msg_class, uint8_t msg_id, void *msg, uint16_t size);
     void		send_next_rate_update(void);
     void        _request_version(void);
     void        _save_cfg(void);
@@ -332,6 +420,11 @@ private:
     void log_ack(uint8_t class_id, uint8_t msg_id);
     void log_nak(uint8_t class_id, uint8_t msg_id);
     void log_nav_settings(uint8_t nav_eng, int8_t min_elev);
+    void log_rxm_rawx(const struct ubx_rxm_rawx &raw);
+    void log_rxm_raw(const struct ubx_rxm_raw &raw);
+    void log_alm(const struct ubx_aid_alm &alm);
+    void log_eph(const struct ubx_aid_eph &eph);
+    void log_uhi(const struct ubx_aid_uhi &uhi);
 };
 
 #endif // __AP_GPS_UBLOX_H__

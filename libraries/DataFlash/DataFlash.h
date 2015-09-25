@@ -133,10 +133,10 @@ protected:
 // structure used to define logging format
 struct LogStructure {
     uint8_t msg_type;
-    uint8_t msg_len;
+    uint16_t msg_len;
     const char name[5];
-    const char format[16];
-    const char labels[64];
+    const char format[32];
+    const char labels[256];
 };
 
 /*
@@ -145,10 +145,10 @@ struct LogStructure {
 struct PACKED log_Format {
     LOG_PACKET_HEADER;
     uint8_t type;
-    uint8_t length;
+    uint16_t length;
     char name[4];
-    char format[16];
-    char labels[64];
+    char format[32];
+    char labels[256];
 };
 
 struct PACKED log_Parameter {
@@ -484,6 +484,91 @@ struct PACKED log_TERRAIN {
 /*
   UBlox logging
  */
+struct PACKED log_GPS_RAW {
+    LOG_PACKET_HEADER;
+    uint32_t time_ms;
+    int32_t iTOW;
+    int16_t week;
+    uint8_t numSV;
+    uint8_t sv;
+    double cpMes;
+    double prMes;
+    float doMes;
+    int8_t mesQI;
+    int8_t cno;
+    uint8_t lli;
+};
+
+struct PACKED log_GPS_RAWH {
+    LOG_PACKET_HEADER;
+    uint32_t time_ms;
+    double rcvTow;
+    uint16_t week;
+    int8_t leapS;
+    uint8_t numMeas;
+    uint8_t recStat;
+};
+
+struct PACKED log_GPS_RAWS {
+    LOG_PACKET_HEADER;
+    uint32_t time_ms;
+    double prMes;
+    double cpMes;
+    float doMes;
+    uint8_t gnssId;
+    uint8_t svId;
+    uint8_t freqId;
+    uint16_t locktime;
+    uint8_t cno;
+    uint8_t prStdev;
+    uint8_t cpStdev;
+    uint8_t doStdev;
+    uint8_t trkStat;
+};
+
+
+struct PACKED log_GPS_alm {
+    LOG_PACKET_HEADER;
+    uint32_t time_ms;
+    int32_t svid;
+    int32_t week;
+    uint32_t dwrd[8];
+};
+
+struct PACKED log_GPS_eph {
+    LOG_PACKET_HEADER;
+    uint32_t time_ms;
+    uint32_t svid;
+    uint32_t how;
+    uint32_t sf1d[8];
+    uint32_t sf2d[8];
+    uint32_t sf3d[8];
+};
+
+struct PACKED log_GPS_UHI {
+    LOG_PACKET_HEADER;
+    uint32_t time_ms;
+    uint32_t health;
+    double utcA0;
+    double utcA1;
+    int32_t utcTOW;
+    int8_t utcWNT;
+    int16_t utcLS;
+    int16_t utcWNF;
+    int16_t utcDN;
+    int16_t utcLSF;
+    int16_t utcSpare;
+    float klobA0;
+    float klobA1;
+    float klobA2;
+    float klobA3;
+    float klobB0;
+    float klobB1;
+    float klobB2;
+    float klobB3;
+    uint32_t flags;
+};
+
 struct PACKED log_Ubx1 {
     LOG_PACKET_HEADER;
     uint32_t timestamp;
@@ -585,7 +670,7 @@ Format characters in the format string for binary log messages
 // messages for all boards
 #define LOG_BASE_STRUCTURES \
     { LOG_FORMAT_MSG, sizeof(log_Format), \
-      "FMT", "BBnNZ",      "Type,Length,Name,Format,Columns" },    \
+      "FMT", "BHnNZ",      "Type,Length,Name,Format,Columns" },    \
     { LOG_PARAMETER_MSG, sizeof(log_Parameter), \
       "PARM", "Nf",        "Name,Value" },    \
     { LOG_GPS_MSG, sizeof(log_GPS), \
@@ -761,7 +846,11 @@ Format characters in the format string for binary log messages
 #define LOG_UACK_MSG      181
 #define LOG_UNAK_MSG      182
 #define LOG_USTG_MSG      183
-
+#define LOG_GPS_RAWS_MSG  184
+#define LOG_GPS_RAWH_MSG  185
+#define LOG_GPS_ALM_MSG   186
+#define LOG_GPS_EPH_MSG   187
+#define LOG_GPS_UHI_MSG   189
 // message types 200 to 210 reversed for GPS driver use
 // message types 211 to 220 reversed for autotune use
 

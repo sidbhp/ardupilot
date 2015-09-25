@@ -31,7 +31,7 @@
 #endif
 
 
-#define UBLOX_DEBUGGING 0
+#define UBLOX_DEBUGGING 1
 #define UBLOX_FAKE_3DLOCK 0
 
 extern const AP_HAL::HAL& hal;
@@ -48,8 +48,10 @@ extern const AP_HAL::HAL& hal;
  */
 #if HAL_CPU_CLASS >= HAL_CPU_CLASS_75
 #define UBLOX_HW_LOGGING 1
+#define UBLOX_RXM_RAW_LOGGING 1
 #else
 #define UBLOX_HW_LOGGING 0
+#define UBLOX_RXM_RAW_LOGGING 0
 #endif
 
 AP_GPS_UBLOX::AP_GPS_UBLOX(AP_GPS &_gps, AP_GPS::GPS_State &_state, AP_HAL::UARTDriver *_port) :
@@ -122,6 +124,20 @@ AP_GPS_UBLOX::send_next_rate_update(void)
 #if UBLOX_VERSION_AUTODETECTION 
     case 7:
         _request_version();
+        break;
+#endif
+#if UBLOX_RXM_RAW_LOGGING
+    case 8:
+        _configure_message_rate(CLASS_RXM, MSG_RXM_RAW, 1); // 24*16+8 bytes
+        break;
+    case 9:
+        _configure_message_rate(CLASS_AID, MSG_AID_UHI, 10); // 24*16+8 bytes
+        break;
+    case 10:
+        _configure_message_rate(CLASS_AID, MSG_AID_ALM, 10); // 24*16+8 bytes
+        break;
+    case 11:
+        _configure_message_rate(CLASS_AID, MSG_AID_EPH, 10); // 24*16+8 bytes
         break;
 #endif
     default:
@@ -303,7 +319,7 @@ void AP_GPS_UBLOX::log_mon_hw2(void)
     };
     gps._DataFlash->WriteBlock(&pkt, sizeof(pkt));
 }
-
+#endif // UBLOX_HW_LOGGING
 void AP_GPS_UBLOX::log_accuracy(void) {
     if (gps._DataFlash == NULL || !gps._DataFlash->logging_started()) {
         return;
@@ -367,7 +383,141 @@ void AP_GPS_UBLOX::log_nav_settings(uint8_t nav_eng, int8_t min_elev) {
     gps._DataFlash->WriteBlock(&pkt, sizeof(pkt));
 }
 
-#endif // UBLOX_HW_LOGGING
+
+#if UBLOX_RXM_RAW_LOGGING
+void AP_GPS_UBLOX::log_rxm_raw(const struct ubx_rxm_raw &raw)
+{
+    if (gps._DataFlash == NULL || !gps._DataFlash->logging_started()) {
+        return;
+    }
+    uint32_t now = hal.scheduler->millis();
+    for (uint8_t i=0; i<raw.numSV; i++) {
+        struct log_GPS_RAW pkt = {
+            LOG_PACKET_HEADER_INIT(LOG_GPS_RAW_MSG),
+            time_ms  : now,
+            iTOW       : raw.iTOW,
+            week       : raw.week,
+            numSV      : raw.numSV,
+            sv         : raw.svinfo[i].sv,
+            cpMes      : raw.svinfo[i].cpMes,
+            prMes      : raw.svinfo[i].prMes,
+            doMes      : raw.svinfo[i].doMes,
+            mesQI      : raw.svinfo[i].mesQI,
+            cno        : raw.svinfo[i].cno,
+            lli        : raw.svinfo[i].lli
+        };
+        gps._DataFlash->WriteBlock(&pkt, sizeof(pkt));
+    }
+}
+
+void AP_GPS_UBLOX::log_rxm_rawx(const struct ubx_rxm_rawx &raw)
+{
+    if (gps._DataFlash == NULL || !gps._DataFlash->logging_started()) {
+        return;
+    }
+    uint32_t now = hal.scheduler->millis();
+
+    struct log_GPS_RAWH header = {
+        LOG_PACKET_HEADER_INIT(LOG_GPS_RAWH_MSG),
+        time_ms    : now,
+        rcvTow     : raw.rcvTow,
+        week       : raw.week,
+        leapS      : raw.leapS,
+        numMeas    : raw.numMeas,
+        recStat    : raw.recStat
+    };
+    gps._DataFlash->WriteBlock(&header, sizeof(header));
+
+    for (uint8_t i=0; i<raw.numMeas; i++) {
+        struct log_GPS_RAWS pkt = {
+            LOG_PACKET_HEADER_INIT(LOG_GPS_RAWS_MSG),
+            time_ms    : now,
+            prMes      : raw.svinfo[i].prMes,
+            cpMes      : raw.svinfo[i].cpMes,
+            doMes      : raw.svinfo[i].doMes,
+            gnssId     : raw.svinfo[i].gnssId,
+            svId       : raw.svinfo[i].svId,
+            freqId     : raw.svinfo[i].freqId,
+            locktime   : raw.svinfo[i].locktime,
+            cno        : raw.svinfo[i].cno,
+            prStdev    : raw.svinfo[i].prStdev,
+            cpStdev    : raw.svinfo[i].cpStdev,
+            doStdev    : raw.svinfo[i].doStdev,
+            trkStat    : raw.svinfo[i].trkStat
+        };
+        gps._DataFlash->WriteBlock(&pkt, sizeof(pkt));
+    }
+}
+
+void AP_GPS_UBLOX::log_alm(const struct ubx_aid_alm &alm)
+{
+    if (gps._DataFlash == NULL || !gps._DataFlash->logging_started()) {
+        return;
+    }
+    uint64_t now = hal.scheduler->micros64();
+
+    struct log_GPS_alm pkt;
+    pkt.head1 = HEAD_BYTE1;
+    pkt.head1 = HEAD_BYTE1;
+    pkt.msgid = LOG_GPS_ALM_MSG;
+    memcpy(pkt.dwrd,alm.dwrd,sizeof(alm.dwrd));
+
+    gps._DataFlash->WriteBlock(&pkt, sizeof(pkt));
+}
+
+void AP_GPS_UBLOX::log_eph(const struct ubx_aid_eph &eph)
+{
+    if (gps._DataFlash == NULL || !gps._DataFlash->logging_started()) {
+        return;
+    }
+    uint64_t now = hal.scheduler->millis();
+    struct log_GPS_eph pkt;
+    pkt.head1 = HEAD_BYTE1;
+    pkt.head1 = HEAD_BYTE1;
+    pkt.msgid = LOG_GPS_EPH_MSG;
+    pkt.time_ms = now;
+    pkt.svid = eph.svid;
+    pkt.how = eph.how;
+    memcpy(pkt.sf1d, eph.sf1d,sizeof(eph.sf1d));
+    memcpy(pkt.sf2d, eph.sf2d,sizeof(eph.sf2d));
+    memcpy(pkt.sf3d, eph.sf3d,sizeof(eph.sf3d));
+     
+    gps._DataFlash->WriteBlock(&pkt, sizeof(pkt));
+}
+
+void AP_GPS_UBLOX::log_uhi(const struct ubx_aid_uhi &uhi)
+{
+    if (gps._DataFlash == NULL || !gps._DataFlash->logging_started()) {
+        return;
+    }
+    uint32_t now = hal.scheduler->millis();
+    
+    struct log_GPS_UHI pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_GPS_UHI_MSG),
+        time_ms     : now,      
+        health      : uhi.health,       
+        utcA0       : uhi.utcA0,       
+        utcA1       : uhi.utcA1,         
+        utcTOW      : uhi.utcTOW,         
+        utcWNT      : uhi.utcWNT,       
+        utcLS       : uhi.utcLS,         
+        utcWNF      : uhi.utcWNF,         
+        utcDN       : uhi.utcDN,       
+        utcLSF      : uhi.utcLSF,         
+        utcSpare    : uhi.utcSpare,         
+        klobA0      : uhi.klobA0,
+        klobA1      : uhi.klobA1,
+        klobA2      : uhi.klobA2,
+        klobA3      : uhi.klobA3,  
+        klobB0      : uhi.klobB0,
+        klobB1      : uhi.klobB1,
+        klobB2      : uhi.klobB2,
+        klobB3      : uhi.klobB3,
+        flags       : uhi.flags
+    };
+    gps._DataFlash->WriteBlock(&pkt, sizeof(pkt));
+}
+#endif // UBLOX_RXM_RAW_LOGGING
 
 void AP_GPS_UBLOX::unexpected_message(void)
 {
@@ -466,6 +616,29 @@ AP_GPS_UBLOX::_parse_gps(void)
         return false;
     }
 #endif // UBLOX_HW_LOGGING
+
+#if UBLOX_RXM_RAW_LOGGING
+    if (_class == CLASS_RXM && _msg_id == MSG_RXM_RAWX) {
+        log_rxm_rawx(_buffer.rawx);
+        Debug("MSG_RXM_RAWX");
+        return false;
+    }
+    if (_class == CLASS_AID && _msg_id == MSG_AID_UHI) {
+        log_uhi(_buffer.uhi);
+        Debug("MSG_AID_UHI");
+        return false;
+    }
+    if (_class == CLASS_AID && _msg_id == MSG_AID_EPH) {
+        log_eph(_buffer.eph);
+        Debug("MSG_AID_EPH");
+        return false;
+    }
+    if (_class == CLASS_AID && _msg_id == MSG_AID_ALM) {
+        log_alm(_buffer.alm);
+        Debug("MSG_AID_ALM");
+        return false;
+    }
+#endif // UBLOX_RXM_RAW_LOGGING
 
     if (_class != CLASS_NAV) {
         unexpected_message();
@@ -642,7 +815,7 @@ AP_GPS_UBLOX::_parse_gps(void)
  *  update checksum for a set of bytes
  */
 void
-AP_GPS_UBLOX::_update_checksum(uint8_t *data, uint8_t len, uint8_t &ck_a, uint8_t &ck_b)
+AP_GPS_UBLOX::_update_checksum(uint8_t *data, uint16_t len, uint8_t &ck_a, uint8_t &ck_b)
 {
     while (len--) {
         ck_a += *data;
@@ -656,7 +829,7 @@ AP_GPS_UBLOX::_update_checksum(uint8_t *data, uint8_t len, uint8_t &ck_a, uint8_
  *  send a ublox message
  */
 void
-AP_GPS_UBLOX::_send_message(uint8_t msg_class, uint8_t msg_id, void *msg, uint8_t size)
+AP_GPS_UBLOX::_send_message(uint8_t msg_class, uint8_t msg_id, void *msg, uint16_t size)
 {
     struct ubx_header header;
     uint8_t ck_a=0, ck_b=0;
