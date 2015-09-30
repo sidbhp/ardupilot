@@ -201,7 +201,7 @@ void LR_MsgHandler_GRXH::process_message(uint8_t *msg)
     require_field(msg,"gnssId",gnssId);
     require_field(msg,"svId",svId);
     require_field(msg,"freqId",freqId);
-    require_field(msg,"numWord",numWord);
+    require_field(msg,"numWords",numWords);
     
     gps.setHIL_SFRB_hdr(timems,
                     gnssId,
@@ -233,10 +233,10 @@ void LR_MsgHandler_GSFH::process_message(uint8_t *msg)
                        recStat);
 }
 
-void LR_MsgHandler_GRXH::process_message(uint8_t *msg)
+void LR_MsgHandler_GSFS::process_message(uint8_t *msg)
 {
     uint32_t timems;
-    uint8_t numWor;
+    uint8_t numWord;
     uint32_t dwrd;
 
     require_field(msg,"timems",timems);
@@ -256,7 +256,7 @@ void LR_MsgHandler_GRXS::process_message(uint8_t *msg)
     float    doMes;
     uint8_t  gnss;
     uint8_t  sv;
-    uint8_t  freq,;
+    uint8_t  freq;
     uint16_t lock;
     uint8_t  cno;
     uint8_t  prD;
@@ -270,7 +270,7 @@ void LR_MsgHandler_GRXS::process_message(uint8_t *msg)
     require_field(msg,"doMes",doMes);
     require_field(msg,"gnss",gnss);
     require_field(msg,"sv",sv);
-    require_field(msg,"freq,",freq,);
+    require_field(msg,"freq,",freq);
     require_field(msg,"lock",lock);
     require_field(msg,"cno",cno);
     require_field(msg,"prD",prD);
