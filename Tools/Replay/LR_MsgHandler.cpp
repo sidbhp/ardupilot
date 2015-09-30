@@ -189,6 +189,110 @@ void LR_MsgHandler_GPS::process_message(uint8_t *msg)
 }
 
 
+void LR_MsgHandler_GRXH::process_message(uint8_t *msg)
+{
+    uint32_t timems;
+    uint8_t  gnssId;
+    uint8_t  svId;
+    uint8_t  freqId;
+    uint8_t  numWords;
+    
+    require_field(msg,"TimeMS",timems);
+    require_field(msg,"gnssId",gnssId);
+    require_field(msg,"svId",svId);
+    require_field(msg,"freqId",freqId);
+    require_field(msg,"numWord",numWord);
+    
+    gps.setHIL_SFRB_hdr(timems,
+                    gnssId,
+                    svId,
+                    freqId,
+                    numWords);
+}
+void LR_MsgHandler_GSFH::process_message(uint8_t *msg)
+{
+    uint32_t timems;
+    double rcvTime;
+    uint16_t week;
+    int8_t leapS;
+    uint8_t numMeas;
+    uint8_t recStat;
+    
+    require_field(msg,"TimeMS",timems);
+    require_field(msg,"rcvTime",rcvTime);
+    require_field(msg,"week",week);
+    require_field(msg,"leapS",leapS);
+    require_field(msg,"numMeas",numMeas);
+    require_field(msg,"recStat",recStat);
+    
+    gps.setHIL_RAW_hdr(timems,
+                       rcvTime,
+                       week,
+                       leapS,
+                       numMeas,
+                       recStat);
+}
+
+void LR_MsgHandler_GRXH::process_message(uint8_t *msg)
+{
+    uint32_t timems;
+    uint8_t numWor;
+    uint32_t dwrd;
+
+    require_field(msg,"timems",timems);
+    require_field(msg,"numWord",numWord);
+    require_field(msg,"dwrd",dwrd);
+
+    gps.setHIL_SFRB_data(timems,
+                     numWord,
+                     dwrd);
+}
+
+void LR_MsgHandler_GRXS::process_message(uint8_t *msg)
+{
+    uint32_t timems;
+    double   prMes;
+    double   cpMes;
+    float    doMes;
+    uint8_t  gnss;
+    uint8_t  sv;
+    uint8_t  freq,;
+    uint16_t lock;
+    uint8_t  cno;
+    uint8_t  prD;
+    uint8_t  cpD;
+    uint8_t  doD;
+    uint8_t  trk;
+    
+    require_field(msg,"timems",timems);
+    require_field(msg,"prMes",prMes);
+    require_field(msg,"cpMes",cpMes);
+    require_field(msg,"doMes",doMes);
+    require_field(msg,"gnss",gnss);
+    require_field(msg,"sv",sv);
+    require_field(msg,"freq,",freq,);
+    require_field(msg,"lock",lock);
+    require_field(msg,"cno",cno);
+    require_field(msg,"prD",prD);
+    require_field(msg,"cpD",cpD);
+    require_field(msg,"doD",doD);
+    require_field(msg,"trk",trk);
+    
+    gps.setHIL_RAW_data(timems,
+                        prMes,
+                        cpMes,
+                        doMes,
+                        gnss,
+                        sv,
+                        freq, 
+                        lock,
+                        cno,
+                        prD,
+                        cpD,
+                        doD,
+                        trk);
+}
+
 void LR_MsgHandler_IMU2::process_message(uint8_t *msg)
 {
   update_from_msg_imu(1, msg);

@@ -175,6 +175,58 @@ private:
     float &rel_altitude;
 };
 
+class LR_MsgHandler_GRXH
+{
+public:
+    LR_MsgHandler_GRXH(log_Format &_f, DataFlash_Class &_dataflash,
+                   uint64_t &_last_timestamp_usec, AP_GPS &_gps),
+                   gps(_gps) { };
+
+    void process_message(uint8_t *msg);
+
+private:
+    AP_GPS &gps;
+};
+
+class LR_MsgHandler_GRXS
+{
+public:
+    LR_MsgHandler_GRXS(log_Format &_f, DataFlash_Class &_dataflash,
+                   uint64_t &_last_timestamp_usec, AP_GPS &_gps),
+              gps(_gps) { };
+
+    void process_message(uint8_t *msg);
+
+private:
+    AP_GPS &gps;
+};
+
+class LR_MsgHandler_GSFH
+{
+public:
+    LR_MsgHandler_GSFH(log_Format &_f, DataFlash_Class &_dataflash,
+                   uint64_t &_last_timestamp_usec, AP_GPS &_gps),
+              gps(_gps) { };
+
+    void process_message(uint8_t *msg);
+
+private:
+    AP_GPS &gps;
+};
+
+class LR_MsgHandler_GSFS
+{
+public:
+    LR_MsgHandler_GSFS(log_Format &_f, DataFlash_Class &_dataflash,
+                   uint64_t &_last_timestamp_usec, AP_GPS &_gps),
+              gps(_gps) { };
+
+    void process_message(uint8_t *msg);
+
+private:
+    AP_GPS &gps;
+};
+
 // it would be nice to use the same parser for both GPS message types
 // (and other packets, too...).  I*think* the contructor can simply
 // take e.g. &gps[1]... problems are going to arise if we don't

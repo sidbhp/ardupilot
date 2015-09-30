@@ -174,7 +174,23 @@ bool LogReader::handle_log_format_msg(const struct log_Format &f)
                                                     last_timestamp_usec,
 						    gps, ground_alt_cm,
 						    rel_altitude);
-	} else if (streq(name, "MSG")) {
+	} else if (streq(name, "GRXH")) {
+	    msgparser[f.type] = new LR_MsgHandler_GRXH(formats[f.type], dataflash,
+                                                    last_timestamp_usec,
+                        						    gps);
+	} else if (streq(name, "GRXS")) {
+	    msgparser[f.type] = new LR_MsgHandler_GRXS(formats[f.type], dataflash,
+                                                    last_timestamp_usec,
+                        						    gps);
+	} else if (streq(name, "GSFH")) {
+	    msgparser[f.type] = new LR_MsgHandler_GSFH(formats[f.type], dataflash,
+                                                    last_timestamp_usec,
+                        						    gps);
+    } else if (streq(name, "GSFS")) {
+	    msgparser[f.type] = new LR_MsgHandler_GSFS(formats[f.type], dataflash,
+                                                    last_timestamp_usec,
+                        						    gps);
+    } else if (streq(name, "MSG")) {
 	    msgparser[f.type] = new LR_MsgHandler_MSG(formats[f.type], dataflash,
                                                    last_timestamp_usec,
 						   vehicle, ahrs);

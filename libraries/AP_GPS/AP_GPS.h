@@ -330,6 +330,14 @@ public:
                 const Location &location, const Vector3f &velocity, uint8_t num_sats,
                 uint16_t hdop, bool _have_vertical_velocity);
 
+    void setHIL_SFRB_hdr(uint32_t timems,uint8_t gnssId,uint8_t svId,uint8_t freqId,uint8_t numWords);
+    void setHIL_RAW_hdr(uint32_t timems,double rcvTime,uint16_t week,int8_t leapS,uint8_t numMeas,uint8_t recStat);
+    void setHIL_SFRB_data(uint32_t timems,uint8_t numWord,uint32_t dwrd);
+    void setHIL_RAW_data(uint32_t timems,double prMes,double cpMes,float doMes,uint8_t gnss,
+                                 uint8_t sv,uint8_t freq, uint16_t lock,uint8_t cno,uint8_t prD,
+                                 uint8_t cpD,uint8_t doD,uint8_t trk);
+
+    
     static const struct AP_Param::GroupInfo var_info[];
 
     // dataflash for logging, if available
