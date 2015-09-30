@@ -40,7 +40,9 @@
 #define UBLOX_SET_BINARY "\265\142\006\001\003\000\001\006\001\022\117$PUBX,41,1,0003,0001,38400,0*26\r\n"
 #define UBLOX_MAX_RXM_RAW_SATS 22
 #define UBLOX_MAX_RXM_RAWX_SATS 32
+
 #define UBLOX_RXM_RAW_LOGGING 1
+
 //Configuration Sub-Sections
 #define SAVE_CFG_IO     (1<<0)
 #define SAVE_CFG_MSG    (1<<1)
@@ -79,6 +81,11 @@ private:
         uint8_t msg_class;
         uint8_t msg_id;
         uint8_t rate;
+    };
+    struct PACKED ubx_cfg_msg_rate_multiple {
+        uint8_t msg_class;
+        uint8_t msg_id;
+        uint8_t rate[6];
     };
     struct PACKED ubx_cfg_nav_settings {
         uint16_t mask;
@@ -224,8 +231,8 @@ private:
     };
 
     struct PACKED ubx_aid_alm {
-        int32_t svid;
-        int32_t week;
+        uint32_t svid;
+        uint32_t week;
         uint32_t dwrd[8];
     };
     struct PACKED ubx_aid_eph {
@@ -240,20 +247,13 @@ private:
         double utcA0;
         double utcA1;
         int32_t utcTOW;
-        int8_t utcWNT;
+        int16_t utcWNT;
         int16_t utcLS;
         int16_t utcWNF;
         int16_t utcDN;
         int16_t utcLSF;
         int16_t utcSpare;
-        float klobA0;
-        float klobA1;
-        float klobA2;
-        float klobA3;
-        float klobB0;
-        float klobB1;
-        float klobB2;
-        float klobB3;
+        float klob[8];
         uint32_t flags;
     };
     struct PACKED ubx_rxm_rawx {
@@ -296,6 +296,18 @@ private:
         } svinfo[UBLOX_MAX_RXM_RAW_SATS];
     };
 
+    struct PACKED ubx_rxm_sfrbx {
+        uint8_t gnssId;
+        uint8_t svId;
+        uint8_t reserved1;
+        uint8_t freqId;
+        uint8_t numWords;
+        uint8_t reserved2;
+        uint8_t version;
+        uint8_t reserved3;
+        uint32_t dwrd[16];
+    };
+
     // Receive buffer
     union PACKED {
         ubx_nav_posllh posllh;
@@ -313,6 +325,7 @@ private:
         ubx_aid_uhi uhi;
         ubx_aid_alm alm;
         ubx_aid_eph eph;
+        ubx_rxm_sfrbx sfrbx;
         uint8_t bytes[];
     } _buffer;
 
@@ -342,6 +355,7 @@ private:
         MSG_NAV_SVINFO = 0x30,
         MSG_RXM_RAW = 0x10,
         MSG_RXM_RAWX = 0x15,
+        MSG_RXM_SFRBX = 0x13,
         MSG_AID_UHI = 0x02,
         MSG_AID_EPH = 0x31,
         MSG_AID_ALM = 0x30
@@ -401,6 +415,8 @@ private:
     uint8_t rate_update_step;
     uint32_t _last_5hz_time;
     uint32_t _last_hw_status;
+    uint32_t _last_request_time;
+    uint8_t _request_message;
 
     void 	    _configure_navigation_rate(uint16_t rate_ms);
     void        _configure_message_rate(uint8_t msg_class, uint8_t msg_id, uint8_t rate);
@@ -422,6 +438,7 @@ private:
     void log_nav_settings(uint8_t nav_eng, int8_t min_elev);
     void log_rxm_rawx(const struct ubx_rxm_rawx &raw);
     void log_rxm_raw(const struct ubx_rxm_raw &raw);
+    void log_sfrbx(const struct ubx_rxm_sfrbx &sfrbx);
     void log_alm(const struct ubx_aid_alm &alm);
     void log_eph(const struct ubx_aid_eph &eph);
     void log_uhi(const struct ubx_aid_uhi &uhi);

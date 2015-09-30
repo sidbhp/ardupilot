@@ -133,10 +133,10 @@ protected:
 // structure used to define logging format
 struct LogStructure {
     uint8_t msg_type;
-    uint16_t msg_len;
+    uint8_t msg_len;
     const char name[5];
-    const char format[32];
-    const char labels[256];
+    const char format[16];
+    const char labels[64];
 };
 
 /*
@@ -145,10 +145,10 @@ struct LogStructure {
 struct PACKED log_Format {
     LOG_PACKET_HEADER;
     uint8_t type;
-    uint16_t length;
+    uint8_t length;
     char name[4];
-    char format[32];
-    char labels[256];
+    char format[16];
+    char labels[64];
 };
 
 struct PACKED log_Parameter {
@@ -526,7 +526,21 @@ struct PACKED log_GPS_RAWS {
     uint8_t trkStat;
 };
 
-
+struct PACKED log_GPS_SFRBXH {
+    LOG_PACKET_HEADER;
+    uint32_t time_ms;
+    uint8_t gnssId;
+    uint8_t svId;
+    uint8_t freqId;
+    uint8_t numWords;
+    uint8_t version;
+};
+struct PACKED log_GPS_SFRBXS {
+    LOG_PACKET_HEADER;
+    uint32_t time_ms;
+    uint8_t numWord;
+    uint32_t dwrd;
+};
 struct PACKED log_GPS_alm {
     LOG_PACKET_HEADER;
     uint32_t time_ms;
@@ -552,20 +566,13 @@ struct PACKED log_GPS_UHI {
     double utcA0;
     double utcA1;
     int32_t utcTOW;
-    int8_t utcWNT;
+    int16_t utcWNT;
     int16_t utcLS;
     int16_t utcWNF;
     int16_t utcDN;
     int16_t utcLSF;
     int16_t utcSpare;
-    float klobA0;
-    float klobA1;
-    float klobA2;
-    float klobA3;
-    float klobB0;
-    float klobB1;
-    float klobB2;
-    float klobB3;
+    float klob[8];
     uint32_t flags;
 };
 
@@ -659,6 +666,8 @@ Format characters in the format string for binary log messages
   n   : char[4]
   N   : char[16]
   Z   : char[64]
+  A   : uint32_t[8]
+  F   : float[8]
   c   : int16_t * 100
   C   : uint16_t * 100
   e   : int32_t * 100
@@ -670,7 +679,7 @@ Format characters in the format string for binary log messages
 // messages for all boards
 #define LOG_BASE_STRUCTURES \
     { LOG_FORMAT_MSG, sizeof(log_Format), \
-      "FMT", "BHnNZ",      "Type,Length,Name,Format,Columns" },    \
+      "FMT", "BBnNZ",      "Type,Length,Name,Format,Columns" },    \
     { LOG_PARAMETER_MSG, sizeof(log_Parameter), \
       "PARM", "Nf",        "Name,Value" },    \
     { LOG_GPS_MSG, sizeof(log_GPS), \
@@ -740,6 +749,22 @@ Format characters in the format string for binary log messages
       "UNAK", "IBBB", "TimeMS,Instance,clsID,msgID" }, \
     { LOG_USTG_MSG, sizeof(log_Ustg), \
       "USTG", "IBBb", "TimeMS,Instance,navEng,minElev" }, \
+    { LOG_GPS_RAW_MSG, sizeof(log_GPS_RAW), \
+      "GRAW", "IIHBBddfBbB", "TimeMS,WkMS,Week,numSV,sv,cpMes,prMes,doMes,mesQI,cno,lli" }, \
+    { LOG_GPS_RAWH_MSG, sizeof(log_GPS_RAWH), \
+      "GRXH", "IdHbBB", "TimeMS,rcvTime,week,leapS,numMeas,recStat" }, \
+    { LOG_GPS_RAWS_MSG, sizeof(log_GPS_RAWS), \
+      "GRXS", "IddfBBBHBBBBB", "TimeMS,prMes,cpMes,doMes,gnss,sv,freq,lock,cno,prD,cpD,doD,trk" }, \
+    { LOG_GPS_SFRBXH_MSG, sizeof(log_GPS_SFRBXH), \
+      "GSFH","IBBBBB", "TimeMS,gnssId,svId,freqId,numWords,version" }, \
+    { LOG_GPS_SFRBXS_MSG, sizeof(log_GPS_SFRBXS), \
+      "GSFS","IBI", "TimeMS,numWord,dwrd" }, \
+    { LOG_GPS_ALM_MSG, sizeof(log_GPS_alm), \
+      "GALM","IIIA", "TimeMS,svid,week,dwrd" }, \
+    { LOG_GPS_EPH_MSG, sizeof(log_GPS_eph), \
+      "GEPH","IIIAAA", "TimeMS,svid,how,sf1d,sf2d,sf3d" }, \
+    { LOG_GPS_UHI_MSG, sizeof(log_GPS_UHI), \
+      "GUHI","IIddihhhhhhFI", "TimeMS,hlth,uA0,uA1,uTOW,uWNT,uLS,uWNF,uDN,uLSF,uSpre,klob,flg"}, \
     { LOG_ESC1_MSG, sizeof(log_Esc), \
       "ESC1",  "Icccc", "TimeMS,RPM,Volt,Curr,Temp" }, \
     { LOG_ESC2_MSG, sizeof(log_Esc), \
@@ -846,11 +871,14 @@ Format characters in the format string for binary log messages
 #define LOG_UACK_MSG      181
 #define LOG_UNAK_MSG      182
 #define LOG_USTG_MSG      183
-#define LOG_GPS_RAWS_MSG  184
-#define LOG_GPS_RAWH_MSG  185
-#define LOG_GPS_ALM_MSG   186
-#define LOG_GPS_EPH_MSG   187
+#define LOG_GPS_RAWS_MSG  185
+#define LOG_GPS_RAWH_MSG  186
+#define LOG_GPS_ALM_MSG   187
+#define LOG_GPS_EPH_MSG   188
 #define LOG_GPS_UHI_MSG   189
+#define LOG_GPS_SFRBXH_MSG 190
+#define LOG_GPS_SFRBXS_MSG 191
+
 // message types 200 to 210 reversed for GPS driver use
 // message types 211 to 220 reversed for autotune use
 
