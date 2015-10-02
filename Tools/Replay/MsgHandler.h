@@ -117,6 +117,9 @@ inline void MsgHandler::field_value_for_type_at_offset(uint8_t *msg,
     /* we register the types - add_field_type - so can we do without
      * this switch statement somehow? */
     switch (type) {
+    case 'b':
+        ret = (R)(((int8_t*)&msg[offset])[0]);
+        break;
     case 'B':
         ret = (R)(((uint8_t*)&msg[offset])[0]);
         break;
@@ -146,6 +149,9 @@ inline void MsgHandler::field_value_for_type_at_offset(uint8_t *msg,
         break;
     case 'Q':
         ret = (R)(((uint64_t*)&msg[offset])[0]);
+        break;
+    case 'd':
+        ret = (R)(((double*)&msg[offset])[0]);
         break;
     default:
         ::printf("Unhandled format type (%c)\n", type);

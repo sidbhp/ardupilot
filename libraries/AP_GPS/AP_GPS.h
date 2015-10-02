@@ -27,6 +27,7 @@
 #include <AP_Vehicle/AP_Vehicle.h>
 #include "GPS_detect_state.h"
 #include <AP_SerialManager/AP_SerialManager.h>
+#include "RTKLIB/src/rtklib.h"
 
 /**
    maximum number of GPS instances available on this platform. If more
@@ -45,7 +46,7 @@
 #endif
 
 #define GPS_RTK_INJECT_TO_ALL 127
-
+#define UBX_MAX_EMU_RXM_RAWX_SATS 32
 /**
  * save flash by skipping NMEA and SIRF support on copter and plane
  * for APM1/APM2
@@ -336,8 +337,8 @@ public:
     void setHIL_RAW_data(uint32_t timems,double prMes,double cpMes,float doMes,uint8_t gnss,
                                  uint8_t sv,uint8_t freq, uint16_t lock,uint8_t cno,uint8_t prD,
                                  uint8_t cpD,uint8_t doD,uint8_t trk);
-
-    
+    int8_t emulate_ubx(uint8_t* data, uint8_t classid, uint8_t msgid, uint16_t len);
+    void update_raw();
     static const struct AP_Param::GroupInfo var_info[];
 
     // dataflash for logging, if available
@@ -395,6 +396,78 @@ private:
     AP_GPS_Backend *drivers[GPS_MAX_INSTANCES];
     AP_HAL::UARTDriver *_port[GPS_MAX_INSTANCES];
 
+    // raw data processing
+    raw_t _raw;
+    uint8_t _cur_meas;
+    bool _init_raw;
+    bool _processing_complete;
+    uint8_t _raw_frames;
+    bool _has_raw;
+    //structs for emulator
+    struct PACKED ubx_rawx{
+        double rcvTow;
+        uint16_t week;
+        int8_t leapS;
+        uint8_t numMeas;
+        uint8_t recStat;
+        uint8_t reserved1[3];
+        PACKED struct ubx_rxm_rawx_sv {
+            double prMes;
+            double cpMes;
+            float doMes;
+            uint8_t gnss;
+            uint8_t sv;
+            uint8_t reserved2;
+            uint8_t freq;
+            uint16_t lock;
+            uint8_t cno;
+            uint8_t prD;
+            uint8_t cpD;
+            uint8_t doD;
+            uint8_t trk;
+            uint8_t reserved3;
+        } svinfo[UBX_MAX_EMU_RXM_RAWX_SATS];
+    }_rawmeas;
+    
+    struct PACKED ubx_sfrbx {
+        uint8_t gnssId;
+        uint8_t svId;
+        uint8_t reserved1;
+        uint8_t freqId;
+        uint8_t numWords;
+        uint8_t reserved2;
+        uint8_t version;
+        uint8_t reserved3;
+        uint32_t dwrd[16];
+    }_sfrbx;
+    enum ubs_protocol_bytes {
+        PREAMBLE1 = 0xb5,
+        PREAMBLE2 = 0x62,
+        CLASS_NAV = 0x01,
+        CLASS_ACK = 0x05,
+        CLASS_CFG = 0x06,
+        CLASS_MON = 0x0A,
+        CLASS_RXM = 0x02,
+        MSG_ACK_NACK = 0x00,
+        MSG_ACK_ACK = 0x01,
+        MSG_POSLLH = 0x2,
+        MSG_STATUS = 0x3,
+        MSG_DOP = 0x4,
+        MSG_SOL = 0x6,
+        MSG_VELNED = 0x12,
+        MSG_CFG_PRT = 0x00,
+        MSG_CFG_RATE = 0x08,
+        MSG_CFG_SET_RATE = 0x01,
+        MSG_CFG_NAV_SETTINGS = 0x24,
+        MSG_CFG_SBAS = 0x16,
+        MSG_CFG_GNSS = 0x3E,
+        MSG_MON_HW = 0x09,
+        MSG_MON_HW2 = 0x0B,
+        MSG_NAV_SVINFO = 0x30,
+        MSG_RXM_RAW = 0x10,
+        MSG_RXM_RAWX = 0x15,
+        MSG_RXM_SFRBX = 0x13
+    };
     /// primary GPS instance
     uint8_t primary_instance:2;
 

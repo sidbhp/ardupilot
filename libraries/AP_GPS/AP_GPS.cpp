@@ -130,10 +130,10 @@ void AP_GPS::init(DataFlash_Class *dataflash, const AP_SerialManager& serial_man
 {
     _DataFlash = dataflash;
     primary_instance = 0;
-
+    _has_raw = false;
     // search for serial ports with gps protocol
     _port[0] = serial_manager.find_serial(AP_SerialManager::SerialProtocol_GPS, 0);
-
+    _processing_complete = false;
 #if GPS_MAX_INSTANCES > 1
     _port[1] = serial_manager.find_serial(AP_SerialManager::SerialProtocol_GPS, 1);
     _last_instance_swap_ms = 0;
@@ -394,12 +394,47 @@ AP_GPS::update_instance(uint8_t instance)
   update all GPS instances
  */
 void
+AP_GPS::update_raw() 
+{
+    double *rs, *dts, *var;
+    prcopt_t opt = prcopt_default;
+    opt.mode = PMODE_KINEMA;
+    opt.sateph = EPHOPT_BRDC;
+    int32_t *svh;
+    sol_t sol;
+    double *azel;
+    char msg[20];
+    double pos[3];
+    prcopt_t prcopt=prcopt_default;
+    if(_raw.obs.n > 1 && _processing_complete) {
+        rs = new double[_raw.obs.n*6];
+        dts = new double[_raw.obs.n*2];
+        var = new double[_raw.obs.n];
+        svh = new int32_t[_raw.obs.n];
+        azel = new double[_raw.obs.n*2];
+        if(pntpos(_raw.obs.data, _raw.obs.n, &_raw.nav,&opt, &sol, azel, NULL,msg)){
+            double r[3] = {sol.rr[0],sol.rr[1],sol.rr[2]};
+            ecef2pos(r, pos);
+            printf("RECEIVER: {lat:%lf,lon:%lf,z:%lf}, {vx:%lf,vy:%lf,vz:%lf}\n",degrees(pos[0]),degrees(pos[1]),pos[2],sol.rr[3],sol.rr[4],sol.rr[5]);
+        } else {
+            printf("%s\n",msg);
+        }
+        delete[] rs;
+        delete[] dts;
+        delete[] var;
+        delete[] svh;
+        delete[] azel;
+     }
+}
+void
 AP_GPS::update(void)
 {
     for (uint8_t i=0; i<GPS_MAX_INSTANCES; i++) {
         update_instance(i);
     }
-
+    if(_has_raw) {
+        update_raw();
+    }
 #if GPS_MAX_INSTANCES > 1
     // work out which GPS is the primary, and how many sensors we have
     for (uint8_t i=0; i<GPS_MAX_INSTANCES; i++) {
