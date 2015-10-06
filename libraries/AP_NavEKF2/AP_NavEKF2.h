@@ -22,15 +22,15 @@
 #ifndef AP_NavEKF2_Tuning
 #define AP_NavEKF2_Tuning
 
-#include <AP_Math/AP_Math.h>
-#include <AP_Param/AP_Param.h>
-#include <GCS_MAVLink/GCS_MAVLink.h>
-#include <AP_NavEKF/AP_Nav_Common.h>
-#include <AP_Baro/AP_Baro.h>
-#include <AP_Airspeed/AP_Airspeed.h>
-#include <AP_Compass/AP_Compass.h>
-#include <AP_NavEKF/AP_Nav_Common.h>
-#include <AP_RangeFinder/AP_RangeFinder.h>
+#include <AP_Math.h>
+#include <AP_Param.h>
+#include <GCS_MAVLink.h>
+#include <AP_Nav_Common.h>
+#include <AP_Baro.h>
+#include <AP_Airspeed.h>
+#include <AP_Compass.h>
+#include <AP_Nav_Common.h>
+#include <AP_RangeFinder.h>
 
 class NavEKF2_core;
 class AP_AHRS;
@@ -219,7 +219,9 @@ public:
 
     // allow the enable flag to be set by Replay
     void set_enable(bool enable) { _enable.set(enable); }
-    
+
+    //send gps accuracy over mavlink
+    void send_gps_accuracy(mavlink_channel_t chan);
 private:
     NavEKF2_core *core = nullptr;
     const AP_AHRS *_ahrs;

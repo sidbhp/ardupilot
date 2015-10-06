@@ -1009,7 +1009,7 @@ const AP_Param::Info var_info[] PROGMEM = {
 #if AP_AHRS_NAVEKF_AVAILABLE
     // @Group: EKF_
     // @Path: ../libraries/AP_NavEKF/AP_NavEKF.cpp
-    GOBJECTN(ahrs.get_NavEKF(), NavEKF, "EKF_", NavEKF),
+    GOBJECTN(ahrs.get_NavEKF(), NavEKF2, "EKF_", NavEKF2),
 #endif
 
     // @Group: MIS_

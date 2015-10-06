@@ -25,7 +25,7 @@
 #include <AP_AHRS.h>
 
 #if HAL_CPU_CLASS >= HAL_CPU_CLASS_150
-#include <AP_NavEKF.h>
+#include <AP_NavEKF2.h>
 
 #define AP_AHRS_NAVEKF_AVAILABLE 1
 #define AP_AHRS_NAVEKF_SETTLE_TIME_MS 20000     // time in milliseconds the ekf needs to settle after being started
@@ -82,8 +82,8 @@ public:
     // true if compass is being used
     bool use_compass(void);
 
-    NavEKF &get_NavEKF(void) { return EKF; }
-    const NavEKF &get_NavEKF_const(void) const { return EKF; }
+    NavEKF2 &get_NavEKF(void) { return EKF; }
+    const NavEKF2 &get_NavEKF_const(void) const { return EKF; }
 
     // return secondary attitude solution if available, as eulers in radians
     bool get_secondary_attitude(Vector3f &eulers);
@@ -141,7 +141,7 @@ private:
     // update _gyro3_bias by comparing ins.get_gyro(2) with get_gyro
     void update_gyro3_bias();
 
-    NavEKF EKF;
+    NavEKF2 EKF;
     bool ekf_started;
     Matrix3f _dcm_matrix;
     Vector3f _dcm_attitude;

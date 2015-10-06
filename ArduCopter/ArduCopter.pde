@@ -118,6 +118,7 @@
 #include <AP_InertialSensor.h>  // ArduPilot Mega Inertial Sensor (accel & gyro) Library
 #include <AP_AHRS.h>
 #include <AP_NavEKF.h>
+#include <AP_NavEKF2.h>
 #include <AP_Mission.h>         // Mission command library
 #include <AP_Rally.h>           // Rally point library
 #include <AC_PID.h>             // PID library

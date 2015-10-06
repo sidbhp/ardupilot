@@ -4,8 +4,8 @@
 #if HAL_CPU_CLASS >= HAL_CPU_CLASS_150
 
 #include "AP_NavEKF2_core.h"
-#include <AP_Vehicle/AP_Vehicle.h>
-#include <GCS_MAVLink/GCS.h>
+#include <AP_Vehicle.h>
+#include <GCS.h>
 
 /*
   parameter defaults for different types of vehicle. The
@@ -750,6 +750,13 @@ void NavEKF2::getFilterStatus(nav_filter_status &status) const
 {
     if (core) {
         core->getFilterStatus(status);
+    }
+}
+//send gps accuracy over mavlink
+void NavEKF2::send_gps_accuracy(mavlink_channel_t chan)
+{
+    if (core) {
+        core->send_gps_accuracy(chan);
     }
 }
 

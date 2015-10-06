@@ -21,15 +21,15 @@
 #ifndef AP_NavEKF2_core
 #define AP_NavEKF2_core
 
-#include <AP_Math/AP_Math.h>
+#include <AP_Math.h>
 #include "AP_NavEKF2.h"
 
 // #define MATH_CHECK_INDEXES 1
 
-#include <AP_Math/vectorN.h>
+#include <vectorN.h>
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
-#include <systemlib/perf_counter.h>
+#include <perf_counter.h>
 #endif
 
 class AP_AHRS;
@@ -166,6 +166,9 @@ public:
     // called by vehicle code to specify that a touchdown is expected to happen
     // causes the EKF to compensate for expected barometer errors due to ground effect
     void setTouchdownExpected(bool val);
+    
+    //send gps accuracy over mavlink
+    void send_gps_accuracy(mavlink_channel_t chan);
 
     /*
     return the filter fault status as a bitmasked integer

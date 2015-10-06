@@ -11,8 +11,8 @@
 
 #include "AP_NavEKF2.h"
 #include "AP_NavEKF2_core.h"
-#include <AP_AHRS/AP_AHRS.h>
-#include <AP_Vehicle/AP_Vehicle.h>
+#include <AP_AHRS.h>
+#include <AP_Vehicle.h>
 
 #include <stdio.h>
 
@@ -45,6 +45,39 @@ bool NavEKF2_core::healthy(void) const
     // all OK
     return true;
 }
+
+
+void NavEKF2_core::send_gps_accuracy(mavlink_channel_t chan)
+{
+    /* send at 1Hz after the GPS shows up */
+    if(_ahrs->get_gps().status() < AP_GPS::GPS_OK_FIX_3D) {
+        return;
+    }
+    uint32_t now = hal.scheduler->millis();
+    if(now - lastGpsAccuracySendTime_ms < 1000) {
+        return;
+    }
+    lastGpsAccuracySendTime_ms = now;
+    float hAcc = -1.0f;
+    _ahrs->get_gps().horizontal_accuracy(hAcc);
+
+    uint8_t checkMask =
+        ((hAcc <= 5.0f) ? 0x1 : 0) |
+        ((gpsSpdAccuracy <= 1.0f) ? 0x2 : 0) |
+        ((gpsHorizVelFilt <= 0.3f) ? 0x4 : 0) |
+        ((gpsVertVelFilt <= 0.3f) ? 0x8 : 0) |
+        ((gpsDriftNE <= 3.0f) ? 0x10 : 0);
+
+    mavlink_msg_gps_accuracy_send(chan,
+        _ahrs->get_gps().primary_sensor(),
+        hAcc,
+        gpsSpdAccuracy,
+        gpsHorizVelFilt,
+        gpsVertVelFilt,
+        gpsDriftNE,
+        checkMask);
+}
+
 
 // return data for debugging optical flow fusion
 void NavEKF2_core::getFlowDebug(float &varFlow, float &gndOffset, float &flowInnovX, float &flowInnovY, float &auxInnov, float &HAGL, float &rngInnov, float &range, float &gndOffsetErr) const
