@@ -1245,6 +1245,29 @@ void GCS_MAVLINK::handle_set_mode(mavlink_message_t* msg, bool (*set_mode)(uint8
     mavlink_msg_command_ack_send_buf(msg, chan, MAVLINK_MSG_ID_SET_MODE, result);
 }
 
+/*
+  send a statustext message to all active MAVLink connections
+ */
+void GCS_MAVLINK::send_statustext_all(MAV_SEVERITY severity, const prog_char_t *fmt, ...)
+{
+    for (uint8_t i=0; i<MAVLINK_COMM_NUM_BUFFERS; i++) {
+        if ((1U<<i) & mavlink_active) {
+            mavlink_channel_t chan = (mavlink_channel_t)(MAVLINK_COMM_0+i);
+            if (comm_get_txspace(chan) >= MAVLINK_NUM_NON_PAYLOAD_BYTES + MAVLINK_MSG_ID_STATUSTEXT_LEN) {
+                char msg2[50];
+                va_list arg_list;
+                va_start(arg_list, fmt);
+                hal.util->vsnprintf_P((char *)msg2, sizeof(msg2), fmt, arg_list);
+                va_end(arg_list);
+                mavlink_msg_statustext_send(chan,
+                                            severity,
+                                            msg2);
+            }
+        }
+    }
+}
+
+
 #if AP_AHRS_NAVEKF_AVAILABLE
 /*
   send OPTICAL_FLOW message

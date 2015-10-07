@@ -92,7 +92,7 @@ const AP_Param::GroupInfo NavEKF2::var_info[] PROGMEM = {
     // @Description: This enables EKF2. Enabling EKF2 only makes the maths run, it does not mean it will be used for flight control. To use it for flight control set AHRS_EKF_USE=3
     // @Values: 0:Disabled, 1:Enabled
     // @User: Advanced
-    AP_GROUPINFO("ENABLE", 0, NavEKF2, _enable, 0),
+    AP_GROUPINFO("ENABLE", 0, NavEKF2, _enable, 1),
 
     // GPS measurement parameters
 
@@ -408,6 +408,7 @@ bool NavEKF2::InitialiseFilter(void)
         return false;
     }
     if (core == nullptr) {
+        printf("Hello World\n");
         core = new NavEKF2_core(*this, _ahrs, _baro, _rng);
         if (core == nullptr) {
             _enable.set(0);
