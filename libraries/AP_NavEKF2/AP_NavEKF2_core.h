@@ -29,7 +29,7 @@
 #include <vectorN.h>
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
-#include <perf_counter.h>
+#include <systemlib/perf_counter.h>
 #endif
 
 class AP_AHRS;
@@ -572,7 +572,10 @@ private:
     // measurement buffer sizes
     static const uint32_t IMU_BUFFER_LENGTH = 100;  // number of IMU samples stored in the buffer. Samples*delta_time must be > max sensor delay
     static const uint32_t OBS_BUFFER_LENGTH = 5;    // number of non-IMU sensor samples stored in the buffer.
-
+    uint32_t lastGpsAccuracySendTime_ms;
+    float gpsVertVelFilt;           // amount of filterred vertical GPS velocity detected durng pre-flight GPS checks
+    float gpsHorizVelFilt;          // amount of filtered horizontal GPS velocity detected during pre-flight GPS checks
+    float gpsDriftNE;               // amount of drift detected in the GPS position during pre-flight GPs checks
     // Variables
     bool statesInitialised;         // boolean true when filter states have been initialised
     bool velHealth;                 // boolean true if velocity measurements have passed innovation consistency check

@@ -935,12 +935,12 @@ void DataFlash_Class::Log_Write_EKF(AP_AHRS_NavEKF &ahrs, bool optFlowEnabled)
 
     // Write second EKF packet
     float ratio;
-    float az1bias, az2bias;
+    float az1bias, az2bias = 0.0f;
     Vector3f wind;
     Vector3f magNED;
     Vector3f magXYZ;
-    ahrs.get_NavEKF().getIMU1Weighting(ratio);
-    ahrs.get_NavEKF().getAccelZBias(az1bias, az2bias);
+    ahrs.get_NavEKF().getAccelZBias(az1bias);
+    ratio = 1.0f;
     ahrs.get_NavEKF().getWind(wind);
     ahrs.get_NavEKF().getMagNED(magNED);
     ahrs.get_NavEKF().getMagXYZ(magXYZ);
@@ -965,8 +965,8 @@ void DataFlash_Class::Log_Write_EKF(AP_AHRS_NavEKF &ahrs, bool optFlowEnabled)
     Vector3f velInnov;
     Vector3f posInnov;
     Vector3f magInnov;
-    float tasInnov;
-    ahrs.get_NavEKF().getInnovations(velInnov, posInnov, magInnov, tasInnov);
+    float tasInnov,yawInnov;
+    ahrs.get_NavEKF().getInnovations(velInnov, posInnov, magInnov, tasInnov, yawInnov);
     struct log_EKF3 pkt3 = {
         LOG_PACKET_HEADER_INIT(LOG_EKF3_MSG),
         time_ms : hal.scheduler->millis(),

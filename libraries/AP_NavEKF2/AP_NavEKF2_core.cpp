@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#include <AP_HAL/AP_HAL.h>
+#include <AP_HAL.h>
 
 #if HAL_CPU_CLASS >= HAL_CPU_CLASS_150
 
@@ -87,7 +87,8 @@ void NavEKF2_core::InitialiseVariables()
     magMeasTime_ms = imuSampleTime_ms;
     timeTasReceived_ms = 0;
     magYawResetTimer_ms = imuSampleTime_ms;
-
+    lastGpsAccuracySendTime_ms = 0;
+    
     // initialise other variables
     gpsNoiseScaler = 1.0f;
     hgtTimeout = true;
@@ -124,6 +125,7 @@ void NavEKF2_core::InitialiseVariables()
     posTimeout = true;
     velTimeout = true;
     gpsVelGlitchOffset.zero();
+    gpsDriftNE = 0.0f;
     isAiding = false;
     prevIsAiding = false;
     memset(&faultStatus, 0, sizeof(faultStatus));
@@ -138,6 +140,8 @@ void NavEKF2_core::InitialiseVariables()
     yawAligned = false;
     inhibitWindStates = true;
     inhibitMagStates = true;
+    gpsVertVelFilt = 0.0f;
+    gpsHorizVelFilt = 0.0f;
     gndOffsetValid =  false;
     validOrigin = false;
     takeoffExpectedSet_ms = 0;

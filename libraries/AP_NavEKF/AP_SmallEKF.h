@@ -29,7 +29,7 @@
 #include <AP_Param.h>
 #include <AP_Nav_Common.h>
 #include <AP_AHRS.h>
-#include <AP_NavEKF.h>
+#include <AP_NavEKF2.h>
 
 #include <vectorN.h>
 
@@ -104,7 +104,7 @@ public:
 
 private:
     const AP_AHRS_NavEKF &_ahrs;
-    const NavEKF &_main_ekf;
+    const NavEKF2 &_main_ekf;
 
     // the states are available in two forms, either as a Vector13 or
     // broken down as individual elements. Both are equivalent (same

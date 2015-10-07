@@ -89,7 +89,7 @@ void AP_AHRS_NavEKF::update(void)
             start_time_ms = hal.scheduler->millis();
         }
         if (hal.scheduler->millis() - start_time_ms > startup_delay_ms) {
-            ekf_started = EKF.InitialiseFilterDynamic();
+            ekf_started = EKF.InitialiseFilter();
 
             if (ekf_started) {
                 lastEkfHealthyTime_ms = hal.scheduler->millis();
@@ -113,7 +113,7 @@ void AP_AHRS_NavEKF::update(void)
             lastEkfHealthyTime_ms = hal.scheduler->millis();
         }
         if ((hal.scheduler->millis() - lastEkfHealthyTime_ms > 200) && (hal.scheduler->millis() - lastEkfResetTime_ms > 1500) && hal.util->get_soft_armed()) {
-            bool restartSuccessful = EKF.InitialiseFilterDynamic();
+            bool restartSuccessful = EKF.InitialiseFilter();
             if (restartSuccessful) {
                 hal.console->printf("EKF restarted\n");
                 lastEkfHealthyTime_ms = hal.scheduler->millis();
@@ -157,29 +157,20 @@ void AP_AHRS_NavEKF::update(void)
             }
             _gyro_estimate += _gyro_bias;
 
-            float abias1, abias2;
-            EKF.getAccelZBias(abias1, abias2);
+            float abias;
+            EKF.getAccelZBias(abias);
 
             // update _accel_ef_ekf
             for (uint8_t i=0; i<_ins.get_accel_count(); i++) {
                 Vector3f accel = _ins.get_accel(i);
-                if (i==0) {
-                    accel.z -= abias1;
-                } else if (i==1) {
-                    accel.z -= abias2;
+                if (i==_ins.get_primary_accel()) {
+                    accel.z -= abias;
                 }
                 if (_ins.get_accel_health(i)) {
                     _accel_ef_ekf[i] = _dcm_matrix * accel;
                 }
             }
-
-            if(_ins.get_accel_health(0) && _ins.get_accel_health(1)) {
-                float IMU1_weighting;
-                EKF.getIMU1Weighting(IMU1_weighting);
-                _accel_ef_ekf_blended = _accel_ef_ekf[0] * IMU1_weighting + _accel_ef_ekf[1] * (1.0f-IMU1_weighting);
-            } else {
                 _accel_ef_ekf_blended = _accel_ef_ekf[0];
-            }
         }
     }
 }
@@ -233,7 +224,7 @@ void AP_AHRS_NavEKF::reset(bool recover_eulers)
 {
     AP_AHRS_DCM::reset(recover_eulers);
     if (ekf_started) {
-        ekf_started = EKF.InitialiseFilterBootstrap();        
+        ekf_started = EKF.InitialiseFilter();        
     }
 }
 
@@ -242,7 +233,7 @@ void AP_AHRS_NavEKF::reset_attitude(const float &_roll, const float &_pitch, con
 {
     AP_AHRS_DCM::reset_attitude(_roll, _pitch, _yaw);
     if (ekf_started) {
-        ekf_started = EKF.InitialiseFilterBootstrap();        
+        ekf_started = EKF.InitialiseFilter();        
     }
 }
 

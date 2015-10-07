@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#include <AP_HAL/AP_HAL.h>
+#include <AP_HAL.h>
 #if HAL_CPU_CLASS >= HAL_CPU_CLASS_150
 
 #include "AP_NavEKF2_core.h"
@@ -411,7 +411,7 @@ bool NavEKF2::InitialiseFilter(void)
         core = new NavEKF2_core(*this, _ahrs, _baro, _rng);
         if (core == nullptr) {
             _enable.set(0);
-            GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_CRITICAL, PSTR("NavEKF2: allocation failed"));
+            //GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_CRITICAL, PSTR("NavEKF2: allocation failed"));
             return false;
         }
     }

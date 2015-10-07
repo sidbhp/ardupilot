@@ -79,7 +79,9 @@ public:
     void from_axis_angle_fast(const Vector3f &axis, float theta);
 
     void rotate_fast(const Vector3f &v);
-
+    
+    // initialise the quaternion to no rotation
+    void initialise() { q1 = 1.0f; q2 = q3 = q4 = 0.0f; }
     // get euler roll angle
     float       get_euler_roll() const;
 
