@@ -201,6 +201,11 @@ public:
     void  getFilterTimeouts(uint8_t &timeouts) const;
 
     /*
+    return filter gps quality check status
+    */
+    void  getFilterGpsStatus(nav_gps_status &faults) const;
+
+    /*
     return filter status flags
     */
     void  getFilterStatus(nav_filter_status &status) const;
@@ -219,9 +224,7 @@ public:
 
     // allow the enable flag to be set by Replay
     void set_enable(bool enable) { _enable.set(enable); }
-
-    //send gps accuracy over mavlink
-    void send_gps_accuracy(mavlink_channel_t chan);
+    
 private:
     NavEKF2_core *core = nullptr;
     const AP_AHRS *_ahrs;

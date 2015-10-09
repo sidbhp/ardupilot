@@ -46,39 +46,6 @@ bool NavEKF2_core::healthy(void) const
     return true;
 }
 
-
-void NavEKF2_core::send_gps_accuracy(mavlink_channel_t chan)
-{
-    /* send at 1Hz after the GPS shows up */
-    if(_ahrs->get_gps().status() < AP_GPS::GPS_OK_FIX_3D) {
-        return;
-    }
-    uint32_t now = hal.scheduler->millis();
-    if(now - lastGpsAccuracySendTime_ms < 1000) {
-        return;
-    }
-    lastGpsAccuracySendTime_ms = now;
-    float hAcc = -1.0f;
-    _ahrs->get_gps().horizontal_accuracy(hAcc);
-
-    uint8_t checkMask =
-        ((hAcc <= 5.0f) ? 0x1 : 0) |
-        ((gpsSpdAccuracy <= 1.0f) ? 0x2 : 0) |
-        ((gpsHorizVelFilt <= 0.3f) ? 0x4 : 0) |
-        ((gpsVertVelFilt <= 0.3f) ? 0x8 : 0) |
-        ((gpsDriftNE <= 3.0f) ? 0x10 : 0);
-
-    mavlink_msg_gps_accuracy_send(chan,
-        _ahrs->get_gps().primary_sensor(),
-        hAcc,
-        gpsSpdAccuracy,
-        gpsHorizVelFilt,
-        gpsVertVelFilt,
-        gpsDriftNE,
-        checkMask);
-}
-
-
 // return data for debugging optical flow fusion
 void NavEKF2_core::getFlowDebug(float &varFlow, float &gndOffset, float &flowInnovX, float &flowInnovY, float &auxInnov, float &HAGL, float &rngInnov, float &range, float &gndOffsetErr) const
 {
@@ -108,6 +75,41 @@ bool NavEKF2_core::getHeightControlLimit(float &height) const
     }
 }
 
+
+// return the Euler roll, pitch and yaw angle in radians
+void NavEKF2_core::getEulerAngles(Vector3f &euler) const
+{
+    outputDataNew.quat.to_euler(euler.x, euler.y, euler.z);
+    euler = euler - _ahrs->get_trim();
+}
+
+// return body axis gyro bias estimates in rad/sec
+void NavEKF2_core::getGyroBias(Vector3f &gyroBias) const
+{
+    if (dtIMUavg < 1e-6f) {
+        gyroBias.zero();
+        return;
+    }
+    gyroBias = stateStruct.gyro_bias / dtIMUavg;
+}
+
+// return body axis gyro scale factor error as a percentage
+void NavEKF2_core::getGyroScaleErrorPercentage(Vector3f &gyroScale) const
+{
+    if (!statesInitialised) {
+        gyroScale.x = gyroScale.y = gyroScale.z = 0;
+        return;
+    }
+    gyroScale.x = 100.0f/stateStruct.gyro_scale.x - 100.0f;
+    gyroScale.y = 100.0f/stateStruct.gyro_scale.y - 100.0f;
+    gyroScale.z = 100.0f/stateStruct.gyro_scale.z - 100.0f;
+}
+
+// return tilt error convergence metric
+void NavEKF2_core::getTiltError(float &ang) const
+{
+    ang = tiltErrFilt;
+}
 
 // return the transformation matrix from XYZ (body) to NED axes
 void NavEKF2_core::getRotationBodyToNED(Matrix3f &mat) const
@@ -261,6 +263,31 @@ bool NavEKF2_core::getLLH(struct Location &loc) const
 }
 
 
+// return the horizontal speed limit in m/s set by optical flow sensor limits
+// return the scale factor to be applied to navigation velocity gains to compensate for increase in velocity noise with height when using optical flow
+void NavEKF2_core::getEkfControlLimits(float &ekfGndSpdLimit, float &ekfNavVelGainScaler) const
+{
+    if (PV_AidingMode == AID_RELATIVE) {
+        // allow 1.0 rad/sec margin for angular motion
+        ekfGndSpdLimit = max((frontend._maxFlowRate - 1.0f), 0.0f) * max((terrainState - stateStruct.position[2]), rngOnGnd);
+        // use standard gains up to 5.0 metres height and reduce above that
+        ekfNavVelGainScaler = 4.0f / max((terrainState - stateStruct.position[2]),4.0f);
+    } else {
+        ekfGndSpdLimit = 400.0f; //return 80% of max filter speed
+        ekfNavVelGainScaler = 1.0f;
+    }
+}
+
+
+// return the LLH location of the filters NED origin
+bool NavEKF2_core::getOriginLLH(struct Location &loc) const
+{
+    if (validOrigin) {
+        loc = EKF_origin;
+    }
+    return validOrigin;
+}
+
 // return earth magnetic field estimates in measurement units / 1000
 void NavEKF2_core::getMagNED(Vector3f &magNED) const
 {
@@ -350,15 +377,11 @@ void  NavEKF2_core::getFilterTimeouts(uint8_t &timeouts) const
 }
 
 /*
-return filter function status as a bitmasked integer
- 0 = attitude estimate valid
- 1 = horizontal velocity estimate valid
- 2 = vertical velocity estimate valid
- 3 = relative horizontal position estimate valid
- 4 = absolute horizontal position estimate valid
- 5 = vertical position estimate valid
- 6 = terrain height estimate valid
- 7 = constant position mode
+Return a filter function status that indicates:
+    Which outputs are valid
+    If the filter has detected takeoff
+    If the filter has activated the mode that mitigates against ground effect static pressure errors
+    If GPS data is being used
 */
 void  NavEKF2_core::getFilterStatus(nav_filter_status &status) const
 {
@@ -390,6 +413,23 @@ void  NavEKF2_core::getFilterStatus(nav_filter_status &status) const
     status.flags.takeoff = expectGndEffectTakeoff; // The EKF has been told to expect takeoff and is in a ground effect mitigation mode
     status.flags.touchdown = expectGndEffectTouchdown; // The EKF has been told to detect touchdown and is in a ground effect mitigation mode
     status.flags.using_gps = (imuSampleTime_ms - lastPosPassTime_ms) < 4000;
+    status.flags.gps_glitching = !gpsAccuracyGood; // The GPS is glitching
+}
+
+/*
+return filter gps quality check status
+*/
+void  NavEKF2_core::getFilterGpsStatus(nav_gps_status &faults) const
+{
+    // init return value
+    faults.value = 0;
+
+    // set individual flags
+    faults.flags.bad_sAcc   = gpsCheckStatus.bad_sAcc; // reported speed accuracy is insufficient
+    faults.flags.bad_hAcc   = gpsCheckStatus.bad_hAcc; // reported horizontal position accuracy is insufficient
+    faults.flags.bad_sats   = gpsCheckStatus.bad_sats; // reported number of satellites is insufficient
+    faults.flags.bad_yaw    = gpsCheckStatus.bad_yaw; // EKF heading accuracy is too large for GPS use
+    faults.flags.bad_fix    = gpsCheckStatus.bad_fix; // The GPS cannot provide the 3D fix required
 }
 
 // send an EKF_STATUS message to GCS

@@ -92,7 +92,7 @@ const AP_Param::GroupInfo NavEKF2::var_info[] PROGMEM = {
     // @Description: This enables EKF2. Enabling EKF2 only makes the maths run, it does not mean it will be used for flight control. To use it for flight control set AHRS_EKF_USE=3
     // @Values: 0:Disabled, 1:Enabled
     // @User: Advanced
-    AP_GROUPINFO("ENABLE", 0, NavEKF2, _enable, 1),
+    AP_GROUPINFO("ENABLE", 0, NavEKF2, _enable, 0),
 
     // GPS measurement parameters
 
@@ -408,11 +408,10 @@ bool NavEKF2::InitialiseFilter(void)
         return false;
     }
     if (core == nullptr) {
-        printf("Hello World\n");
         core = new NavEKF2_core(*this, _ahrs, _baro, _rng);
         if (core == nullptr) {
             _enable.set(0);
-            //GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_CRITICAL, PSTR("NavEKF2: allocation failed"));
+            GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_CRITICAL, PSTR("NavEKF2: allocation failed"));
             return false;
         }
     }
@@ -753,11 +752,14 @@ void NavEKF2::getFilterStatus(nav_filter_status &status) const
         core->getFilterStatus(status);
     }
 }
-//send gps accuracy over mavlink
-void NavEKF2::send_gps_accuracy(mavlink_channel_t chan)
+
+/*
+return filter gps quality check status
+*/
+void  NavEKF2::getFilterGpsStatus(nav_gps_status &status) const
 {
     if (core) {
-        core->send_gps_accuracy(chan);
+        core->getFilterGpsStatus(status);
     }
 }
 

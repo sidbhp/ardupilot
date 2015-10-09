@@ -49,7 +49,7 @@ NavEKF2_core::NavEKF2_core(NavEKF2 &_frontend, const AP_AHRS *ahrs, AP_Baro &bar
     _perf_FuseMagnetometer(perf_alloc(PC_ELAPSED, "EKF_FuseMagnetometer")),
     _perf_FuseAirspeed(perf_alloc(PC_ELAPSED, "EKF_FuseAirspeed")),
     _perf_FuseSideslip(perf_alloc(PC_ELAPSED, "EKF_FuseSideslip")),
-    _perf_FuseOptFlow(perf_alloc(PC_ELAPSED, "EKF_FuseOptFlow"))
+    _perf_OpticalFlowEKF(perf_alloc(PC_ELAPSED, "EKF_FuseOptFlow"))
 #endif
 {
 }
@@ -88,8 +88,7 @@ void NavEKF2_core::InitialiseVariables()
     magMeasTime_ms = imuSampleTime_ms;
     timeTasReceived_ms = 0;
     magYawResetTimer_ms = imuSampleTime_ms;
-    lastGpsAccuracySendTime_ms = 0;
-    
+
     // initialise other variables
     gpsNoiseScaler = 1.0f;
     hgtTimeout = true;
@@ -126,7 +125,6 @@ void NavEKF2_core::InitialiseVariables()
     posTimeout = true;
     velTimeout = true;
     gpsVelGlitchOffset.zero();
-    gpsDriftNE = 0.0f;
     isAiding = false;
     prevIsAiding = false;
     memset(&faultStatus, 0, sizeof(faultStatus));
@@ -141,8 +139,6 @@ void NavEKF2_core::InitialiseVariables()
     yawAligned = false;
     inhibitWindStates = true;
     inhibitMagStates = true;
-    gpsVertVelFilt = 0.0f;
-    gpsHorizVelFilt = 0.0f;
     gndOffsetValid =  false;
     validOrigin = false;
     takeoffExpectedSet_ms = 0;
@@ -174,6 +170,15 @@ void NavEKF2_core::InitialiseVariables()
     prevMotorsArmed = false;
     innovationIncrement = 0;
     lastInnovation = 0;
+    memset(&gpsCheckStatus, 0, sizeof(gpsCheckStatus));
+    gpsSpdAccPass = false;
+    ekfInnovationsPass = false;
+    sAccFilterState1 = 0.0f;
+    sAccFilterState2 = 0.0f;
+    lastGpsCheckTime_ms = 0;
+    lastInnovPassTime_ms = 0;
+    lastInnovFailTime_ms = 0;
+    gpsAccuracyGood = false;
 }
 
 // Initialise the states from accelerometer and magnetometer data (if present)
