@@ -68,6 +68,9 @@ public:
     // dead-reckoning support
     bool get_position(struct Location &loc) const;
 
+    // get latest altitude estimate above ground level in metres and validity flag
+    bool get_hagl(float &hagl) const;
+
     // status reporting of estimated error
     float           get_error_rp(void) const;
     float           get_error_yaw(void) const;
@@ -103,10 +106,17 @@ public:
     // set home location
     void set_home(const Location &loc);
 
+    // returns the inertial navigation origin in lat/lon/alt
+    struct Location get_origin() const;
+
     bool have_inertial_nav(void) const;
 
     bool get_velocity_NED(Vector3f &vec) const;
     bool get_relative_position_NED(Vector3f &vec) const;
+
+    // Get a derivative of the vertical position in m/s which is kinematically consistent with the vertical position is required by some control loops.
+    // This is different to the vertical velocity from the EKF which is not always consistent with the verical position due to the various errors that are being corrected for.
+    bool get_vert_pos_rate(float &velocity);
 
     // write optical flow measurements to EKF
     void writeOptFlowMeas(uint8_t &rawFlowQuality, Vector2f &rawFlowRates, Vector2f &rawGyroRates, uint32_t &msecFlowMeas);
@@ -131,9 +141,38 @@ public:
     // true if the AHRS has completed initialisation
     bool initialised(void) const;
 
+    // get_filter_status - returns filter status as a series of flags
+    bool get_filter_status(nav_filter_status &status) const;
+
     // get compass offset estimates
     // true if offsets are valid
     bool getMagOffsets(Vector3f &magOffsets);
+
+    // report any reason for why the backend is refusing to initialise
+    const char *prearm_failure_reason(void) const override;
+
+    // return the amount of yaw angle change due to the last yaw angle reset in radians
+    // returns the time of the last yaw angle reset or 0 if no reset has ever occurred
+    uint32_t getLastYawResetAngle(float &yawAng);
+
+    // Resets the baro so that it reads zero at the current height
+    // Resets the EKF height to zero
+    // Adjusts the EKf origin height so that the EKF height + origin height is the same as before
+    // Returns true if the height datum reset has been performed
+    // If using a range finder for height no reset is performed and it returns false
+    bool resetHeightDatum(void);
+
+    // send a EKF_STATUS_REPORT for current EKF
+    void send_ekf_status_report(mavlink_channel_t chan);
+    
+    // get_hgt_ctrl_limit - get maximum height to be observed by the control loops in metres and a validity flag
+    // this is used to limit height during optical flow navigation
+    // it will return invalid when no limiting is required
+    bool get_hgt_ctrl_limit(float &limit) const;
+
+    // get_llh - updates the provided location with the latest calculated location including absolute altitude
+    //  returns true on success (i.e. the EKF knows it's latest position), false on failure
+    bool get_location(struct Location &loc) const;
 
 private:
     bool using_EKF(void) const;

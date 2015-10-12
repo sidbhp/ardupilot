@@ -358,6 +358,20 @@ bool AP_AHRS_NavEKF::get_velocity_NED(Vector3f &vec) const
     return false;
 }
 
+// Get a derivative of the vertical position which is kinematically consistent with the vertical position is required by some control loops.
+// This is different to the vertical velocity from the EKF which is not always consistent with the verical position due to the various errors that are being corrected for.
+bool AP_AHRS_NavEKF::get_vert_pos_rate(float &velocity)
+{
+    EKF.getPosDownDerivative(velocity);
+    return true;
+}
+
+// get latest height above ground level estimate in metres and a validity flag
+bool AP_AHRS_NavEKF::get_hagl(float &height) const
+{
+    return EKF.getHAGL(height);
+}
+
 // return a relative ground position in meters/second, North/East/Down
 // order. Must only be called if have_inertial_nav() is true
 bool AP_AHRS_NavEKF::get_relative_position_NED(Vector3f &vec) const
@@ -425,6 +439,13 @@ bool AP_AHRS_NavEKF::initialised(void) const
     return (ekf_started && (hal.scheduler->millis() - start_time_ms > AP_AHRS_NAVEKF_SETTLE_TIME_MS));
 };
 
+// get_filter_status : returns filter status as a series of flags
+bool AP_AHRS_NavEKF::get_filter_status(nav_filter_status &status) const
+{
+    EKF.getFilterStatus(status);
+    return true;
+}
+
 // write optical flow data to EKF
 void  AP_AHRS_NavEKF::writeOptFlowMeas(uint8_t &rawFlowQuality, Vector2f &rawFlowRates, Vector2f &rawGyroRates, uint32_t &msecFlowMeas)
 {
@@ -459,6 +480,34 @@ void AP_AHRS_NavEKF::setTakeoffExpected(bool val)
 void AP_AHRS_NavEKF::setTouchdownExpected(bool val)
 {
     EKF.setTouchdownExpected(val);
+}
+
+// returns the inertial navigation origin in lat/lon/alt
+struct Location AP_AHRS_NavEKF::get_origin() const
+{
+    struct Location ret;
+    if (!EKF.getOriginLLH(ret)) {
+        // initialise location to all zeros if EKF2 origin not yet set
+        memset(&ret, 0, sizeof(ret));
+    }
+    return ret;
+}
+
+// get_hgt_ctrl_limit - get maximum height to be observed by the control loops in metres and a validity flag
+// this is used to limit height during optical flow navigation
+// it will return invalid when no limiting is required
+bool AP_AHRS_NavEKF::get_hgt_ctrl_limit(float& limit) const
+{
+    return EKF.getHeightControlLimit(limit);
+
+    return false;
+}
+
+// get_location - updates the provided location with the latest calculated locatoin
+//  returns true on success (i.e. the EKF knows it's latest position), false on failure
+bool AP_AHRS_NavEKF::get_location(struct Location &loc) const
+{
+    return EKF.getLLH(loc);
 }
 
 #endif // AP_AHRS_NAVEKF_AVAILABLE
