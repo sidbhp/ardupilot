@@ -772,6 +772,18 @@ void AP_AHRS_NavEKF::send_ekf_status_report(mavlink_channel_t chan)
     }    
 }
 
+// send an GPS_STATUS_REPORT message to GCS
+void AP_AHRS_NavEKF::send_gps_accuracy(mavlink_channel_t chan)
+{
+    switch (active_EKF_type()) {
+    case EKF_TYPE1:
+    default:
+        return EKF1.send_gps_accuracy(chan);
+
+    case EKF_TYPE2:
+        return EKF2.send_gps_accuracy(chan);
+    }  
+}
 // returns the inertial navigation origin in lat/lon/alt
 struct Location AP_AHRS_NavEKF::get_origin() const
 {

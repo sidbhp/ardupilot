@@ -170,6 +170,9 @@ public:
     // send a EKF_STATUS_REPORT for current EKF
     void send_ekf_status_report(mavlink_channel_t chan);
     
+    // send an GPS_STATUS_REPORT message to GCS
+    void send_gps_accuracy(mavlink_channel_t chan);
+
     // get_hgt_ctrl_limit - get maximum height to be observed by the control loops in metres and a validity flag
     // this is used to limit height during optical flow navigation
     // it will return invalid when no limiting is required
