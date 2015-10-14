@@ -364,6 +364,12 @@ const AP_Param::GroupInfo NavEKF2::var_info[] PROGMEM = {
     // @User: Advanced
     AP_GROUPINFO("WIND_PSCALE", 31, NavEKF2, _wndVarHgtRateScale, 0.5f),
 
+    // @Param: GPS_CHECK
+    // @DisplayName: GPS preflight check
+    // @Description: 1 byte bitmap of GPS preflight checks to perform. Set to 0 to bypass all checks. Set to 255 perform all checks. Set to 3 to check just the number of satellites and HDoP. Set to 31 for the most rigorous checks that will still allow checks to pass when the copter is moving, eg launch from a boat.
+    // @Bitmask: 0:NSats,1:HDoP,2:speed error,3:horiz pos error,4:yaw error,5:pos drift,6:vert speed,7:horiz speed
+    // @User: Advanced
+    AP_GROUPINFO("GPS_CHECK",    32, NavEKF2, _gpsCheck, 31),
     AP_GROUPEND
 };
 
@@ -451,6 +457,15 @@ void NavEKF2::getVelNED(Vector3f &vel) const
 {
     if (core) {
         core->getVelNED(vel);
+    }
+}
+
+// Return the rate of change of vertical position in the down diection (dPosD/dt) in m/s
+void NavEKF2::getPosDownDerivative(float &ret) const
+{
+    // return the value calculated from a complmentary filer applied to the EKF height and vertical acceleration
+    if (core) {
+        core->getPosDownDerivative(ret);
     }
 }
 
@@ -768,14 +783,6 @@ void NavEKF2::send_status_report(mavlink_channel_t chan)
 {
     if (core) {
         core->send_status_report(chan);
-    }
-}
-
-// send GPS status report
-void NavEKF2::send_gps_accuracy(mavlink_channel_t chan)
-{
-    if (core) {
-        core->send_gps_accuracy(chan);
     }
 }
 

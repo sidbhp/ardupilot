@@ -25,11 +25,11 @@
 #include <AP_Math.h>
 #include <AP_Param.h>
 #include <GCS_MAVLink.h>
-#include "AP_Nav_Common.h"
+#include <AP_Nav_Common.h>
 #include <AP_Baro.h>
 #include <AP_Airspeed.h>
 #include <AP_Compass.h>
-#include <AP_Nav_Common.h>
+#include "AP_Nav_Common.h"
 #include <AP_RangeFinder.h>
 
 class NavEKF2_core;
@@ -64,6 +64,11 @@ public:
 
     // return NED velocity in m/s
     void getVelNED(Vector3f &vel) const;
+
+    // Return the rate of change of vertical position in the down diection (dPosD/dt) in m/s
+    // This can be different to the z component of the EKF velocity state because it will fluctuate with height errors and corrections in the EKF
+    // but will always be kinematically consistent with the z component of the EKF position state
+    void getPosDownDerivative(float &ret) const;
 
     // This returns the specific forces in the NED frame
     void getAccelNED(Vector3f &accelNED) const;
@@ -213,9 +218,6 @@ public:
     // send an EKF_STATUS_REPORT message to GCS
     void send_status_report(mavlink_channel_t chan);
 
-    // send GPS status report
-    void send_gps_accuracy(mavlink_channel_t chan);
-
     // provides the height limit to be observed by the control loops
     // returns false if no height limiting is required
     // this is needed to ensure the vehicle does not fly too high when using optical flow navigation
@@ -267,6 +269,7 @@ private:
     AP_Int8 _altSource;             // Primary alt source during optical flow navigation. 0 = use Baro, 1 = use range finder.
     AP_Float _gyroScaleProcessNoise;// gyro scale factor state process noise : 1/s
     AP_Float _rngNoise;             // Range finder noise : m
+    AP_Int8 _gpsCheck;              // Bitmask controlling which preflight GPS checks are bypassed
 
     // Tuning parameters
     const float gpsNEVelVarAccScale;    // Scale factor applied to NE velocity measurement variance due to manoeuvre acceleration

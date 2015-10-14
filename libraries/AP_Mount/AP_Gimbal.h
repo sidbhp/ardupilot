@@ -20,7 +20,7 @@
 #include <GCS_MAVLink.h>
 #include <AP_Mount.h>
 #include <AP_SmallEKF.h>
-#include <AP_NavEKF.h>
+#include <AP_NavEKF2.h>
 #include <AP_AccelCal.h>
 
 enum gimbal_state_t {

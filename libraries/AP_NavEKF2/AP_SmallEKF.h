@@ -27,7 +27,7 @@
 #include <AP_Airspeed.h>
 #include <AP_Compass.h>
 #include <AP_Param.h>
-#include <AP_Nav_Common.h>
+#include "AP_Nav_Common.h"
 #include <AP_AHRS.h>
 #include <AP_NavEKF2.h>
 
