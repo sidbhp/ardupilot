@@ -25,7 +25,7 @@
 #include <AP_Math.h>
 #include <AP_Param.h>
 #include <GCS_MAVLink.h>
-#include <AP_Nav_Common.h>
+#include "AP_Nav_Common.h"
 #include <AP_Baro.h>
 #include <AP_Airspeed.h>
 #include <AP_Compass.h>

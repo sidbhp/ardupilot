@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#include <AP_HAL.h>
+#include <AP_HAL/AP_HAL.h>
 
 #if HAL_CPU_CLASS >= HAL_CPU_CLASS_150
 
@@ -11,8 +11,8 @@
 
 #include "AP_NavEKF2.h"
 #include "AP_NavEKF2_core.h"
-#include <AP_AHRS.h>
-#include <AP_Vehicle.h>
+#include <AP_AHRS/AP_AHRS.h>
+#include <AP_Vehicle/AP_Vehicle.h>
 
 #include <stdio.h>
 
@@ -149,6 +149,13 @@ void NavEKF2_core::getVelNED(Vector3f &vel) const
     vel = outputDataNew.velocity;
 }
 
+// Return the rate of change of vertical position in the down diection (dPosD/dt) in m/s
+void NavEKF2_core::getPosDownDerivative(float &ret) const
+{
+    // return the value calculated from a complmentary filer applied to the EKF height and vertical acceleration
+    ret = posDownDerivative;
+}
+
 // This returns the specific forces in the NED frame
 void NavEKF2_core::getAccelNED(Vector3f &accelNED) const {
     accelNED = velDotNED;
@@ -173,7 +180,7 @@ bool NavEKF2_core::getPosNED(Vector3f &pos) const
     // There are three modes of operation, absolute position (GPS fusion), relative position (optical flow fusion) and constant position (no position estimate available)
     nav_filter_status status;
     getFilterStatus(status);
-    if (status.flags.horiz_pos_abs || status.flags.horiz_pos_rel) {
+    if (PV_AidingMode != AID_NONE) {
         // This is the normal mode of operation where we can use the EKF position states
         pos.x = outputDataNew.position.x;
         pos.y = outputDataNew.position.y;
@@ -391,7 +398,6 @@ void  NavEKF2_core::getFilterStatus(nav_filter_status &status) const
     bool doingFlowNav = (PV_AidingMode == AID_RELATIVE) && flowDataValid;
     bool doingWindRelNav = !tasTimeout && assume_zero_sideslip();
     bool doingNormalGpsNav = !posTimeout && (PV_AidingMode == AID_ABSOLUTE);
-    bool notDeadReckoning = (PV_AidingMode == AID_ABSOLUTE);
     bool someVertRefData = (!velTimeout && useGpsVertVel) || !hgtTimeout;
     bool someHorizRefData = !(velTimeout && posTimeout && tasTimeout) || doingFlowNav;
     bool optFlowNavPossible = flowDataValid && (frontend._fusionModeGPS == 3);
@@ -400,10 +406,10 @@ void  NavEKF2_core::getFilterStatus(nav_filter_status &status) const
 
     // set individual flags
     status.flags.attitude = !stateStruct.quat.is_nan() && filterHealthy;   // attitude valid (we need a better check)
-    status.flags.horiz_vel = someHorizRefData && notDeadReckoning && filterHealthy;      // horizontal velocity estimate valid
+    status.flags.horiz_vel = someHorizRefData && filterHealthy;      // horizontal velocity estimate valid
     status.flags.vert_vel = someVertRefData && filterHealthy;        // vertical velocity estimate valid
-    status.flags.horiz_pos_rel = ((doingFlowNav && gndOffsetValid) || doingWindRelNav || doingNormalGpsNav) && notDeadReckoning && filterHealthy;   // relative horizontal position estimate valid
-    status.flags.horiz_pos_abs = doingNormalGpsNav && notDeadReckoning && filterHealthy; // absolute horizontal position estimate valid
+    status.flags.horiz_pos_rel = ((doingFlowNav && gndOffsetValid) || doingWindRelNav || doingNormalGpsNav) && filterHealthy;   // relative horizontal position estimate valid
+    status.flags.horiz_pos_abs = doingNormalGpsNav && filterHealthy; // absolute horizontal position estimate valid
     status.flags.vert_pos = !hgtTimeout && filterHealthy;            // vertical position estimate valid
     status.flags.terrain_alt = gndOffsetValid && filterHealthy;		// terrain height estimate valid
     status.flags.const_pos_mode = (PV_AidingMode == AID_NONE) && filterHealthy;     // constant position mode
@@ -425,11 +431,15 @@ void  NavEKF2_core::getFilterGpsStatus(nav_gps_status &faults) const
     faults.value = 0;
 
     // set individual flags
-    faults.flags.bad_sAcc   = gpsCheckStatus.bad_sAcc; // reported speed accuracy is insufficient
-    faults.flags.bad_hAcc   = gpsCheckStatus.bad_hAcc; // reported horizontal position accuracy is insufficient
-    faults.flags.bad_sats   = gpsCheckStatus.bad_sats; // reported number of satellites is insufficient
-    faults.flags.bad_yaw    = gpsCheckStatus.bad_yaw; // EKF heading accuracy is too large for GPS use
-    faults.flags.bad_fix    = gpsCheckStatus.bad_fix; // The GPS cannot provide the 3D fix required
+    faults.flags.bad_sAcc           = gpsCheckStatus.bad_sAcc; // reported speed accuracy is insufficient
+    faults.flags.bad_hAcc           = gpsCheckStatus.bad_hAcc; // reported horizontal position accuracy is insufficient
+    faults.flags.bad_yaw            = gpsCheckStatus.bad_yaw; // EKF heading accuracy is too large for GPS use
+    faults.flags.bad_sats           = gpsCheckStatus.bad_sats; // reported number of satellites is insufficient
+    faults.flags.bad_horiz_drift    = gpsCheckStatus.bad_horiz_drift; // GPS horizontal drift is too large to start using GPS (check assumes vehicle is static)
+    faults.flags.bad_hdop           = gpsCheckStatus.bad_hdop; // reported HDoP is too large to start using GPS
+    faults.flags.bad_vert_vel       = gpsCheckStatus.bad_vert_vel; // GPS vertical speed is too large to start using GPS (check assumes vehicle is static)
+    faults.flags.bad_fix            = gpsCheckStatus.bad_fix; // The GPS cannot provide the 3D fix required
+    faults.flags.bad_horiz_vel      = gpsCheckStatus.bad_horiz_vel; // The GPS horizontal speed is excessive (check assumes the vehicle is static)
 }
 
 // send an EKF_STATUS message to GCS

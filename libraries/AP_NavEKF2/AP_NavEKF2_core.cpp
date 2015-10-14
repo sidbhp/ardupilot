@@ -89,6 +89,7 @@ void NavEKF2_core::InitialiseVariables()
     magMeasTime_ms = imuSampleTime_ms;
     timeTasReceived_ms = 0;
     magYawResetTimer_ms = imuSampleTime_ms;
+    lastPreAlignGpsCheckTime_ms = imuSampleTime_ms;
 
     // initialise other variables
     gpsNoiseScaler = 1.0f;
@@ -180,6 +181,13 @@ void NavEKF2_core::InitialiseVariables()
     lastInnovPassTime_ms = 0;
     lastInnovFailTime_ms = 0;
     gpsAccuracyGood = false;
+    memset(&gpsloc_prev, 0, sizeof(gpsloc_prev));
+    gpsDriftNE = 0.0f;
+    gpsVertVelFilt = 0.0f;
+    gpsHorizVelFilt = 0.0f;
+    posDownDerivative = 0.0f;
+    posDown = 0.0f;
+    memset(&statesArray, 0, sizeof(statesArray));
 }
 
 // Initialise the states from accelerometer and magnetometer data (if present)
@@ -224,13 +232,20 @@ bool NavEKF2_core::InitialiseFilterBootstrap(void)
     // calculate initial roll and pitch orientation
     stateStruct.quat.from_euler(roll, pitch, 0.0f);
 
-    // initialise static process state model states
+    // initialise dynamic states
+    stateStruct.velocity.zero();
+    stateStruct.position.zero();
+    stateStruct.angErr.zero();
+
+    // initialise static process model states
     stateStruct.gyro_bias.zero();
     stateStruct.gyro_scale.x = 1.0f;
     stateStruct.gyro_scale.y = 1.0f;
     stateStruct.gyro_scale.z = 1.0f;
     stateStruct.accel_zbias = 0.0f;
     stateStruct.wind_vel.zero();
+    stateStruct.earth_magfield.zero();
+    stateStruct.body_magfield.zero();
 
     // read the GPS and set the position and velocity states
     readGpsData();
@@ -594,6 +609,13 @@ void  NavEKF2_core::calcOutputStatesFast() {
     // multiply position error by a gain to calculate the velocity correction required to track the EKF solution
     const float Kpos = 1.0f;
     velCorrection = (stateStruct.position - outputDataDelayed.position) * Kpos;
+
+    // update vertical velocity and position states used to provide a vertical position derivative output
+    // using a simple complementary filter
+    float lastPosDownDerivative = posDownDerivative;
+    posDownDerivative += delVelNav.z;
+    float posDownDerivativeCorrection = 0.2f * (outputDataNew.position.z - posDown);
+    posDown += (posDownDerivative + lastPosDownDerivative) * (imuDataNew.delVelDT*0.5f) + posDownDerivativeCorrection * imuDataNew.delVelDT;
 
 }
 
@@ -1156,6 +1178,9 @@ void NavEKF2_core::StoreOutputReset()
         storedOutput[i] = outputDataNew;
     }
     outputDataDelayed = outputDataNew;
+    // reset the states for the complementary filter used to provide a vertical position dervative output
+    posDown = stateStruct.position.z;
+    posDownDerivative = stateStruct.velocity.z;
 }
 
 // Reset the stored output quaternion history to current EKF state
