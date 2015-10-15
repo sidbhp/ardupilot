@@ -474,7 +474,24 @@ bool AP_AHRS_NavEKF::getMagOffsets(Vector3f &magOffsets)
 
 void AP_AHRS_NavEKF::setTakeoffExpected(bool val)
 {
-    EKF.setTakeoffExpected(val);
+    return nullptr;
+}
+
+// return the amount of yaw angle change due to the last yaw angle reset in radians
+// returns the time of the last yaw angle reset or 0 if no reset has ever occurred
+uint32_t AP_AHRS_NavEKF::getLastYawResetAngle(float &yawAng)
+{
+    return EKF.getLastYawResetAngle(yawAng);
+}
+
+// Resets the baro so that it reads zero at the current height
+// Resets the EKF height to zero
+// Adjusts the EKf origin height so that the EKF height + origin height is the same as before
+// Returns true if the height datum reset has been performed
+// If using a range finder for height no reset is performed and it returns false
+bool AP_AHRS_NavEKF::resetHeightDatum(void)
+{
+   return EKF.resetHeightDatum();
 }
 
 void AP_AHRS_NavEKF::setTouchdownExpected(bool val)
@@ -482,15 +499,15 @@ void AP_AHRS_NavEKF::setTouchdownExpected(bool val)
     EKF.setTouchdownExpected(val);
 }
 
-// returns the inertial navigation origin in lat/lon/alt
-struct Location AP_AHRS_NavEKF::get_origin() const
+// passes a reference to the location of the inertial navigation origin
+// in WGS-84 coordinates
+// returns a boolean true when the inertial navigation origin has been set
+bool AP_AHRS_NavEKF::get_origin(Location &ret) const
 {
-    struct Location ret;
     if (!EKF.getOriginLLH(ret)) {
-        // initialise location to all zeros if EKF2 origin not yet set
-        memset(&ret, 0, sizeof(ret));
+        return false;
     }
-    return ret;
+    return true;
 }
 
 // get_hgt_ctrl_limit - get maximum height to be observed by the control loops in metres and a validity flag
@@ -499,11 +516,10 @@ struct Location AP_AHRS_NavEKF::get_origin() const
 bool AP_AHRS_NavEKF::get_hgt_ctrl_limit(float& limit) const
 {
     return EKF.getHeightControlLimit(limit);
-
-    return false;
+    return true;
 }
 
-// get_location - updates the provided location with the latest calculated locatoin
+// get_location - updates the provided location with the latest calculated location
 //  returns true on success (i.e. the EKF knows it's latest position), false on failure
 bool AP_AHRS_NavEKF::get_location(struct Location &loc) const
 {
