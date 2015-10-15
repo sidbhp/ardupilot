@@ -318,7 +318,7 @@ struct PACKED log_EKF1 {
     int16_t gyrZ;
 };
 
-struct PACKED log_NKF2 {
+struct PACKED log_EKF2 {
     LOG_PACKET_HEADER;
     uint64_t time_us;
     int8_t AZbias;
@@ -335,7 +335,7 @@ struct PACKED log_NKF2 {
     int16_t magZ;
 };
 
-struct PACKED log_NKF3 {
+struct PACKED log_EKF3 {
     LOG_PACKET_HEADER;
     uint64_t time_us;
     int16_t innovVN;
@@ -351,7 +351,7 @@ struct PACKED log_NKF3 {
     int16_t innovVT;
 };
 
-struct PACKED log_NKF4 {
+struct PACKED log_EKF4 {
     LOG_PACKET_HEADER;
     uint64_t time_us;
     int16_t sqrtvarV;
@@ -638,11 +638,11 @@ Format characters in the format string for binary log messages
       "SIM","IccCfLL","TimeMS,Roll,Pitch,Yaw,Alt,Lat,Lng" }, \
     { LOG_EKF1_MSG, sizeof(log_EKF1), \
     "NKF1","QccCfffffffccc","TimeUS,Roll,Pitch,Yaw,VN,VE,VD,dPD,PN,PE,PD,GX,GY,GZ" }, \
-    { LOG_EKF2_MSG, sizeof(log_NKF2), \
+    { LOG_EKF2_MSG, sizeof(log_EKF2), \
     "NKF2","Qbccccchhhhhh","TimeUS,AZbias,GSX,GSY,GSZ,VWN,VWE,MN,ME,MD,MX,MY,MZ" }, \
-    { LOG_EKF3_MSG, sizeof(log_NKF3), \
+    { LOG_EKF3_MSG, sizeof(log_EKF3), \
     "NKF3","Qcccccchhhcc","TimeUS,IVN,IVE,IVD,IPN,IPE,IPD,IMX,IMY,IMZ,IYAW,IVT" }, \
-    { LOG_EKF4_MSG, sizeof(log_NKF4), \
+    { LOG_EKF4_MSG, sizeof(log_EKF4), \
     "NKF4","QcccccfbbBBHH","TimeUS,SV,SP,SH,SM,SVT,errRP,OFN,EFE,FS,TS,SS,GPS" }, \
     { LOG_EKF5_MSG, sizeof(log_EKF5), \
     "NKF5","QBhhhcccCC","TimeUS,normInnov,FIX,FIY,AFI,HAGL,offset,RI,meaRng,errHAGL" }, \

@@ -924,7 +924,7 @@ void DataFlash_Class::Log_Write_EKF(AP_AHRS_NavEKF &ahrs, bool optFlowEnabled)
         pitch   : (int16_t)(100*degrees(euler.y)), // pitch angle (centi-deg, displayed as deg due to format string)
         yaw     : (uint16_t)wrap_360_cd(100*degrees(euler.z)), // yaw angle (centi-deg, displayed as deg due to format string)
         velN    : (float)(velNED.x), // velocity North (m/s)
-        velE    : (floaEKFt)(velNED.y), // velocity East (m/s)
+        velE    : (float)(velNED.y), // velocity East (m/s)
         velD    : (float)(velNED.z), // velocity Down (m/s)
         posD_dot : (float)(posDownDeriv), // first derivative of down position
         posN    : (float)(posNED.x), // metres North

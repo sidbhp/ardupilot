@@ -148,8 +148,6 @@ public:
     // true if offsets are valid
     bool getMagOffsets(Vector3f &magOffsets);
 
-    // report any reason for why the backend is refusing to initialise
-    const char *prearm_failure_reason(void) const override;
 
     // return the amount of yaw angle change due to the last yaw angle reset in radians
     // returns the time of the last yaw angle reset or 0 if no reset has ever occurred

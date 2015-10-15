@@ -362,7 +362,7 @@ bool AP_AHRS_NavEKF::get_velocity_NED(Vector3f &vec) const
 // This is different to the vertical velocity from the EKF which is not always consistent with the verical position due to the various errors that are being corrected for.
 bool AP_AHRS_NavEKF::get_vert_pos_rate(float &velocity)
 {
-    velocity = EKF2.getPosDownDerivative();
+    velocity = EKF.getPosDownDerivative();
     return true;
 }
 
@@ -464,17 +464,17 @@ void AP_AHRS_NavEKF::getEkfControlLimits(float &ekfGndSpdLimit, float &ekfNavVel
     EKF.getEkfControlLimits(ekfGndSpdLimit,ekfNavVelGainScaler);
 }
 
+void AP_AHRS_NavEKF::setTakeoffExpected(bool val)
+{
+    EKF.setTakeoffExpected(val);
+}
+
 // get compass offset estimates
 // true if offsets are valid
 bool AP_AHRS_NavEKF::getMagOffsets(Vector3f &magOffsets)
 {
     bool status = EKF.getMagOffsets(magOffsets);
     return status;
-}
-
-void AP_AHRS_NavEKF::setTakeoffExpected(bool val)
-{
-    return nullptr;
 }
 
 // return the amount of yaw angle change due to the last yaw angle reset in radians
