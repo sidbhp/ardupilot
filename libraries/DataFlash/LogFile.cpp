@@ -911,19 +911,22 @@ void DataFlash_Class::Log_Write_EKF(AP_AHRS_NavEKF &ahrs, bool optFlowEnabled)
     Vector3f dAngBias;
     Vector3f dVelBias;
     Vector3f gyroBias;
+    float posDownDeriv;
     ahrs.get_NavEKF().getEulerAngles(euler);
     ahrs.get_NavEKF().getVelNED(velNED);
     ahrs.get_NavEKF().getPosNED(posNED);
     ahrs.get_NavEKF().getGyroBias(gyroBias);
+    posDownDeriv = ahrs.get_NavEKF().getPosDownDerivative();
     struct log_EKF1 pkt = {
         LOG_PACKET_HEADER_INIT(LOG_EKF1_MSG),
-        time_ms : hal.scheduler->millis(),
+        time_us : hal.scheduler->micros64(),
         roll    : (int16_t)(100*degrees(euler.x)), // roll angle (centi-deg, displayed as deg due to format string)
         pitch   : (int16_t)(100*degrees(euler.y)), // pitch angle (centi-deg, displayed as deg due to format string)
         yaw     : (uint16_t)wrap_360_cd(100*degrees(euler.z)), // yaw angle (centi-deg, displayed as deg due to format string)
         velN    : (float)(velNED.x), // velocity North (m/s)
-        velE    : (float)(velNED.y), // velocity East (m/s)
+        velE    : (floaEKFt)(velNED.y), // velocity East (m/s)
         velD    : (float)(velNED.z), // velocity Down (m/s)
+        posD_dot : (float)(posDownDeriv), // first derivative of down position
         posN    : (float)(posNED.x), // metres North
         posE    : (float)(posNED.y), // metres East
         posD    : (float)(posNED.z), // metres Down
@@ -934,22 +937,23 @@ void DataFlash_Class::Log_Write_EKF(AP_AHRS_NavEKF &ahrs, bool optFlowEnabled)
     WriteBlock(&pkt, sizeof(pkt));
 
     // Write second EKF packet
-    float ratio;
-    float az1bias, az2bias = 0.0f;
+    float azbias = 0;
     Vector3f wind;
     Vector3f magNED;
     Vector3f magXYZ;
-    ahrs.get_NavEKF().getAccelZBias(az1bias);
-    ratio = 1.0f;
+    Vector3f gyroScaleFactor;
+    ahrs.get_NavEKF().getAccelZBias(azbias);
     ahrs.get_NavEKF().getWind(wind);
     ahrs.get_NavEKF().getMagNED(magNED);
     ahrs.get_NavEKF().getMagXYZ(magXYZ);
+    ahrs.get_NavEKF().getGyroScaleErrorPercentage(gyroScaleFactor);
     struct log_EKF2 pkt2 = {
         LOG_PACKET_HEADER_INIT(LOG_EKF2_MSG),
-        time_ms : hal.scheduler->millis(),
-        Ratio   : (int8_t)(100*ratio),
-        AZ1bias : (int8_t)(100*az1bias),
-        AZ2bias : (int8_t)(100*az2bias),
+        time_us : hal.scheduler->micros64(),
+        AZbias  : (int8_t)(100*azbias),
+        scaleX  : (int16_t)(100*gyroScaleFactor.x),
+        scaleY  : (int16_t)(100*gyroScaleFactor.y),
+        scaleZ  : (int16_t)(100*gyroScaleFactor.z),
         windN   : (int16_t)(100*wind.x),
         windE   : (int16_t)(100*wind.y),
         magN    : (int16_t)(magNED.x),
@@ -965,11 +969,12 @@ void DataFlash_Class::Log_Write_EKF(AP_AHRS_NavEKF &ahrs, bool optFlowEnabled)
     Vector3f velInnov;
     Vector3f posInnov;
     Vector3f magInnov;
-    float tasInnov,yawInnov;
+    float tasInnov = 0;
+    float yawInnov = 0;
     ahrs.get_NavEKF().getInnovations(velInnov, posInnov, magInnov, tasInnov, yawInnov);
     struct log_EKF3 pkt3 = {
         LOG_PACKET_HEADER_INIT(LOG_EKF3_MSG),
-        time_ms : hal.scheduler->millis(),
+        time_us : hal.scheduler->micros64(),
         innovVN : (int16_t)(100*velInnov.x),
         innovVE : (int16_t)(100*velInnov.y),
         innovVD : (int16_t)(100*velInnov.z),
@@ -979,56 +984,62 @@ void DataFlash_Class::Log_Write_EKF(AP_AHRS_NavEKF &ahrs, bool optFlowEnabled)
         innovMX : (int16_t)(magInnov.x),
         innovMY : (int16_t)(magInnov.y),
         innovMZ : (int16_t)(magInnov.z),
+        innovYaw : (int16_t)(100*degrees(yawInnov)),
         innovVT : (int16_t)(100*tasInnov)
     };
     WriteBlock(&pkt3, sizeof(pkt3));
 
     // Write fourth EKF packet
-    float velVar;
-    float posVar;
-    float hgtVar;
+    float velVar = 0;
+    float posVar = 0;
+    float hgtVar = 0;
     Vector3f magVar;
-    float tasVar;
+    float tasVar = 0;
     Vector2f offset;
-    uint8_t faultStatus, timeoutStatus;
-    nav_filter_status solutionStatus;
+    uint8_t faultStatus=0, timeoutStatus=0;
+    nav_filter_status solutionStatus {};
+    nav_gps_status gpsStatus {};
     ahrs.get_NavEKF().getVariances(velVar, posVar, hgtVar, magVar, tasVar, offset);
+    float magLength = magVar.length();
     ahrs.get_NavEKF().getFilterFaults(faultStatus);
     ahrs.get_NavEKF().getFilterTimeouts(timeoutStatus);
     ahrs.get_NavEKF().getFilterStatus(solutionStatus);
+    ahrs.get_NavEKF().getFilterGpsStatus(gpsStatus);
+    float tiltError;
+    ahrs.get_NavEKF().getTiltError(tiltError);
     struct log_EKF4 pkt4 = {
         LOG_PACKET_HEADER_INIT(LOG_EKF4_MSG),
-        time_ms : hal.scheduler->millis(),
+        time_us : hal.scheduler->micros64(),
         sqrtvarV : (int16_t)(100*velVar),
         sqrtvarP : (int16_t)(100*posVar),
         sqrtvarH : (int16_t)(100*hgtVar),
-        sqrtvarMX : (int16_t)(100*magVar.x),
-        sqrtvarMY : (int16_t)(100*magVar.y),
-        sqrtvarMZ : (int16_t)(100*magVar.z),
+        sqrtvarM : (int16_t)(100*magLength),
         sqrtvarVT : (int16_t)(100*tasVar),
+        tiltErr : (float)tiltError,
         offsetNorth : (int8_t)(offset.x),
         offsetEast : (int8_t)(offset.y),
         faults : (uint8_t)(faultStatus),
         timeouts : (uint8_t)(timeoutStatus),
-        solution : (uint16_t)(solutionStatus.value)
+        solution : (uint16_t)(solutionStatus.value),
+        gps : (uint16_t)(gpsStatus.value)
     };
     WriteBlock(&pkt4, sizeof(pkt4));
 
 
     // Write fifth EKF packet
     if (optFlowEnabled) {
-        float normInnov; // normalised innovation variance ratio for optical flow observations fused by the main nav filter
-        float gndOffset; // estimated vertical position of the terrain relative to the nav filter zero datum
-        float flowInnovX, flowInnovY; // optical flow LOS rate vector innovations from the main nav filter
-        float auxFlowInnov; // optical flow LOS rate innovation from terrain offset estimator
-        float HAGL; // height above ground level
-        float rngInnov; // range finder innovations
-        float range; // measured range
-        float gndOffsetErr; // filter ground offset state error
+        float normInnov=0; // normalised innovation variance ratio for optical flow observations fused by the main nav filter
+        float gndOffset=0; // estimated vertical position of the terrain relative to the nav filter zero datum
+        float flowInnovX=0, flowInnovY=0; // optical flow LOS rate vector innovations from the main nav filter
+        float auxFlowInnov=0; // optical flow LOS rate innovation from terrain offset estimator
+        float HAGL=0; // height above ground level
+        float rngInnov=0; // range finder innovations
+        float range=0; // measured range
+        float gndOffsetErr=0; // filter ground offset state error
         ahrs.get_NavEKF().getFlowDebug(normInnov, gndOffset, flowInnovX, flowInnovY, auxFlowInnov, HAGL, rngInnov, range, gndOffsetErr);
         struct log_EKF5 pkt5 = {
             LOG_PACKET_HEADER_INIT(LOG_EKF5_MSG),
-            time_ms : hal.scheduler->millis(),
+            time_us : hal.scheduler->micros64(),
             normInnov : (uint8_t)(min(100*normInnov,255)),
             FIX : (int16_t)(1000*flowInnovX),
             FIY : (int16_t)(1000*flowInnovY),

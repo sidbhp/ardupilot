@@ -302,13 +302,14 @@ struct PACKED log_POWR {
 
 struct PACKED log_EKF1 {
     LOG_PACKET_HEADER;
-    uint32_t time_ms;
+    uint64_t time_us;
     int16_t roll;
     int16_t pitch;
     uint16_t yaw;
     float velN;
     float velE;
     float velD;
+    float posD_dot;
     float posN;
     float posE;
     float posD;
@@ -317,12 +318,13 @@ struct PACKED log_EKF1 {
     int16_t gyrZ;
 };
 
-struct PACKED log_EKF2 {
+struct PACKED log_NKF2 {
     LOG_PACKET_HEADER;
-    uint32_t time_ms;
-    int8_t Ratio;
-    int8_t AZ1bias;
-    int8_t AZ2bias;
+    uint64_t time_us;
+    int8_t AZbias;
+    int16_t scaleX;
+    int16_t scaleY;
+    int16_t scaleZ;
     int16_t windN;
     int16_t windE;
     int16_t magN;
@@ -333,9 +335,9 @@ struct PACKED log_EKF2 {
     int16_t magZ;
 };
 
-struct PACKED log_EKF3 {
+struct PACKED log_NKF3 {
     LOG_PACKET_HEADER;
-    uint32_t time_ms;
+    uint64_t time_us;
     int16_t innovVN;
     int16_t innovVE;
     int16_t innovVD;
@@ -345,29 +347,30 @@ struct PACKED log_EKF3 {
     int16_t innovMX;
     int16_t innovMY;
     int16_t innovMZ;
+    int16_t innovYaw;
     int16_t innovVT;
 };
 
-struct PACKED log_EKF4 {
+struct PACKED log_NKF4 {
     LOG_PACKET_HEADER;
-    uint32_t time_ms;
+    uint64_t time_us;
     int16_t sqrtvarV;
     int16_t sqrtvarP;
     int16_t sqrtvarH;
-    int16_t sqrtvarMX;
-    int16_t sqrtvarMY;
-    int16_t sqrtvarMZ;
+    int16_t sqrtvarM;
     int16_t sqrtvarVT;
+    float   tiltErr;
     int8_t  offsetNorth;
     int8_t  offsetEast;
     uint8_t faults;
     uint8_t timeouts;
     uint16_t solution;
+    uint16_t gps;
 };
 
 struct PACKED log_EKF5 {
     LOG_PACKET_HEADER;
-    uint32_t time_ms;
+    uint64_t time_us;
     uint8_t normInnov;
     int16_t FIX;
     int16_t FIY;
@@ -634,13 +637,15 @@ Format characters in the format string for binary log messages
     { LOG_SIMSTATE_MSG, sizeof(log_AHRS), \
       "SIM","IccCfLL","TimeMS,Roll,Pitch,Yaw,Alt,Lat,Lng" }, \
     { LOG_EKF1_MSG, sizeof(log_EKF1), \
-      "EKF1","IccCffffffccc","TimeMS,Roll,Pitch,Yaw,VN,VE,VD,PN,PE,PD,GX,GY,GZ" }, \
-    { LOG_EKF2_MSG, sizeof(log_EKF2), \
-      "EKF2","Ibbbcchhhhhh","TimeMS,Ratio,AZ1bias,AZ2bias,VWN,VWE,MN,ME,MD,MX,MY,MZ" }, \
-    { LOG_EKF3_MSG, sizeof(log_EKF3), \
-      "EKF3","Icccccchhhc","TimeMS,IVN,IVE,IVD,IPN,IPE,IPD,IMX,IMY,IMZ,IVT" }, \
-    { LOG_EKF4_MSG, sizeof(log_EKF4), \
-      "EKF4","IcccccccbbBBH","TimeMS,SV,SP,SH,SMX,SMY,SMZ,SVT,OFN,EFE,FS,TS,SS" }, \
+    "NKF1","QccCfffffffccc","TimeUS,Roll,Pitch,Yaw,VN,VE,VD,dPD,PN,PE,PD,GX,GY,GZ" }, \
+    { LOG_EKF2_MSG, sizeof(log_NKF2), \
+    "NKF2","Qbccccchhhhhh","TimeUS,AZbias,GSX,GSY,GSZ,VWN,VWE,MN,ME,MD,MX,MY,MZ" }, \
+    { LOG_EKF3_MSG, sizeof(log_NKF3), \
+    "NKF3","Qcccccchhhcc","TimeUS,IVN,IVE,IVD,IPN,IPE,IPD,IMX,IMY,IMZ,IYAW,IVT" }, \
+    { LOG_EKF4_MSG, sizeof(log_NKF4), \
+    "NKF4","QcccccfbbBBHH","TimeUS,SV,SP,SH,SM,SVT,errRP,OFN,EFE,FS,TS,SS,GPS" }, \
+    { LOG_EKF5_MSG, sizeof(log_EKF5), \
+    "NKF5","QBhhhcccCC","TimeUS,normInnov,FIX,FIY,AFI,HAGL,offset,RI,meaRng,errHAGL" }, \
     { LOG_TERRAIN_MSG, sizeof(log_TERRAIN), \
       "TERR","IBLLHffHH","TimeMS,Status,Lat,Lng,Spacing,TerrH,CHeight,Pending,Loaded" }, \
     { LOG_UBX1_MSG, sizeof(log_Ubx1), \
