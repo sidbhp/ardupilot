@@ -362,7 +362,7 @@ bool AP_AHRS_NavEKF::get_velocity_NED(Vector3f &vec) const
 // This is different to the vertical velocity from the EKF which is not always consistent with the verical position due to the various errors that are being corrected for.
 bool AP_AHRS_NavEKF::get_vert_pos_rate(float &velocity)
 {
-    EKF.getPosDownDerivative(velocity);
+    velocity = EKF.getPosDownDerivative();
     return true;
 }
 
