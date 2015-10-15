@@ -156,7 +156,7 @@ static bool init_arm_motors(bool arming_from_gcs)
     if(did_ground_start == false) {
         uint32_t gyro_cal_begin = millis();
 
-        startup_ground(true);
+        startup_ground(false);
 
         gyro_cal_time = millis()-gyro_cal_begin;
 
