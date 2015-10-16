@@ -81,6 +81,9 @@ protected:
     float               _yaw_factor[AP_MOTORS_MAX_NUM_MOTORS];  // each motors contribution to yaw (normally 1 or -1)
     uint8_t             _test_order[AP_MOTORS_MAX_NUM_MOTORS];  // order of the motors in the test sequence
     float               _motor_out_pct[AP_MOTORS_MAX_NUM_MOTORS];
+
+    int16_t             _max_motor_out[AP_MOTORS_MAX_NUM_MOTORS];
+>>>>>>> dad46b1... AP_Motors: add slew rate limiter
 };
 
 #endif  // AP_MOTORSMATRIX
