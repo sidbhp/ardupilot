@@ -80,7 +80,7 @@ void AC_AttitudeControl::set_dt(float delta_sec)
 void AC_AttitudeControl::relax_bf_rate_controller()
 {
     // ensure zero error in body frame rate controllers
-    const Vector3f& gyro = _ahrs.get_gyro_for_control();
+    const Vector3f& gyro = _ahrs.get_gyro();
     _rate_bf_target = gyro * AC_ATTITUDE_CONTROL_DEGX100;
     frame_conversion_bf_to_ef(_rate_bf_target, _rate_ef_desired);
 
@@ -514,19 +514,19 @@ void AC_AttitudeControl::update_ef_yaw_angle_and_error(float yaw_rate_ef, Vector
 void AC_AttitudeControl::integrate_bf_rate_error_to_angle_errors()
 {
     // roll - calculate body-frame angle error by integrating body-frame rate error
-    _angle_bf_error.x += (_rate_bf_desired.x - (_ahrs.get_gyro_for_control().x * AC_ATTITUDE_CONTROL_DEGX100)) * _dt;
+    _angle_bf_error.x += (_rate_bf_desired.x - (_ahrs.get_gyro().x * AC_ATTITUDE_CONTROL_DEGX100)) * _dt;
     // roll - limit maximum error
     _angle_bf_error.x = constrain_float(_angle_bf_error.x, -AC_ATTITUDE_RATE_STAB_ACRO_OVERSHOOT_ANGLE_MAX, AC_ATTITUDE_RATE_STAB_ACRO_OVERSHOOT_ANGLE_MAX);
 
 
     // pitch - calculate body-frame angle error by integrating body-frame rate error
-    _angle_bf_error.y += (_rate_bf_desired.y - (_ahrs.get_gyro_for_control().y * AC_ATTITUDE_CONTROL_DEGX100)) * _dt;
+    _angle_bf_error.y += (_rate_bf_desired.y - (_ahrs.get_gyro().y * AC_ATTITUDE_CONTROL_DEGX100)) * _dt;
     // pitch - limit maximum error
     _angle_bf_error.y = constrain_float(_angle_bf_error.y, -AC_ATTITUDE_RATE_STAB_ACRO_OVERSHOOT_ANGLE_MAX, AC_ATTITUDE_RATE_STAB_ACRO_OVERSHOOT_ANGLE_MAX);
 
 
     // yaw - calculate body-frame angle error by integrating body-frame rate error
-    _angle_bf_error.z += (_rate_bf_desired.z - (_ahrs.get_gyro_for_control().z * AC_ATTITUDE_CONTROL_DEGX100)) * _dt;
+    _angle_bf_error.z += (_rate_bf_desired.z - (_ahrs.get_gyro().z * AC_ATTITUDE_CONTROL_DEGX100)) * _dt;
     // yaw - limit maximum error
     _angle_bf_error.z = constrain_float(_angle_bf_error.z, -AC_ATTITUDE_RATE_STAB_ACRO_OVERSHOOT_ANGLE_MAX, AC_ATTITUDE_RATE_STAB_ACRO_OVERSHOOT_ANGLE_MAX);
 
@@ -564,8 +564,8 @@ void AC_AttitudeControl::update_rate_bf_targets()
     }
 
     // include roll and pitch rate required to account for precession of the desired attitude about the body frame yaw axes
-	_rate_bf_target.x += _angle_bf_error.y * _ahrs.get_gyro_for_control().z;
-	_rate_bf_target.y += -_angle_bf_error.x * _ahrs.get_gyro_for_control().z;
+	_rate_bf_target.x += _angle_bf_error.y * _ahrs.get_gyro().z;
+	_rate_bf_target.y += -_angle_bf_error.x * _ahrs.get_gyro().z;
 }
 
 //
@@ -581,7 +581,7 @@ float AC_AttitudeControl::rate_bf_to_motor_roll(float rate_target_cds)
 
     // get current rate
     // To-Do: make getting gyro rates more efficient?
-    current_rate = (_ahrs.get_gyro_for_control().x * AC_ATTITUDE_CONTROL_DEGX100);
+    current_rate = (_ahrs.get_gyro().x * AC_ATTITUDE_CONTROL_DEGX100);
 
     // calculate error and call pid controller
     rate_error = rate_target_cds - current_rate;
@@ -615,7 +615,7 @@ float AC_AttitudeControl::rate_bf_to_motor_pitch(float rate_target_cds)
 
     // get current rate
     // To-Do: make getting gyro rates more efficient?
-    current_rate = (_ahrs.get_gyro_for_control().y * AC_ATTITUDE_CONTROL_DEGX100);
+    current_rate = (_ahrs.get_gyro().y * AC_ATTITUDE_CONTROL_DEGX100);
 
     // calculate error and call pid controller
     rate_error = rate_target_cds - current_rate;
@@ -649,7 +649,7 @@ float AC_AttitudeControl::rate_bf_to_motor_yaw(float rate_target_cds)
 
     // get current rate
     // To-Do: make getting gyro rates more efficient?
-    current_rate = (_ahrs.get_gyro_for_control().z * AC_ATTITUDE_CONTROL_DEGX100);
+    current_rate = (_ahrs.get_gyro().z * AC_ATTITUDE_CONTROL_DEGX100);
 
     // calculate error and call pid controller
     rate_error  = rate_target_cds - current_rate;
@@ -729,23 +729,6 @@ void AC_AttitudeControl::set_throttle_out_unstabilized(float throttle_in, bool r
     _motors.set_stabilizing(false);
     _motors.set_throttle(throttle_in);
     _angle_boost = 0;
-}
-
-// returns a throttle including compensation for roll/pitch angle
-// throttle value should be 0 ~ 1000
-float AC_AttitudeControl::get_boosted_throttle(float throttle_in)
-{
-    // inverted_factor is 1 for tilt angles below 60 degrees
-    // reduces as a function of angle beyond 60 degrees
-    // becomes zero at 90 degrees
-    float min_throttle = _motors.throttle_min();
-    float cos_tilt = _ahrs.cos_pitch() * _ahrs.cos_roll();
-    float inverted_factor = constrain_float(2.0f*cos_tilt, 0.0f, 1.0f);
-    float boost_factor = 1.0f/constrain_float(cos_tilt, 0.5f, 1.0f);
-
-    float throttle_out = (throttle_in-min_throttle)*inverted_factor*boost_factor + min_throttle;
-    _angle_boost = constrain_float(throttle_out - throttle_in,-32000,32000);
-    return throttle_out;
 }
 
 // sqrt_controller - response based on the sqrt of the error instead of the more common linear response
