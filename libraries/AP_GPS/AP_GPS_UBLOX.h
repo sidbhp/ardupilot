@@ -444,6 +444,10 @@ private:
     void log_rxm_raw(const struct ubx_rxm_raw &raw);
     void log_rxm_rawx(const struct ubx_rxm_rawx &raw);
 
+    void log_ack(uint8_t class_id, uint8_t msg_id);
+    void log_nak(uint8_t class_id, uint8_t msg_id);
+    void log_nav_settings(uint8_t nav_eng, int8_t min_elev);
+
     // Calculates the correct log message ID based on what GPS instance is being logged
     uint8_t _ubx_msg_log_index(uint8_t ubx_msg) {
         return (uint8_t)(ubx_msg + (state.instance * UBX_MSG_TYPES));
