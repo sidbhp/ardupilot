@@ -22,6 +22,7 @@
 #include "AP_GPS.h"
 #include "AP_GPS_UBLOX.h"
 #include <DataFlash/DataFlash.h>
+#include <AP_Notify/AP_Notify.h>
 
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_NAVIO
     #define UBLOX_VERSION_AUTODETECTION 1
@@ -454,6 +455,7 @@ AP_GPS_UBLOX::_parse_gps(void)
         if(_msg_id == MSG_ACK_ACK && _buffer.ack.clsID == CLASS_CFG && _buffer.ack.msgID == MSG_CFG_CFG) {
             _cfg_saved = true;
         }
+        AP_Notify::flags.gps_connected = true;
 #if UBLOX_HW_LOGGING
         if (_msg_id == MSG_ACK_ACK) {
             log_ack(_buffer.ack.clsID, _buffer.ack.msgID);
