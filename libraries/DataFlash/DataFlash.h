@@ -606,6 +606,22 @@ struct PACKED log_TERRAIN {
 /*
   UBlox logging
  */
+struct PACKED log_Uack {
+    LOG_PACKET_HEADER;
+    uint32_t time_ms;
+    uint8_t instance;
+    uint8_t clsID;
+    uint8_t msgID;
+};
+
+struct PACKED log_Ustg {
+    LOG_PACKET_HEADER;
+    uint32_t time_ms;
+    uint8_t instance;
+    uint8_t nav_engine;
+    int8_t min_elev;
+};
+
 struct PACKED log_Ubx1 {
     LOG_PACKET_HEADER;
     uint64_t time_us;
@@ -838,6 +854,12 @@ Format characters in the format string for binary log messages
       "NKF5","QBhhhcccCC","TimeUS,normInnov,FIX,FIY,AFI,HAGL,offset,RI,meaRng,errHAGL" }, \
     { LOG_TERRAIN_MSG, sizeof(log_TERRAIN), \
       "TERR","QBLLHffHH","TimeUS,Status,Lat,Lng,Spacing,TerrH,CHeight,Pending,Loaded" }, \
+    { LOG_UACK_MSG, sizeof(log_Uack), \
+      "UACK", "IBBB", "TimeMS,Instance,clsID,msgID" }, \
+    { LOG_UNAK_MSG, sizeof(log_Uack), \
+      "UNAK", "IBBB", "TimeMS,Instance,clsID,msgID" }, \
+    { LOG_USTG_MSG, sizeof(log_Ustg), \
+      "USTG", "IBBb", "TimeMS,Instance,navEng,minElev" }, \
     { LOG_GPS_UBX1_MSG, sizeof(log_Ubx1), \
       "UBX1", "QBHBBH",  "TimeUS,Instance,noisePerMS,jamInd,aPower,agcCnt" }, \
     { LOG_GPS_UBX2_MSG, sizeof(log_Ubx2), \
@@ -999,6 +1021,9 @@ enum LogMessages {
     LOG_NKF3_MSG,
     LOG_NKF4_MSG,
     LOG_NKF5_MSG,
+    LOG_UACK_MSG,
+    LOG_UNAK_MSG,
+    LOG_USTG_MSG
 };
 
 enum LogOriginType {
