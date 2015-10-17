@@ -281,6 +281,12 @@ private:
         } svinfo[UBLOX_MAX_RXM_RAWX_SATS];
     };
 #endif
+
+    struct PACKED ubx_ack_ack {
+        uint8_t clsID;
+        uint8_t msgID;
+    };
+
     // Receive buffer
     union PACKED {
         ubx_nav_posllh posllh;
@@ -303,6 +309,7 @@ private:
         ubx_rxm_raw rxm_raw;
         ubx_rxm_rawx rxm_rawx;
 #endif
+        ubx_ack_ack ack;
         uint8_t bytes[];
     } _buffer;
 
@@ -414,6 +421,10 @@ private:
     void log_mon_hw2(void);
     void log_rxm_raw(const struct ubx_rxm_raw &raw);
     void log_rxm_rawx(const struct ubx_rxm_rawx &raw);
+
+    void log_ack(uint8_t class_id, uint8_t msg_id);
+    void log_nak(uint8_t class_id, uint8_t msg_id);
+    void log_nav_settings(uint8_t nav_eng, int8_t min_elev);
 
     // Calculates the correct log message ID based on what GPS instance is being logged
     uint8_t _ubx_msg_log_index(uint8_t ubx_msg) {
