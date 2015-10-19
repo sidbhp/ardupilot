@@ -267,6 +267,13 @@ private:
         uint32_t start_ms;
         uint32_t time_ms;
     } takeoff_state;
+    
+    struct {
+        bool takeoff_expected;
+        bool touchdown_expected;
+        uint32_t takeoff_time_ms;
+        float takeoff_alt_cm;
+    } gndeffect_state;
 
     RCMapper rcmap;
 
@@ -837,6 +844,7 @@ private:
     void update_land_and_crash_detectors();
     void update_land_detector();
     void update_throttle_thr_mix();
+    void update_ground_effect_detector(void);
     void landinggear_update();
     void update_notify();
     void motor_test_output();
