@@ -826,6 +826,7 @@ private:
     void update_flight_mode();
     void exit_mode(uint8_t old_control_mode, uint8_t new_control_mode);
     bool mode_requires_GPS(uint8_t mode);
+    bool mode_disarms_on_land(uint8_t mode);
     bool mode_has_manual_throttle(uint8_t mode);
     bool mode_allows_arming(uint8_t mode, bool arming_from_gcs);
     void notify_flight_mode(uint8_t mode);
