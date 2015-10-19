@@ -95,7 +95,7 @@ void Copter::althold_run()
         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(target_roll, target_pitch, target_yaw_rate, get_smoothing_gain());
 
         // call position controller
-        pos_control.set_alt_target_from_climb_rate(target_climb_rate, G_Dt, false);
+        pos_control.set_alt_target_from_climb_rate_ff(target_climb_rate, G_Dt, false);
         pos_control.add_takeoff_climb_rate(takeoff_climb_rate, G_Dt);
         pos_control.update_z_controller();
         break;
@@ -124,7 +124,7 @@ void Copter::althold_run()
         }
 
         // call position controller
-        pos_control.set_alt_target_from_climb_rate(target_climb_rate, G_Dt, false);
+        pos_control.set_alt_target_from_climb_rate_ff(target_climb_rate, G_Dt, false);
         pos_control.update_z_controller();
         break;
     }
