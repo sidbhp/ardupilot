@@ -14,7 +14,7 @@ bool Copter::althold_init(bool ignore_checks)
     pos_control.set_accel_z(g.pilot_accel_z);
 
     // initialise altitude target to stopping point
-    pos_control.set_target_to_stopping_point_z();
+    pos_control.set_target_to_stopping_point_z_ff();
 
     // stop takeoff if running
     takeoff_stop();
