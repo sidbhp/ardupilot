@@ -413,7 +413,9 @@
 #ifndef LAND_WITH_DELAY_MS
  # define LAND_WITH_DELAY_MS        4000    // default delay (in milliseconds) when a land-with-delay is triggered during a failsafe event
 #endif
-
+#ifndef LAND_DETECTOR_CLIMBRATE_MAX
+# define LAND_DETECTOR_CLIMBRATE_MAX    30  // vehicle climb rate must be between -30 and +30 cm/s
+#endif
 //////////////////////////////////////////////////////////////////////////////
 // Landing Detector
 //
