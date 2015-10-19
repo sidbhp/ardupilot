@@ -86,9 +86,8 @@ bool Copter::poshold_init(bool ignore_checks)
     pos_control.set_speed_z(-g.pilot_velocity_z_max, g.pilot_velocity_z_max);
     pos_control.set_accel_z(g.pilot_accel_z);
 
-    // initialise position and desired velocity
-    pos_control.set_alt_target(inertial_nav.get_altitude());
-    pos_control.set_desired_velocity_z(inertial_nav.get_velocity_z());
+    // initialise altitude target to stopping point
+    pos_control.set_target_to_stopping_point_z_ff();
 
     // initialise lean angles to current attitude
     poshold.pilot_roll = 0;
