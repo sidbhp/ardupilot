@@ -563,9 +563,9 @@ void Copter::pre_arm_rc_checks()
     }
 
     // check if radio has been calibrated
-    if(!channel_throttle->radio_min.configured() && !channel_throttle->radio_max.configured()) {
+    /*if(!channel_throttle->radio_min.configured() && !channel_throttle->radio_max.configured()) {
         return;
-    }
+    }*/
 
     // check channels 1 & 2 have min <= 1300 and max >= 1700
     if (channel_roll->radio_min > 1300 || channel_roll->radio_max < 1700 || channel_pitch->radio_min > 1300 || channel_pitch->radio_max < 1700) {
