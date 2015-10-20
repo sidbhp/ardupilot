@@ -184,6 +184,9 @@ void Copter::compass_cal_update()
     if (!hal.util->get_soft_armed()) {
         compass.compass_cal_update();
     }
+    if(compass.is_calibrating()) {
+        camera_mount.set_mode(MAV_MOUNT_MODE_RETRACT);
+    }
 }
 
 #if EPM_ENABLED == ENABLED
