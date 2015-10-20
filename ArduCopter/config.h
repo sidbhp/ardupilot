@@ -760,6 +760,17 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
+// Motor/ESC Recovery
+//
+#define MOT_RECOVERY_HIGH_MOTOR_THRESHOLD 0.95f
+#define MOT_RECOVERY_LOW_AVG_THRESHOLD 0.77f
+#define MOT_RECOVERY_DETECTION_TIME 0.2f
+#define MOT_RECOVERY_POST_DELAY 0.75f
+#define MOT_RECOVERY_MOTOR_PCT 0.5f
+#define MOT_RECOVERY_RAMP_TIME 0.25f
+#define MOT_RECOVERY_MOT_FILT_HZ 5.0f
+
+//////////////////////////////////////////////////////////////////////////////
 // Developer Items
 //
 
