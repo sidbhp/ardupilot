@@ -542,6 +542,11 @@ private:
         uint8_t init_targets_on_arming  : 1;    // 1   // true if we have been disarmed, and need to reset rate controller targets when we arm
     } heli_flags;
 #endif
+    uint8_t last_highest_motor;
+    uint32_t motor_fail_start_time;
+    uint32_t motor_recovery_end_time;
+    const float motor_filt_alpha = constrain_float(MAIN_LOOP_SECONDS/(MAIN_LOOP_SECONDS+(1.0f/(2.0f*M_PI_F*MOT_RECOVERY_MOT_FILT_HZ))),0.0f,1.0f);
+    float motor_out_pct_filtered[AP_MOTORS_MAX_NUM_MOTORS];
 
     static const AP_Scheduler::Task scheduler_tasks[];
     static const AP_Param::Info var_info[];
@@ -997,6 +1002,7 @@ private:
     void run_cli(AP_HAL::UARTDriver *port);
     void init_capabilities(void);
     void dataflash_periodic(void);
+    void update_motor_fail_detector(void);
 
 public:
     void mavlink_delay_cb();
