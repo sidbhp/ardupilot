@@ -56,6 +56,8 @@ public:
     // remove_all_motors - removes all motor definitions
     void                remove_all_motors();
 
+    float               get_motor_out_pct(uint8_t mot) { return (mot<AP_MOTORS_MAX_NUM_MOTORS) ? _motor_out_pct[mot] : 0.0f; }
+
     // setup_motors - configures the motors for a given frame type - should be overwritten by child classes
     virtual void        setup_motors() {
         remove_all_motors();
@@ -78,6 +80,7 @@ protected:
     float               _pitch_factor[AP_MOTORS_MAX_NUM_MOTORS]; // each motors contribution to pitch
     float               _yaw_factor[AP_MOTORS_MAX_NUM_MOTORS];  // each motors contribution to yaw (normally 1 or -1)
     uint8_t             _test_order[AP_MOTORS_MAX_NUM_MOTORS];  // order of the motors in the test sequence
+    float               _motor_out_pct[AP_MOTORS_MAX_NUM_MOTORS];
 };
 
 #endif  // AP_MOTORSMATRIX
