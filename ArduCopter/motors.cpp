@@ -7,7 +7,6 @@
 #define AUTO_TRIM_DELAY         100 // called at 10hz so 10 seconds
 #define LOST_VEHICLE_DELAY      10  // called at 10hz so 1 second
 
-static uint8_t auto_disarming_counter;
 
 // arm_motors_check - checks for pilot input to arm or disarm the copter
 // called at 10hz
@@ -43,7 +42,7 @@ void Copter::arm_motors_check()
         if (arming_counter == AUTO_TRIM_DELAY && motors.armed() && control_mode == STABILIZE) {
             auto_trim_counter = 250;
             // ensure auto-disarm doesn't trigger immediately
-            auto_disarming_counter = 0;
+            auto_disarm_begin = millis();
         }
 
     // full left
@@ -74,17 +73,18 @@ void Copter::arm_motors_check()
 void Copter::auto_disarm_check()
 {
     uint8_t disarm_delay = constrain_int16(g.disarm_delay, 0, 127);
-
+    uint32_t tnow = millis(), dt;
     // exit immediately if we are already disarmed, or if auto
     // disarming is disabled
     if (!motors.armed() || disarm_delay == 0) {
-        auto_disarming_counter = 0;
+        auto_disarm_begin = tnow;
         return;
     }
 
     // always allow auto disarm if using interlock switch or motors are Emergency Stopped
     if ((ap.using_interlock && !motors.get_interlock()) || ap.motor_emergency_stop) {
-        auto_disarming_counter++;
+        dt = tnow - auto_disarm_begin;
+
 #if FRAME_CONFIG != HELI_FRAME
         // use a shorter delay if using throttle interlock switch or Emergency Stop, because it is less
         // obvious the copter is armed as the motors will not be spinning
@@ -101,18 +101,18 @@ void Copter::auto_disarm_check()
         }
 
         if (thr_low && ap.land_complete) {
-            // increment counter
-            auto_disarming_counter++;
+            // disarm once counter expires
+            dt = tnow - auto_disarm_begin;
         } else {
             // reset counter
-            auto_disarming_counter = 0;
+            dt = 0;
+            auto_disarm_begin = tnow;
         }
     }
 
-    // disarm once counter expires
-    if (auto_disarming_counter >= disarm_delay) {
+    if(dt>= disarm_delay) {
         init_disarm_motors();
-        auto_disarming_counter = 0;
+        auto_disarm_begin = tnow;
     }
 }
 
