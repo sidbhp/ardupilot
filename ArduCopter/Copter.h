@@ -549,7 +549,7 @@ private:
     float motor_out_pct_filtered[AP_MOTORS_MAX_NUM_MOTORS];
 
     bool gps_glitch_switch_mode_on_resolve;
-
+    uint32_t auto_disarm_begin;
     static const AP_Scheduler::Task scheduler_tasks[];
     static const AP_Param::Info var_info[];
     static const struct LogStructure log_structure[];
