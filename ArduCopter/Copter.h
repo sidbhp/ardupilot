@@ -262,11 +262,11 @@ private:
 
     struct {
         bool running;
-        float speed;
+        float max_speed;
+        float alt_delta;
         uint32_t start_ms;
-        uint32_t time_ms;
     } takeoff_state;
-    
+
     struct {
         bool takeoff_expected;
         bool touchdown_expected;
