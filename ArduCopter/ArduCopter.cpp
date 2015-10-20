@@ -284,6 +284,8 @@ void Copter::fast_loop()
     // check if we've landed or crashed
     update_land_and_crash_detectors();
 
+    update_motor_fail_detector();
+
     // log sensor health
     if (should_log(MASK_LOG_ANY)) {
         Log_Sensor_Health();
