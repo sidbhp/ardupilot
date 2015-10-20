@@ -502,6 +502,10 @@
  # define RTL_ALT_MIN               200     // min height above ground for RTL (i.e 2m)
 #endif
 
+#ifndef RTL_SPEED
+# define RTL_SPEED                  500    // default speed at which to return home in cm/s
+#endif
+
 #ifndef RTL_CLIMB_MIN_DEFAULT
  # define RTL_CLIMB_MIN_DEFAULT     0       // vehicle will always climb this many cm as first stage of RTL
 #endif
