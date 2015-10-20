@@ -287,7 +287,7 @@ private:
         uint8_t battery             : 1; // 2   // A status flag for the battery failsafe
         uint8_t gcs                 : 1; // 4   // A status flag for the ground station failsafe
         uint8_t ekf                 : 1; // 5   // true if ekf failsafe has occurred
-
+        uint8_t gps_glitch          : 1; // 6   // true if gps glitch failsafe has occurred
         int8_t radio_counter;            // number of iterations with throttle below throttle_fs_value
 
         uint32_t last_heartbeat_ms;      // the time when the last HEARTBEAT message arrived from a GCS - used for triggering gcs failsafe
@@ -542,6 +542,8 @@ private:
     uint32_t motor_recovery_end_time;
     const float motor_filt_alpha = constrain_float(MAIN_LOOP_SECONDS/(MAIN_LOOP_SECONDS+(1.0f/(2.0f*M_PI_F*MOT_RECOVERY_MOT_FILT_HZ))),0.0f,1.0f);
     float motor_out_pct_filtered[AP_MOTORS_MAX_NUM_MOTORS];
+
+    bool gps_glitch_switch_mode_on_resolve;
 
     static const AP_Scheduler::Task scheduler_tasks[];
     static const AP_Param::Info var_info[];
@@ -953,6 +955,12 @@ private:
     bool start_command(const AP_Mission::Mission_Command& cmd);
     bool verify_command(const AP_Mission::Mission_Command& cmd);
     bool verify_command_callback(const AP_Mission::Mission_Command& cmd);
+
+    void gps_glitch_update(void);
+    void gps_glitch_mode_change_commanded(uint8_t mode_commanded);
+    void gps_glitch_on_event();
+    bool gps_glitch_action_mode(uint8_t mode);
+    void gps_glitch_off_event();
 
     bool do_guided(const AP_Mission::Mission_Command& cmd);
     void do_takeoff(const AP_Mission::Mission_Command& cmd);
