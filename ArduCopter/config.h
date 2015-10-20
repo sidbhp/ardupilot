@@ -712,7 +712,7 @@
 #endif
 
 #ifndef AUTO_DISARMING_DELAY
-# define AUTO_DISARMING_DELAY  10
+# define AUTO_DISARMING_DELAY  15.0f
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
