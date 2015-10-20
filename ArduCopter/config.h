@@ -504,6 +504,10 @@
  # define RTL_ALT_MIN               200     // min height above ground for RTL (i.e 2m)
 #endif
 
+#ifndef RTL_CONE_SLOPE
+# define RTL_CONE_SLOPE             2.0    // default alt to return to home in cm, 0 = Maintain current altitude
+#endif
+
 #ifndef RTL_SPEED
 # define RTL_SPEED                  500    // default speed at which to return home in cm/s
 #endif
