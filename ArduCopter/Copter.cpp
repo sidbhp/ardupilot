@@ -130,7 +130,8 @@ Copter::Copter(void) :
     last_highest_motor(0),
     motor_fail_start_time(0),
     motor_recovery_end_time(0),
-    gps_glitch_switch_mode_on_resolve(false)
+    gps_glitch_switch_mode_on_resolve(false),
+    auto_disarm_begin(0)
 {
     memset(&current_loc, 0, sizeof(current_loc));
 
