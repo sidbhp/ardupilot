@@ -479,6 +479,8 @@ void Copter::one_hz_loop()
             set_pre_arm_check(pre_arm_checks(false));
         }
     }
+
+     gcs_send_message(MSG_ARMMASK);    
     // auto disarm checks
     auto_disarm_check();
 
