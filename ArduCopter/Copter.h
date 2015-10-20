@@ -1008,6 +1008,7 @@ private:
     void init_capabilities(void);
     void dataflash_periodic(void);
     void update_motor_fail_detector(void);
+    void accel_cal_update(void);
 
 public:
     void mavlink_delay_cb();
