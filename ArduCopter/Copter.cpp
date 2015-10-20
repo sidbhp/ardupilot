@@ -128,7 +128,10 @@ Copter::Copter(void) :
 #endif
     in_mavlink_delay(false),
     gcs_out_of_time(false),
-    param_loader(var_info)
+    param_loader(var_info),
+    last_highest_motor(0),
+    motor_fail_start_time(0),
+    motor_recovery_end_time(0)
 {
     memset(&current_loc, 0, sizeof(current_loc));
 
