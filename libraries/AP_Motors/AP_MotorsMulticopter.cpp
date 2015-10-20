@@ -112,6 +112,9 @@ AP_MotorsMulticopter::AP_MotorsMulticopter(uint16_t loop_rate, uint16_t speed_hz
     _hover_out(AP_MOTORS_DEFAULT_MID_THROTTLE),
     _batt_voltage_resting(0.0f),
     _batt_current_resting(0.0f),
+    _recovery_pct(1.0f),
+    _recovery_motor_mask(0),
+    _recovery_ramp_time(0.25f),
     _batt_resistance(0.0f),
     _batt_timer(0),
     _lift_max(1.0f),
@@ -139,6 +142,9 @@ void AP_MotorsMulticopter::output()
 
     // update max throttle
     update_max_throttle();
+
+    // update _recovery_pct
+    update_recovery_pct();
 
     // update battery resistance
     update_battery_resistance();
@@ -386,4 +392,20 @@ void AP_MotorsMulticopter::throttle_pass_through(int16_t pwm)
         }
         hal.rcout->push();
     }
+}
+
+// begin a motor recovery
+void AP_MotorsMulticopter::do_motor_recovery(uint8_t motor_mask, float initial_pct, float ramp_time_s)
+{
+    _recovery_motor_mask = motor_mask;
+    _recovery_pct = initial_pct;
+    _recovery_ramp_time = ramp_time_s;
+}
+
+// update _recovery_pct
+void AP_MotorsMulticopter::update_recovery_pct()
+{
+    float dt = 1.0f/_loop_rate;
+    _recovery_pct += dt/max(_recovery_ramp_time,0.0025f);
+    _recovery_pct = constrain_float(_recovery_pct, 0.0f, 1.0f);
 }

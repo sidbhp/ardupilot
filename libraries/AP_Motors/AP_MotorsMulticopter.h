@@ -73,10 +73,20 @@ public:
     // this is used to limit the amount that the stability patch will increase the throttle to give more room for roll, pitch and yaw control
     void                set_hover_throttle(uint16_t hov_thr) { _hover_out = hov_thr; }
 
+    // begin a motor recovery
+    void                do_motor_recovery(uint8_t motor_mask, float initial_pct, float ramp_time_s);
+
+    // check if a motor recovery is running
+    bool                motor_recovery_running() { return _recovery_pct < 1.0f && _recovery_motor_mask != 0; }
+
     // slow_start - set to true to slew motors from current speed to maximum
     // Note: this must be set immediately before a step up in throttle
     void                slow_start(bool true_false);
 
+    // update _recovery_pct
+    void                update_recovery_pct();
+    // return maximum throttle for motor recovery for a given motor
+    float               get_motor_recovery_pct(uint8_t mot) { return (mot<8 && _recovery_motor_mask&(1<<mot)) ? _recovery_pct : 1.0f; }
     // throttle_pass_through - passes provided pwm directly to all motors - dangerous but used for initialising ESCs
     //  pwm value is an actual pwm value that will be output, normally in the range of 1000 ~ 2000
     void                throttle_pass_through(int16_t pwm);
@@ -93,6 +103,8 @@ public:
     // get_throttle_limit - throttle limit ratio - for logging purposes only
     float               get_throttle_limit() const { return _throttle_limit; }
 
+    // get motors enabled
+    bool                get_motor_enabled(uint8_t i) const { return motor_enabled[i]; }
     // var_info for holding Parameter information
     static const struct AP_Param::GroupInfo        var_info[];
 
@@ -172,5 +184,9 @@ protected:
     int16_t             _batt_timer;            // timer used in battery resistance calcs
     float               _lift_max;              // maximum lift ratio from battery voltage
     float               _throttle_limit;        // ratio of throttle limit between hover and maximum
+    // recovery state variables
+    uint8_t _recovery_motor_mask;
+    float _recovery_pct;
+    float _recovery_ramp_time;
 };
 #endif  // __AP_MOTORS_MULTICOPTER_H__
