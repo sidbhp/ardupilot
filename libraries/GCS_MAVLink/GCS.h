@@ -327,6 +327,7 @@ private:
     FUNCTOR_TYPEDEF(set_mode_fn, bool, uint8_t);
     void handle_set_mode(mavlink_message_t* msg, set_mode_fn set_mode);
     void handle_gimbal_report(AP_Mount &mount, mavlink_message_t *msg) const;
+    void handle_gimbal_torque_report(AP_Mount &mount, mavlink_message_t *msg) const;
 
     void handle_gps_inject(const mavlink_message_t *msg, AP_GPS &gps);
 
