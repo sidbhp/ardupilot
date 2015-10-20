@@ -99,6 +99,7 @@ void AP_MotorsMatrix::output_min()
     for( i=0; i<AP_MOTORS_MAX_NUM_MOTORS; i++ ) {
         if( motor_enabled[i] ) {
             hal.rcout->write(i, _throttle_radio_min);
+            _motor_out_pct[i] = 0.0f;
         }
     }
     hal.rcout->push();
@@ -350,11 +351,12 @@ void AP_MotorsMatrix::output_armed_stabilizing()
             motor_out[i] = apply_thrust_curve_and_volt_scaling(motor_out[i], out_min_pwm, out_max_pwm);
         }
     }
-
+    // apply thrust curve to out_max_pwm for constraint
+    out_max_pwm = apply_thrust_curve_and_volt_scaling(out_max_pwm, out_min_pwm, out_max_pwm);
     // clip motor output if required (shouldn't be)
     for (i=0; i<AP_MOTORS_MAX_NUM_MOTORS; i++) {
         if (motor_enabled[i]) {
-            motor_out[i] = constrain_int16(motor_out[i], out_min_pwm, out_max_pwm);
+            motor_out[i] = constrain_int16(motor_out[i], out_min_pwm, out_min_pwm+(out_max_pwm-out_min_pwm)*get_motor_recovery_pct(i));
         }
     }
 
@@ -362,7 +364,10 @@ void AP_MotorsMatrix::output_armed_stabilizing()
     hal.rcout->cork();
     for( i=0; i<AP_MOTORS_MAX_NUM_MOTORS; i++ ) {
         if( motor_enabled[i] ) {
+            _motor_out_pct[i] = (float)(motor_out[i]-out_min_pwm) / (out_max_pwm-out_min_pwm);
             hal.rcout->write(i, motor_out[i]);
+        } else {
+            _motor_out_pct[i] = 0.0f;
         }
     }
     hal.rcout->push();
