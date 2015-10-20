@@ -1524,7 +1524,27 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             }
             break;
         }
+        case MAV_CMD_DO_SEND_BANNER: {
+            result = MAV_RESULT_ACCEPTED;
 
+            send_text_P(MAV_SEVERITY_INFO, PSTR(FIRMWARE_STRING));
+
+            #if defined(PX4_GIT_VERSION) && defined(NUTTX_GIT_VERSION)
+            send_text_P(MAV_SEVERITY_INFO, PSTR("PX4: " PX4_GIT_VERSION " NuttX: " NUTTX_GIT_VERSION));
+            #endif
+
+            send_text_P(MAV_SEVERITY_INFO, PSTR("Frame: " FRAME_CONFIG_STRING));
+
+            #if CONFIG_HAL_BOARD != HAL_BOARD_APM1 && CONFIG_HAL_BOARD != HAL_BOARD_APM2
+            // send system ID if we can
+            char sysid[40];
+            if (hal.util->get_system_id(sysid)) {
+                send_text(MAV_SEVERITY_CRITICAL, sysid);
+            }
+            #endif
+
+            break;
+        }
         case MAV_CMD_DO_START_MAG_CAL:
         case MAV_CMD_DO_ACCEPT_MAG_CAL:
         case MAV_CMD_DO_CANCEL_MAG_CAL:
