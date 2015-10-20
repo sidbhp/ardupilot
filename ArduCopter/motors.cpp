@@ -229,6 +229,27 @@ bool Copter::init_arm_motors(bool arming_from_gcs)
     return true;
 }
 
+ 
+bool Copter::mode_deprecated(uint8_t mode) {
+    return ((1UL<<mode) & DEPRECATED_MODES_MASK) != 0;
+}
+
+uint32_t Copter::get_ready_to_arm_mode_mask()
+{
+    uint32_t ret = 0;
+    uint8_t saved_control_mode = control_mode;
+    for (control_mode=0; control_mode<NUM_MODES; control_mode++) {
+        if (!mode_deprecated(control_mode) && pre_arm_checks(false) && arm_checks(false,true)) {
+            ret |= 1UL << control_mode;
+        }
+    }
+
+    ret &= ~DEPRECATED_MODES_MASK;
+
+    control_mode = saved_control_mode;
+    return ret;
+}
+
 // perform pre-arm checks and set ap.pre_arm_check flag
 //  return true if the checks pass successfully
 bool Copter::pre_arm_checks(bool display_failure)
