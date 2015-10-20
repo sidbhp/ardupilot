@@ -272,6 +272,10 @@
   #define PREARM_MAX_ACCEL_VECTOR_DIFF      0.70f    // pre arm accel check will fail if primary and backup accelerometer vectors differ by 0.7m/s/s
 #endif
 
+#ifndef MAX_GYR_CAL_TIME_MS
+  #define MAX_GYR_CAL_TIME_MS 2000
+#endif
+
 // arming check's maximum acceptable rotation rate difference (in rad/sec) between primary and backup gyros
 #ifndef PREARM_MAX_GYRO_VECTOR_DIFF
   #define PREARM_MAX_GYRO_VECTOR_DIFF       0.0873f  // pre arm gyro check will fail if primary and backup gyro vectors differ by 0.0873 rad/sec (=5deg/sec)
