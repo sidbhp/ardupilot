@@ -863,6 +863,8 @@ private:
     void arm_motors_check();
     void auto_disarm_check();
     bool init_arm_motors(bool arming_from_gcs);
+    bool mode_deprecated(uint8_t mode);
+    uint32_t get_ready_to_arm_mode_mask();
     bool pre_arm_checks(bool display_failure);
     void pre_arm_rc_checks();
     bool pre_arm_gps_checks(bool display_failure);
