@@ -104,6 +104,10 @@ enum autopilot_modes {
     BRAKE =        17   // full-brake using inertial/GPS system, no pilot input
 };
 
+#define NUM_MODES 18
+
+#define DEPRECATED_MODES_MASK ((1UL<<8)|(1UL<<10)|(1UL<<12))
+
 // Tuning enumeration
 enum tuning_func {
     TUNING_NONE =                        0, //
