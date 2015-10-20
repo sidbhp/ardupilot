@@ -1376,6 +1376,7 @@ bool AP_Param::load_defaults_file(const char *filename)
         }
         if (!find_def_value_ptr(pname)) {
             fclose(f);
+            hal.scheduler->panic("AP_Param: Invalid param in defaults file");
             return false;
         }
         num_defaults++;
@@ -1389,6 +1390,7 @@ bool AP_Param::load_defaults_file(const char *filename)
 
     param_overrides = new param_override[num_defaults];
     if (param_overrides == NULL) {
+        hal.scheduler->panic("AP_Param: Failed to allocate overrides");
         return false;
     }
 
@@ -1397,6 +1399,7 @@ bool AP_Param::load_defaults_file(const char *filename)
      */
     f = fopen(filename, "r");
     if (f == NULL) {
+        hal.scheduler->panic("AP_Param: Failed to re-open defaults file");
         return false;
     }
 
@@ -1410,6 +1413,7 @@ bool AP_Param::load_defaults_file(const char *filename)
         const float *def_value_ptr = find_def_value_ptr(pname);
         if (!def_value_ptr) {
             fclose(f);
+            hal.scheduler->panic("AP_Param: Invalid param in defaults file");
             return false;
         }
         param_overrides[idx].def_value_ptr = def_value_ptr;
@@ -1419,6 +1423,7 @@ bool AP_Param::load_defaults_file(const char *filename)
         AP_Param *vp = AP_Param::find(pname, &var_type);
         if (!vp) {
             fclose(f);
+            hal.scheduler->panic("AP_Param: Failed to set param default");
             return false;
         }
         vp->set_float(value, var_type);
