@@ -1112,6 +1112,14 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 #endif
         break;
     }
+    
+    case MAVLINK_MSG_ID_GIMBAL_TORQUE_CMD_REPORT:
+    {
+#if MOUNT == ENABLED
+        handle_gimbal_torque_report(copter.camera_mount, msg);
+#endif
+        break;
+    }
 
     case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:       // MAV ID: 70
     {
