@@ -289,6 +289,7 @@ void Copter::fast_loop()
 
     gps_glitch_update();
 
+    camera_mount.update_fast();
     // log sensor health
     if (should_log(MASK_LOG_ANY)) {
         Log_Sensor_Health();
