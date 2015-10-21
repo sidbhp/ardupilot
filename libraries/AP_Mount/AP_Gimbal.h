@@ -42,7 +42,7 @@ class AP_Gimbal : AP_AccelCal_Client
 {
 public:
     //Constructor
-    AP_Gimbal(const AP_AHRS_NavEKF &ahrs, AP_Gimbal_Parameters &parameters) :
+    AP_Gimbal(const AP_AHRS_NavEKF &ahrs, AP_Gimbal_Parameters &parameters, AP_AccelCal &acal) :
         _ekf(ahrs),
         _ahrs(ahrs),
         _state(GIMBAL_STATE_NOT_PRESENT),
@@ -57,7 +57,7 @@ public:
         filtered_joint_angles(),
         _max_torque(5000.0f)
     {
-        ahrs.get_ins().get_acal().register_client(this);
+        acal.register_client(this);
     }
 
     void    update_target(Vector3f newTarget);
