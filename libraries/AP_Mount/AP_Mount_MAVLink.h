@@ -18,13 +18,14 @@
 #include <RC_Channel/RC_Channel.h>
 #include "AP_Mount_Backend.h"
 #include "AP_Gimbal.h"
+#include <AP_AccelCal/AP_AccelCal.h>
 
 class AP_Mount_MAVLink : public AP_Mount_Backend
 {
 
 public:
     // Constructor
-    AP_Mount_MAVLink(AP_Mount &frontend, AP_Mount::mount_state &state, uint8_t instance);
+    AP_Mount_MAVLink(AP_Mount &frontend, AP_Mount::mount_state &state, uint8_t instance, AP_AccelCal &acal);
 
     // init - performs any required initialisation for this instance
     virtual void init(const AP_SerialManager& serial_manager);
