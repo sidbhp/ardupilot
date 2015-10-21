@@ -168,24 +168,6 @@ bool Copter::init_arm_motors(bool arming_from_gcs)
     }
     calc_distance_and_bearing();
 
-    uint32_t gyro_cal_time = 0;
-    // gyro calibration on first arming
-    if ((did_gyro_cal == false) && (ins.gyro_calibration_timing() == AP_InertialSensor::GYRO_CAL_STARTUP_AND_FIRST_BOOT)) {
-        uint32_t gyro_cal_begin = millis();
-        if (!calibrate_gyros()) {
-            gyro_cal_time = millis()-gyro_cal_begin;
-            did_gyro_cal = !(((g.arming_check == ARMING_CHECK_ALL) || (g.arming_check & ARMING_CHECK_INS)) && !ins.gyro_calibrated_ok_all());
-            // final check that gyros calibrated successfully
-            if (((gyro_cal_time > MAX_GYR_CAL_TIME_MS) || !did_gyro_cal)) {
-                gcs_send_text_P(MAV_SEVERITY_CRITICAL,PSTR("Arm: Gyro calibration failed"));
-                AP_Notify::flags.armed = false;
-                failsafe_enable();
-                in_arm_motors = false;
-                return false;
-            }
-        }
-    }
-
 #if FRAME_CONFIG == HELI_FRAME
     // helicopters are always using motor interlock
     set_using_interlock(true);
@@ -224,8 +206,7 @@ bool Copter::init_arm_motors(bool arming_from_gcs)
 #endif
 
     // short delay to allow reading of rc inputs
-    uint32_t delay_time = max(30,MAX_GYR_CAL_TIME_MS-gyro_cal_time);
-    delay(delay_time);
+    delay(30);
     // enable output to motors
     enable_motor_output();
 
