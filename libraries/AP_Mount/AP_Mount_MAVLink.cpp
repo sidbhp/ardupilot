@@ -14,10 +14,10 @@
 
 extern const AP_HAL::HAL& hal;
 
-AP_Mount_MAVLink::AP_Mount_MAVLink(AP_Mount &frontend, AP_Mount::mount_state &state, uint8_t instance) :
+AP_Mount_MAVLink::AP_Mount_MAVLink(AP_Mount &frontend, AP_Mount::mount_state &state, uint8_t instance, AP_AccelCal &acal) :
     AP_Mount_Backend(frontend, state, instance),
     _initialised(false),
-    _gimbal(frontend._ahrs,frontend._externalParameters),
+    _gimbal(frontend._ahrs,frontend._externalParameters,acal),
     _log_dt(0),
     _log_del_ang(),
     _log_del_vel()

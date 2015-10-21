@@ -30,6 +30,7 @@
 #include <AP_AHRS/AP_AHRS.h>
 #include <GCS_MAVLink/GCS_MAVLink.h>
 #include <RC_Channel/RC_Channel.h>
+#include <AP_AccelCal/AP_AccelCal.h>
 #include <AP_SerialManager/AP_SerialManager.h>
 
 // maximum number of mounts
@@ -73,7 +74,7 @@ public:
     AP_Mount(const AP_AHRS_TYPE &ahrs, const struct Location &current_loc);
 
     // init - detect and initialise all mounts
-    void init(DataFlash_Class *dataflash ,const AP_SerialManager& serial_manager);
+    void init(DataFlash_Class *dataflash ,const AP_SerialManager& serial_manager, AP_AccelCal &acal);
 
     // update - give mount opportunity to update servos.  should be called at 10hz or higher
     void update();
