@@ -1,6 +1,7 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #include "AP_Mount_Backend.h"
+#include <AP_AccelCal/AP_AccelCal.h>
 
 extern const AP_HAL::HAL& hal;
 
