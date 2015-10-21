@@ -162,6 +162,12 @@ void AP_Baro::calibrate()
 */
 void AP_Baro::update_calibration()
 {
+        // start by assuming all sensors are calibrated (for healthy() test)
+    for (uint8_t i=0; i<_num_sensors; i++) {
+        sensors[i].calibrated = true;
+        sensors[i].alt_ok = true;
+    }
+
     for (uint8_t i=0; i<_num_sensors; i++) {
         if (healthy(i)) {
             sensors[i].ground_pressure.set(get_pressure(i));
