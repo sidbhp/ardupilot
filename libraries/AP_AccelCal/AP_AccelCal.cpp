@@ -52,7 +52,7 @@ void AP_AccelCal::update()
                 if (step != _step) {
                     _step = step;
 
-                    const prog_char_t *msg;
+                    const char *msg;
                     switch (step) {
                         case 1:
                             msg = "level";
