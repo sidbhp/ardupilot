@@ -82,7 +82,7 @@ void AP_BattMonitor_SMBus_PX4::read()
               mavlink_msg_command_long_encode(0, MAV_COMP_ID_ALL, &msg, &cmd_msg);
               // forward to all components
               GCS_MAVLINK::send_on_all_channels(&msg);
-              GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_CRITICAL,PSTR("System is shutting down NOW..."));
+              GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_CRITICAL,"System is shutting down NOW...");
             }
             _state.is_powering_off = batt_status.is_powering_off;
 
