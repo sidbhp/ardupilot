@@ -153,7 +153,7 @@ int8_t Copter::test_ins(uint8_t argc, const Menu::arg *argv)
 
     ahrs.init();
     ins.init(ins_sample_rate,&accelcal);
-    cliSerial->printf_P(PSTR("...done\n"));
+    cliSerial->printf("...done\n");
 
     delay(50);
 
