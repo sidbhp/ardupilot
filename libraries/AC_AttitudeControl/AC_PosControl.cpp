@@ -157,7 +157,7 @@ void AC_PosControl::set_alt_target_with_slew(float alt_cm, float dt)
 ///     should be called continuously (with dt set to be the expected time between calls)
 ///     actual position target will be moved no faster than the speed_down and speed_up
 ///     target will also be stopped if the motors hit their limits or leash length is exceeded
-void AC_PosControl::set_alt_target_from_climb_rate_ff(float climb_rate_cms, float dt, bool force_descend)
+void AC_PosControl::set_alt_target_from_climb_rate(float climb_rate_cms, float dt, bool force_descend)
 {
     // adjust desired alt if motors have not hit their limits
     // To-Do: add check of _limit.pos_down?
@@ -220,7 +220,6 @@ void AC_PosControl::set_alt_target_from_climb_rate_ff(float climb_rate_cms, floa
         _vel_desired.z = constrain_float(0.0f, _vel_desired.z-vel_change_limit, _vel_desired.z+vel_change_limit);
     }
 
-    _flags.enable_z_vel_ff = 1;
 }
 
 /// add_takeoff_climb_rate - adjusts alt target up or down using a climb rate in cm/s
@@ -229,24 +228,6 @@ void AC_PosControl::set_alt_target_from_climb_rate_ff(float climb_rate_cms, floa
 void AC_PosControl::add_takeoff_climb_rate(float climb_rate_cms, float dt)
 {
     _pos_target.z += climb_rate_cms * dt;
-}
-
-void AC_PosControl::set_alt_target_from_climb_rate(float climb_rate_cms, float dt, bool force_descend)
-{
-    // adjust desired alt if motors have not hit their limits
-    // To-Do: add check of _limit.pos_down?
-    if ((climb_rate_cms<0 && (!_motors.limit.throttle_lower || force_descend)) || (climb_rate_cms>0 && !_motors.limit.throttle_upper && !_limit.pos_up)) {
-        _pos_target.z += climb_rate_cms * dt;
-    }
-
-    // do not let target alt get above limit
-    if (_alt_max > 0 && _pos_target.z > _alt_max) {
-        _pos_target.z = _alt_max;
-        _limit.pos_up = true;
-    }
-
-    _vel_desired.z = climb_rate_cms;
-    _flags.enable_z_vel_ff = 0;
 }
 
 /// relax_alt_hold_controllers - set all desired and targets to measured
@@ -273,7 +254,6 @@ float AC_PosControl::get_alt_error() const
 /// set_target_to_stopping_point_z - returns reasonable stopping altitude in cm above home
 void AC_PosControl::set_target_to_stopping_point_z()
 {
-    _flags.enable_z_vel_ff = false;
     // check if z leash needs to be recalculated
     calc_leash_length_z();
 
@@ -283,7 +263,6 @@ void AC_PosControl::set_target_to_stopping_point_z()
 /// set_target_to_stopping_point_z - returns reasonable stopping altitude in cm above home
 void AC_PosControl::set_target_to_stopping_point_z_ff()
 {
-    _flags.enable_z_vel_ff = true;
 
     // check if z leash needs to be recalculated
     calc_leash_length_z();
