@@ -118,6 +118,11 @@ px4-v2-upload: px4-v2
 	$(RULEHDR)
 	$(v) $(PX4_MAKE) px4fmu-v2_APM upload
 
+px4-v2-upload-wifi: px4-v2
+	scp ArduCopter-v2.px4 root@10.1.1.10:/tmp/
+	ssh root@10.1.1.10 PYTHONUNBUFFERED=1 loadPixhawk.py /tmp/ArduCopter-v2.px4
+	ssh root@10.1.1.10 rm /tmp/ArduCopter-v2.px4;
+
 px4-upload: px4-v1-upload
 
 px4-archives-clean:
