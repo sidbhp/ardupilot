@@ -33,7 +33,7 @@ Compass::compass_cal_update()
     if (is_calibrating()) {
         _cal_has_run = true;
         return;
-    } else if (_cal_has_run && auto_reboot()) {
+    } else if (_cal_has_run) {
         hal.scheduler->delay(1000);
         hal.scheduler->reboot(false);
     }
