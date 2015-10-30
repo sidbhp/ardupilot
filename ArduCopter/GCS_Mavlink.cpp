@@ -1557,6 +1557,29 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             break;
         }
 
+        case MAV_CMD_SOLO_BTN_FLY_CLICK: {
+            result = MAV_RESULT_ACCEPTED;
+
+            if (!copter.set_mode(LOITER)) {
+                copter.set_mode(ALT_HOLD);
+            }
+            break;
+        }
+
+        case MAV_CMD_SOLO_BTN_FLY_HOLD: {
+            result = MAV_RESULT_ACCEPTED;
+
+            if (!copter.motors.armed()) {
+                copter.init_arm_motors(true);
+            } else if (copter.ap.land_complete) {
+                if (copter.set_mode(LOITER)) {
+                    copter.do_user_takeoff(packet.param1*100, true);
+                }
+            } else if (!copter.ap.land_complete) {
+                copter.set_mode(LAND);
+            }
+        }
+
         default:
             result = MAV_RESULT_UNSUPPORTED;
             break;
