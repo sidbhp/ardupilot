@@ -1000,6 +1000,7 @@ void GCS_MAVLINK::handle_change_alt_request(AP_Mission::Mission_Command &cmd)
 void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 {
     uint8_t result = MAV_RESULT_FAILED;         // assume failure.  Each messages id is responsible for return ACK or NAK if required
+    bool mode_changed = false;
 
     switch (msg->msgid) {
 
@@ -1015,7 +1016,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
     case MAVLINK_MSG_ID_SET_MODE:       // MAV ID: 11
     {
         if (!copter.failsafe.radio) {
+            uint8_t prev_mode = copter.control_mode;
             handle_set_mode(msg, FUNCTOR_BIND(&copter, &Copter::set_mode, bool, uint8_t));
+            mode_changed = (copter.control_mode != prev_mode);
         } else {
             // don't allow mode changes while in radio failsafe
             mavlink_msg_command_ack_send_buf(msg, chan, MAVLINK_MSG_ID_SET_MODE, MAV_RESULT_FAILED);
@@ -1559,9 +1562,11 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
         case MAV_CMD_SOLO_BTN_FLY_CLICK: {
             result = MAV_RESULT_ACCEPTED;
-
-            if (!copter.set_mode(LOITER)) {
-                copter.set_mode(ALT_HOLD);
+           
+            if (copter.set_mode(LOITER)) {
+                mode_changed = true;
+            } else if (copter.set_mode(ALT_HOLD)) {
+                mode_changed = true;
             }
             break;
         }
@@ -1573,25 +1578,31 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                 copter.init_arm_motors(true);
             } else if (copter.ap.land_complete) {
                 if (copter.set_mode(LOITER)) {
+                    mode_changed = true;
                     copter.do_user_takeoff(packet.param1*100, true);
                 }
             } else if (!copter.ap.land_complete) {
-                copter.set_mode(LAND);
+                if (copter.set_mode(LAND)) {
+                    mode_changed = true;
+                }
             }
         }
 
         case MAV_CMD_SOLO_BTN_PAUSE_CLICK: {
             result = MAV_RESULT_ACCEPTED;
 
-            bool shot_mode = (control_mode == GUIDED && packet.param1 != 0.0f);
+            bool shot_mode = (copter.control_mode == GUIDED && packet.param1 != 0.0f);
 
             if (!shot_mode) {
-                if (set_mode(LOITER)) {
+                if (copter.set_mode(LOITER)) {
                     // might want to tell loiter to stop hard here
+                } else if(copter.set_mode(ALT_HOLD)) {
+                    mode_changed = true;
                 } else {
-                    set_mode(ALT_HOLD);
+                // SoloLink is expected to handle pause in shots
                 }
             }
+
             break;
         }
 
@@ -2001,6 +2012,11 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
     }
 
     }     // end switch
+
+
+    if (mode_changed) {
+        copter.gcs_send_heartbeat();
+    }
 } // end handle mavlink
 
 
