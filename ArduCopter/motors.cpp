@@ -460,6 +460,15 @@ bool Copter::pre_arm_checks(bool display_failure)
             }
         }
 
+
+        // check lean angle
+        if (degrees(acosf(ahrs.cos_roll()*ahrs.cos_pitch()))*100.0f > aparm.angle_max) {
+            if (display_failure) {
+                gcs_send_text(MAV_SEVERITY_CRITICAL,"Arm: Leaning");
+            }
+            return false;
+        }
+
         // get ekf attitude (if bad, it's usually the gyro biases)
         if (!pre_arm_ekf_attitude_check()) {
             if (display_failure) {
@@ -468,6 +477,7 @@ bool Copter::pre_arm_checks(bool display_failure)
             return false;
         }
     }
+
 #if CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN
 #ifndef CONFIG_ARCH_BOARD_PX4FMU_V1
     // check board voltage
@@ -817,6 +827,11 @@ bool Copter::arm_checks(bool display_failure, bool arming_from_gcs)
         }
     }
 
+    // check gps
+    if (!pre_arm_gps_checks(display_failure)) {
+        return false;
+    }
+ 
     // check throttle
     if ((g.arming_check == ARMING_CHECK_ALL) || (g.arming_check & ARMING_CHECK_RC)) {
         // check throttle is not too low - must be above failsafe throttle
