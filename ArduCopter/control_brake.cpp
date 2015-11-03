@@ -6,6 +6,9 @@
  * control_brake.pde - init and run calls for brake flight mode
  */
 
+static uint32_t brake_timeout_start = 0;
+static float brake_timeout_ms = 0;
+
 // brake_init - initialise brake controller
 bool Copter::brake_init(bool ignore_checks)
 {
@@ -27,6 +30,8 @@ bool Copter::brake_init(bool ignore_checks)
         // initialise position and desired velocity
         pos_control.set_alt_target(inertial_nav.get_altitude());
         pos_control.set_desired_velocity_z(inertial_nav.get_velocity_z());
+
+        brake_timeout_ms = 0;
 
         return true;
     }else{
@@ -52,7 +57,7 @@ void Copter::brake_run()
         return;
     }
 
-    // relax stop target if we might be landed
+    // relax brake target if we might be landed
     if (ap.land_complete_maybe) {
         wp_nav.loiter_soften_for_landing();
     }
@@ -73,4 +78,17 @@ void Copter::brake_run()
     // update altitude target and call position controller
     pos_control.set_alt_target_from_climb_rate_ff(0.0f, G_Dt, false);
     pos_control.update_z_controller();
+
+    if (brake_timeout_ms != 0 && millis()-brake_timeout_start >= brake_timeout_ms) {
+        if(!set_mode(LOITER)) {
+            set_mode(ALT_HOLD);
+        }
+        gcs_send_heartbeat();
+    }
+}
+
+void Copter::brake_timeout_to_loiter_ms(uint32_t timeout_ms)
+{
+    brake_timeout_start = millis();
+    brake_timeout_ms = timeout_ms;
 }

@@ -759,6 +759,7 @@ private:
     void autotune_twitching_measure_acceleration(float &rate_of_change, float rate_measurement, float &rate_measurement_max);
     bool brake_init(bool ignore_checks);
     void brake_run();
+    void brake_timeout_to_loiter_ms(uint32_t timeout_ms);
     bool circle_init(bool ignore_checks);
     void circle_run();
     bool drift_init(bool ignore_checks);
