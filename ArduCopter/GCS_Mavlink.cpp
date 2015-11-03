@@ -1601,9 +1601,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                     bool shot_mode = (packet.param1 != 0.0f && copter.control_mode == GUIDED);
 
                     if (!shot_mode) {
-                        if (copter.set_mode(LOITER)) {
+                        if (copter.set_mode(BRAKE)) {
                             send_heartbeat_immediately = true;
-                            // might want to tell loiter to stop hard here
+                            copter.brake_timeout_to_loiter_ms(2500);
                         } else if(copter.set_mode(ALT_HOLD)) {
                             send_heartbeat_immediately = true;
                         }
