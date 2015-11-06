@@ -19,16 +19,10 @@ declare -A build_platforms
 declare -A build_concurrency
 declare -A build_extra_clean
 
-build_platforms=(  ["ArduPlane"]="navio raspilot minlure sitl linux px4-v2"
-                   ["ArduCopter"]="navio raspilot minlure sitl linux px4-v2"
-                   ["APMrover2"]="navio raspilot minlure sitl linux px4-v2"
-                   ["AntennaTracker"]="navio raspilot minlure sitl linux px4-v2"
+build_platforms=(  ["ArduCopter"]="sitl linux px4-v2"
                    ["Tools/Replay"]="linux")
 
-build_concurrency=(["navio"]="-j2"
-                   ["raspilot"]="-j2"
-                   ["minlure"]="-j2"
-                   ["sitl"]="-j2"
+build_concurrency=(["sitl"]="-j2"
                    ["linux"]="-j2"
                    ["px4-v2"]="")
 
