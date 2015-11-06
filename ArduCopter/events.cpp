@@ -6,7 +6,7 @@
  *       This event will be called when the failsafe changes
  *       boolean failsafe reflects the current state
  */
-static void failsafe_radio_on_event()
+void Copter::failsafe_radio_on_event()
 {
     // if motors are not armed there is nothing to do
     if( !motors.armed() ) {
@@ -76,11 +76,10 @@ void Copter::failsafe_battery_event(void)
         } else {
             if (control_mode == AUTO || g.failsafe_battery_enabled == FS_BATT_RTL) {
                 set_mode_RTL_or_land_with_pause();
-                }
             }
         }
     }
-}
+
 
     // set the low battery flag
     set_failsafe_battery(true);
