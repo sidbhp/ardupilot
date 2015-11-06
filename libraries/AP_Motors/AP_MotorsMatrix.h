@@ -83,7 +83,6 @@ protected:
     float               _motor_out_pct[AP_MOTORS_MAX_NUM_MOTORS];
 
     int16_t             _max_motor_out[AP_MOTORS_MAX_NUM_MOTORS];
->>>>>>> dad46b1... AP_Motors: add slew rate limiter
 };
 
 #endif  // AP_MOTORSMATRIX
