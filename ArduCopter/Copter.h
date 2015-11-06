@@ -830,6 +830,7 @@ private:
     void failsafe_gcs_check();
     void failsafe_gcs_off_event(void);
     void set_mode_RTL_or_land_with_pause();
+    bool should_disarm_on_failsafe();
     void update_events();
     void failsafe_enable();
     void failsafe_disable();
