@@ -52,6 +52,13 @@ NavEKF2_core::NavEKF2_core(void) :
     _perf_test[7] = hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK2_Test7");
     _perf_test[8] = hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK2_Test8");
     _perf_test[9] = hal.util->perf_alloc(AP_HAL::Util::PC_ELAPSED, "EK2_Test9");
+    storedIMU.init(IMU_BUFFER_LENGTH);
+    storedGPS.init(OBS_BUFFER_LENGTH);
+    storedMag.init(OBS_BUFFER_LENGTH);
+    storedBaro.init(OBS_BUFFER_LENGTH);
+    storedTAS.init(OBS_BUFFER_LENGTH);
+    storedOutput.init(IMU_BUFFER_LENGTH);
+    storedOF.init(OBS_BUFFER_LENGTH);
 }
 
 // setup this core backend
@@ -229,7 +236,8 @@ bool NavEKF2_core::InitialiseFilterBootstrap(void)
     dtIMUavg = 1.0f/_ahrs->get_ins().get_sample_rate();
     dtEkfAvg = min(0.01f,dtIMUavg);
     readIMUData();
-    StoreIMU_reset();
+    storedIMU.reset_history(imuDataNew, imuSampleTime_ms);
+    imuDataDelayed = imuDataNew;
 
     // acceleration vector in XYZ body axes measured by the IMU (m/s^2)
     Vector3f initAccVec;
@@ -538,11 +546,11 @@ void  NavEKF2_core::calcOutputStatesFast() {
 
     // store the output in the FIFO buffer if this is a filter update step
     if (runUpdates) {
-        StoreOutput();
+        storedOutput.push(outputDataNew);
     }
 
     // extract data at the fusion time horizon from the FIFO buffer
-    RecallOutput();
+    outputDataDelayed = storedOutput.pop();
 
     // compare quaternion data with EKF quaternion at the fusion time horizon and calculate correction
 
@@ -1115,12 +1123,6 @@ void NavEKF2_core::zeroCols(Matrix24 &covMat, uint8_t first, uint8_t last)
     }
 }
 
-// store output data in the FIFO
-void NavEKF2_core::StoreOutput()
-{
-    storedOutput[fifoIndexNow] = outputDataNew;
-}
-
 // reset the output data to the current EKF state
 void NavEKF2_core::StoreOutputReset()
 {
@@ -1157,12 +1159,6 @@ void NavEKF2_core::StoreQuatRotate(Quaternion deltaQuat)
         storedOutput[i].quat = storedOutput[i].quat*deltaQuat;
     }
     outputDataDelayed.quat = outputDataDelayed.quat*deltaQuat;
-}
-
-// recall output data from the FIFO
-void NavEKF2_core::RecallOutput()
-{
-    outputDataDelayed = storedOutput[fifoIndexDelayed];
 }
 
 // calculate nav to body quaternions from body to nav rotation matrix

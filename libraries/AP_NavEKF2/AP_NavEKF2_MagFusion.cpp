@@ -141,7 +141,7 @@ void NavEKF2_core::SelectMagFusion()
     }
 
     // check for availability of magnetometer data to fuse
-    bool newMagDataAvailable = RecallMag();
+    bool newMagDataAvailable = storedMag.recall(magDataDelayed,imuDataDelayed.time_ms);
 
     if (newMagDataAvailable) {
         // Control reset of yaw and magnetic field states

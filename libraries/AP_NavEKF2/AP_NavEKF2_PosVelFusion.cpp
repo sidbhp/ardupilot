@@ -139,9 +139,8 @@ void NavEKF2_core::SelectVelPosFusion()
 
     // check for and read new GPS data
     readGpsData();
-
     // Determine if we need to fuse position and velocity data on this time step
-    if (RecallGPS() && PV_AidingMode == AID_ABSOLUTE) {
+    if (storedGPS.recall(gpsDataDelayed,imuDataDelayed.time_ms) && PV_AidingMode == AID_ABSOLUTE) {
         // Don't fuse velocity data if GPS doesn't support it
         if (frontend->_fusionModeGPS <= 1) {
             fuseVelData = true;
@@ -166,7 +165,7 @@ void NavEKF2_core::SelectVelPosFusion()
 
     // command fusion of height data
     // wait until the EKF time horizon catches up with the measurement
-    if (RecallBaro()) {
+    if (storedBaro.recall(baroDataDelayed, imuDataDelayed.time_ms)) {
         // enable fusion
         fuseHgtData = true;
     }

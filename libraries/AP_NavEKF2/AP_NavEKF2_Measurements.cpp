@@ -117,52 +117,11 @@ void NavEKF2_core::writeOptFlowMeas(uint8_t &rawFlowQuality, Vector2f &rawFlowRa
         // Prevent time delay exceeding age of oldest IMU data in the buffer
         ofDataNew.time_ms = max(ofDataNew.time_ms,imuDataDelayed.time_ms);
         // Save data to buffer
-        StoreOF();
+        storedOF.push(ofDataNew, ofDataDelayed.time_ms);
         // Check for data at the fusion time horizon
-        newDataFlow = RecallOF();
+        newDataFlow = storedOF.recall(ofDataDelayed, imuDataDelayed.time_ms);
     }
 }
-
-// store OF data in a history array
-void NavEKF2_core::StoreOF()
-{
-    if (ofStoreIndex >= OBS_BUFFER_LENGTH) {
-        ofStoreIndex = 0;
-    }
-    storedOF[ofStoreIndex] = ofDataNew;
-    ofStoreIndex += 1;
-}
-
-// return newest un-used optical flow data that has fallen behind the fusion time horizon
-// if no un-used data is available behind the fusion horizon, return false
-bool NavEKF2_core::RecallOF()
-{
-    of_elements dataTemp;
-    of_elements dataTempZero;
-    dataTempZero.time_ms = 0;
-    uint32_t temp_ms = 0;
-    uint8_t bestIndex = 0;
-    for (uint8_t i=0; i<OBS_BUFFER_LENGTH; i++) {
-        dataTemp = storedOF[i];
-        // find a measurement older than the fusion time horizon that we haven't checked before
-        if (dataTemp.time_ms != 0 && dataTemp.time_ms <= imuDataDelayed.time_ms) {
-            // Find the most recent non-stale measurement that meets the time horizon criteria
-            if (((imuDataDelayed.time_ms - dataTemp.time_ms) < 500) && dataTemp.time_ms > temp_ms) {
-                ofDataDelayed = dataTemp;
-                temp_ms = dataTemp.time_ms;
-                bestIndex = i;
-            }
-        }
-    }
-    if (temp_ms != 0) {
-        // zero the time stamp for that piece of data so we won't use it again
-        storedOF[bestIndex]=dataTempZero;
-        return true;
-    } else {
-        return false;
-    }
-}
-
 
 
 /********************************************************
@@ -212,8 +171,8 @@ void NavEKF2_core::readMagData()
                     // zero the learned magnetometer bias states
                     stateStruct.body_magfield.zero();
                     // clear the measurement buffer
-                    memset(&storedMag[0], 0, sizeof(storedMag));
-                }
+                    storedMag.reset();
+                    }
             }
         }
 
@@ -233,51 +192,9 @@ void NavEKF2_core::readMagData()
         consistentMagData = _ahrs->get_compass()->consistent();
 
         // save magnetometer measurement to buffer to be fused later
-        StoreMag();
+        storedMag.push(magDataNew, magDataNew.time_ms);
     }
 }
-// store magnetometer data in a history array
-void NavEKF2_core::StoreMag()
-{
-    if (magStoreIndex >= OBS_BUFFER_LENGTH) {
-        magStoreIndex = 0;
-    }
-    storedMag[magStoreIndex] = magDataNew;
-    magStoreIndex += 1;
-}
-
-// return newest un-used magnetometer data that has fallen behind the fusion time horizon
-// if no un-used data is available behind the fusion horizon, return false
-bool NavEKF2_core::RecallMag()
-{
-    mag_elements dataTemp;
-    mag_elements dataTempZero;
-    dataTempZero.time_ms = 0;
-    uint32_t temp_ms = 0;
-    uint8_t bestIndex = 0;
-    for (uint8_t i=0; i<OBS_BUFFER_LENGTH; i++) {
-        dataTemp = storedMag[i];
-        // find a measurement older than the fusion time horizon that we haven't checked before
-        if (dataTemp.time_ms != 0 && dataTemp.time_ms <= imuDataDelayed.time_ms) {
-            // Find the most recent non-stale measurement that meets the time horizon criteria
-            if (((imuDataDelayed.time_ms - dataTemp.time_ms) < 500) && dataTemp.time_ms > temp_ms) {
-                magDataDelayed = dataTemp;
-                temp_ms = dataTemp.time_ms;
-                bestIndex = i;
-            }
-        }
-    }
-    if (temp_ms != 0) {
-        // zero the time stamp for that piece of data so we won't use it again
-        storedMag[bestIndex]=dataTempZero;
-        return true;
-    } else {
-        return false;
-    }
-}
-
-
-
 
 /********************************************************
 *                Inertial Measurements                  *
@@ -358,7 +275,7 @@ void NavEKF2_core::readIMUData()
         // Time stamp the data
         imuDataDownSampledNew.time_ms = imuSampleTime_ms;
         // Write data to the FIFO IMU buffer
-        StoreIMU();
+        storedIMU.push(imuDataDownSampledNew, imuSampleTime_ms);
         // zero the accumulated IMU data and quaternion
         imuDataDownSampledNew.delAng.zero();
         imuDataDownSampledNew.delVel.zero();
@@ -376,50 +293,8 @@ void NavEKF2_core::readIMUData()
     }
 
     // extract the oldest available data from the FIFO buffer
-    imuDataDelayed = storedIMU[fifoIndexDelayed];
+    imuDataDelayed = storedIMU.pop();
 
-}
-
-// store imu in the FIFO
-void NavEKF2_core::StoreIMU()
-{
-    // increment the index and write new data
-    fifoIndexNow = fifoIndexNow + 1;
-    if (fifoIndexNow >= IMU_BUFFER_LENGTH) {
-        fifoIndexNow = 0;
-    }
-    storedIMU[fifoIndexNow] = imuDataDownSampledNew;
-    // set the index required to access the oldest data, applying an offset to the fusion time horizon that is used to
-    // prevent the same fusion operation being performed on the same frame across multiple EKF's
-    fifoIndexDelayed = fifoIndexNow + 1;
-    if (fifoIndexDelayed >= IMU_BUFFER_LENGTH) {
-        fifoIndexDelayed = 0;
-    }
-}
-
-// reset the stored imu history and store the current value
-void NavEKF2_core::StoreIMU_reset()
-{
-    // write current measurement to entire table
-    for (uint8_t i=0; i<IMU_BUFFER_LENGTH; i++) {
-        storedIMU[i] = imuDataNew;
-    }
-    imuDataDelayed = imuDataNew;
-    fifoIndexDelayed = fifoIndexNow+1;
-    if (fifoIndexDelayed >= IMU_BUFFER_LENGTH) {
-        fifoIndexDelayed = 0;
-    }
-}
-
-// recall IMU data from the FIFO
-void NavEKF2_core::RecallIMU()
-{
-    imuDataDelayed = storedIMU[fifoIndexDelayed];
-    // make sure that the delta time used for the delta angles and velocities are is no less than 10% of dtIMUavg to prevent
-    // divide by zero problems when converting to rates or acceleration
-    float minDT = 0.1f*dtEkfAvg;
-    imuDataDelayed.delAngDT = max(imuDataDelayed.delAngDT,minDT);
-    imuDataDelayed.delVelDT = max(imuDataDelayed.delVelDT,minDT);
 }
 
 // read the delta velocity and corresponding time interval from the IMU
@@ -519,7 +394,7 @@ void NavEKF2_core::readGpsData()
             // convert GPS measurements to local NED and save to buffer to be fused later if we have a valid origin
             if (validOrigin) {
                 gpsDataNew.pos = location_diff(EKF_origin, gpsloc);
-                StoreGPS();
+                storedGPS.push(gpsDataNew, gpsDataNew.time_ms);
                 // declare GPS available for use
                 gpsNotAvailable = false;
             }
@@ -584,47 +459,6 @@ void NavEKF2_core::readGpsData()
                 posTestRatio = 0.0f;
             }
         }
-    }
-}
-
-
-// store GPS data in a history array
-void NavEKF2_core::StoreGPS()
-{
-    if (gpsStoreIndex >= OBS_BUFFER_LENGTH) {
-        gpsStoreIndex = 0;
-    }
-    storedGPS[gpsStoreIndex] = gpsDataNew;
-    gpsStoreIndex += 1;
-}
-
-// return newest un-used GPS data that has fallen behind the fusion time horizon
-// if no un-used data is available behind the fusion horizon, return false
-bool NavEKF2_core::RecallGPS()
-{
-    gps_elements dataTemp;
-    gps_elements dataTempZero;
-    dataTempZero.time_ms = 0;
-    uint32_t temp_ms = 0;
-    uint8_t bestIndex;
-    for (uint8_t i=0; i<OBS_BUFFER_LENGTH; i++) {
-        dataTemp = storedGPS[i];
-        // find a measurement older than the fusion time horizon that we haven't checked before
-        if (dataTemp.time_ms != 0 && dataTemp.time_ms <= imuDataDelayed.time_ms) {
-            // Find the most recent non-stale measurement that meets the time horizon criteria
-            if (((imuDataDelayed.time_ms - dataTemp.time_ms) < 500) && dataTemp.time_ms > temp_ms) {
-                gpsDataDelayed = dataTemp;
-                temp_ms = dataTemp.time_ms;
-                bestIndex = i;
-            }
-        }
-    }
-    if (temp_ms != 0) {
-        // zero the time stamp for that piece of data so we won't use it again
-        storedGPS[bestIndex]=dataTempZero;
-        return true;
-    } else {
-        return false;
     }
 }
 
@@ -701,51 +535,9 @@ void NavEKF2_core::readHgtData()
         baroDataNew.time_ms = max(baroDataNew.time_ms,imuDataDelayed.time_ms);
 
         // save baro measurement to buffer to be fused later
-        StoreBaro();
+        storedBaro.push(baroDataNew,baroDataNew.time_ms);
     }
 }
-
-// store baro in a history array
-void NavEKF2_core::StoreBaro()
-{
-    if (baroStoreIndex >= OBS_BUFFER_LENGTH) {
-        baroStoreIndex = 0;
-    }
-    storedBaro[baroStoreIndex] = baroDataNew;
-    baroStoreIndex += 1;
-}
-
-// return newest un-used baro data that has fallen behind the fusion time horizon
-// if no un-used data is available behind the fusion horizon, return false
-bool NavEKF2_core::RecallBaro()
-{
-    baro_elements dataTemp;
-    baro_elements dataTempZero;
-    dataTempZero.time_ms = 0;
-    uint32_t temp_ms = 0;
-    uint8_t bestIndex = 0;
-    for (uint8_t i=0; i<OBS_BUFFER_LENGTH; i++) {
-        dataTemp = storedBaro[i];
-        // find a measurement older than the fusion time horizon that we haven't checked before
-        if (dataTemp.time_ms != 0 && dataTemp.time_ms <= imuDataDelayed.time_ms) {
-            // Find the most recent non-stale measurement that meets the time horizon criteria
-            if (((imuDataDelayed.time_ms - dataTemp.time_ms) < 500) && dataTemp.time_ms > temp_ms) {
-                baroDataDelayed = dataTemp;
-                temp_ms = dataTemp.time_ms;
-                bestIndex = i;
-            }
-        }
-    }
-    if (temp_ms != 0) {
-        // zero the time stamp for that piece of data so we won't use it again
-        storedBaro[bestIndex]=dataTempZero;
-        return true;
-    } else {
-        return false;
-    }
-}
-
-
 
 /********************************************************
 *                Air Speed Measurements                 *
@@ -767,8 +559,8 @@ void NavEKF2_core::readAirSpdData()
         // Correct for the average intersampling delay due to the filter update rate
         tasDataNew.time_ms -= localFilterTimeStep_ms/2;
         newDataTas = true;
-        StoreTAS();
-        RecallTAS();
+        storedTAS.push(tasDataNew, tasDataNew.time_ms);
+        storedTAS.recall(tasDataDelayed,imuDataDelayed.time_ms);
     } else {
         newDataTas = false;
     }

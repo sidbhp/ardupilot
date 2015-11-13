@@ -59,6 +59,99 @@
 #define IMU_BUFFER_LENGTH       104 // unknown so use max buffer length
 #endif
 
+template <typename element_type>
+class timed_ring_buffer_t
+{
+public:
+    struct element_t{
+        element_type element;
+        uint32_t sample_time;
+    } *buffer;
+
+    bool init(uint32_t size)
+    {
+        buffer = new element_t[size];
+        memset(buffer,0,sizeof(buffer));
+        if(buffer == NULL)
+        {
+            return false;
+        }
+        _size = size;
+        _head = 0;
+        _tail = 0;
+        return true;
+    }
+
+    void sorted_store(element_type element, uint32_t sample_time)
+    {
+        uint8_t head = _head;    
+        //will drop the element if older than tail i.e. recently fetched data
+        while(head != _tail) {
+            if(buffer[(head - 1)%_size].sample_time < sample_time) {
+                buffer[head].element = element;
+            } else {
+                buffer[head] = buffer[(head - 1)%_size];
+                head = (head-1)%_size;
+            }
+        }
+        _head = (_head+1)%_size;
+        return;
+    }
+
+    bool recall(element_type element,uint32_t sample_time)
+    {
+        element = buffer[_head].element;
+        uint8_t head = _head, tail = _tail;
+        while(head != tail) {
+            if(buffer[tail].sample_time > sample_time) {
+                break;
+            }
+            element = buffer[tail].element;
+            tail = (tail+1)%_size;
+        }
+        _tail = tail;
+        if(element.time_ms - sample_time > 500) {
+            return false;
+        }
+        return true;
+    }
+
+    inline void push(element_type element, uint32_t sample_time)
+    {
+        buffer[_head].element = element;
+        buffer[_head].sample_time = sample_time;
+        _head = (_head+1)%_size;
+    }
+
+    inline void push(element_type element)
+    {
+        buffer[_head].element = element;
+        _head = (_head+1)%_size;
+    }
+
+    inline element_type pop() {
+        element_type ret = buffer[_tail].element;
+        _tail = (_tail+1)%_size;
+        return ret;
+    }
+
+    inline void reset_history(element_type element, uint32_t sample_time) {
+        _head = _tail+1;
+        buffer[_tail].sample_time = sample_time;
+        buffer[_tail].element = element;
+    }
+
+    inline void reset() {
+        memset(buffer,0,sizeof(buffer));
+    }
+
+    inline element_type& operator[](uint32_t index) {
+        return buffer[index].element;
+    }
+private:
+    uint8_t _size,_head,_tail;
+};
+
 class AP_AHRS;
 
 class NavEKF2_core
@@ -430,18 +523,6 @@ private:
     // zero specified range of columns in the state covariance matrix
     void zeroCols(Matrix24 &covMat, uint8_t first, uint8_t last);
 
-    // store imu data in the FIFO
-    void StoreIMU(void);
-
-    // Reset the stored IMU history to current data
-    void StoreIMU_reset(void);
-
-    // recall IMU data from the FIFO
-    void RecallIMU();
-
-    // store output data in the FIFO
-    void StoreOutput(void);
-
     // Reset the stored output history to current data
     void StoreOutputReset(void);
 
@@ -450,9 +531,6 @@ private:
 
     // Rotate the stored output quaternion history through a quaternion rotation
     void StoreQuatRotate(Quaternion deltaQuat);
-
-    // recall output data from the FIFO
-    void RecallOutput();
 
     // store altimeter data
     void StoreBaro();
@@ -467,13 +545,6 @@ private:
     // recall magetometer data at the fusion time horizon
     // return true if data found
     bool RecallMag();
-
-    // store GPS data
-    void StoreGPS();
-
-    // recall GPS data at the fusion time horizon
-    // return true if data found
-    bool RecallGPS();
 
     // store true airspeed data
     void StoreTAS();
@@ -657,12 +728,12 @@ private:
     Matrix24 KH;                    // intermediate result used for covariance updates
     Matrix24 KHP;                   // intermediate result used for covariance updates
     Matrix24 P;                     // covariance matrix
-    imu_elements storedIMU[IMU_BUFFER_LENGTH];      // IMU data buffer
-    gps_elements storedGPS[OBS_BUFFER_LENGTH];      // GPS data buffer
-    mag_elements storedMag[OBS_BUFFER_LENGTH];      // Magnetometer data buffer
-    baro_elements storedBaro[OBS_BUFFER_LENGTH];    // Baro data buffer
-    tas_elements storedTAS[OBS_BUFFER_LENGTH];      // TAS data buffer
-    output_elements storedOutput[IMU_BUFFER_LENGTH];// output state buffer
+    timed_ring_buffer_t<imu_elements> storedIMU;      // IMU data buffer
+    timed_ring_buffer_t<gps_elements> storedGPS;      // GPS data buffer
+    timed_ring_buffer_t<mag_elements> storedMag;      // Magnetometer data buffer
+    timed_ring_buffer_t<baro_elements> storedBaro;    // Baro data buffer
+    timed_ring_buffer_t<tas_elements> storedTAS;      // TAS data buffer
+    timed_ring_buffer_t<output_elements> storedOutput;// output state buffer
     Vector3f correctedDelAng;       // delta angles about the xyz body axes corrected for errors (rad)
     Quaternion correctedDelAngQuat; // quaternion representation of correctedDelAng
     Vector3f correctedDelVel;       // delta velocities along the XYZ body axes for weighted average of IMU1 and IMU2 corrected for errors (m/s)
@@ -821,7 +892,7 @@ private:
     float lastInnovation;
 
     // variables added for optical flow fusion
-    of_elements storedOF[OBS_BUFFER_LENGTH];    // OF data buffer
+    timed_ring_buffer_t<of_elements> storedOF;    // OF data buffer
     of_elements ofDataNew;          // OF data at the current time horizon
     of_elements ofDataDelayed;      // OF data at the fusion time horizon
     uint8_t ofStoreIndex;           // OF data storage index
