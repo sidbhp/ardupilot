@@ -11,7 +11,6 @@ class obs_ring_buffer_t
 public:
     struct element_t{
         element_type element;
-        uint32_t sample_time;
     } *buffer;
 
     // initialise buffer, returns false when allocation has failed
@@ -42,9 +41,9 @@ public:
         uint8_t tail = _tail, bestIndex;
 
         if(_head == tail) {
-            if (buffer[tail].sample_time != 0 && buffer[tail].sample_time <= sample_time) {
+            if (buffer[tail].element.time_ms != 0 && buffer[tail].element.time_ms <= sample_time) {
                 // if head is equal to tail just check if the data is unused and within time horizon window
-                if (((sample_time - buffer[tail].sample_time) < 500)) {
+                if (((sample_time - buffer[tail].element.time_ms) < 500)) {
                     bestIndex = tail;
                     success = true;
                 }
@@ -52,13 +51,13 @@ public:
         } else {
             while(_head != tail) {
                 // find a measurement older than the fusion time horizon that we haven't checked before
-                if (buffer[tail].sample_time != 0 && buffer[tail].sample_time <= sample_time) {
+                if (buffer[tail].element.time_ms != 0 && buffer[tail].element.time_ms <= sample_time) {
                     // Find the most recent non-stale measurement that meets the time horizon criteria
-                    if (((sample_time - buffer[tail].sample_time) < 500)) {
+                    if (((sample_time - buffer[tail].element.time_ms) < 500)) {
                         bestIndex = tail;
                         success = true;
                     }
-                } else if(buffer[tail].sample_time > sample_time){
+                } else if(buffer[tail].element.time_ms > sample_time){
                     break;
                 }
                 tail = (tail+1)%_size;
@@ -67,11 +66,10 @@ public:
 
         if (success) {
             element = buffer[bestIndex].element;
-            element.time_ms = buffer[bestIndex].sample_time;
             _tail = (bestIndex+1)%_size;
             //make time zero to stop using it again, 
             //resolves corner case of reusing the element when head == tail
-            buffer[bestIndex].sample_time = 0;
+            buffer[bestIndex].element.time_ms = 0;
             return true;
         } else {
             return false;
@@ -82,18 +80,16 @@ public:
      * Writes data and timestamp to a Ring buffer and advances indices that
      * define the location of the newest and oldest data
     */
-    inline void push(element_type element, uint32_t sample_time)
+    inline void push(element_type element)
     {
         // Advance head to next available index
         _head = (_head+1)%_size;
         // New data is written at the head
         buffer[_head].element = element;
-        buffer[_head].sample_time = sample_time;
     }
     // writes the same data to all elements in the ring buffer
     inline void reset_history(element_type element, uint32_t sample_time) {
         for (uint8_t index=0; index<_size; index++) {
-            buffer[index].sample_time = sample_time;
             buffer[index].element = element;
         }
     }
