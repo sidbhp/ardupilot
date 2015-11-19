@@ -25,6 +25,7 @@ public:
         _size = size;
         _head = 0;
         _tail = 0;
+        _new_data = false;
         return true;
     }
 
@@ -37,6 +38,9 @@ public:
 
     bool recall(element_type &element,uint32_t sample_time)
     {
+        if(!_new_data) {
+            return false;
+        }
         bool success = false;
         uint8_t tail = _tail, bestIndex;
 
@@ -46,6 +50,7 @@ public:
                 if (((sample_time - buffer[tail].element.time_ms) < 500)) {
                     bestIndex = tail;
                     success = true;
+                    _new_data = false;
                 }
             }
         } else {
@@ -86,6 +91,7 @@ public:
         _head = (_head+1)%_size;
         // New data is written at the head
         buffer[_head].element = element;
+        _new_data = true;
     }
     // writes the same data to all elements in the ring buffer
     inline void reset_history(element_type element, uint32_t sample_time) {
@@ -98,11 +104,12 @@ public:
     inline void reset() {
         _head = 0;
         _tail = 0;
+        _new_data = false;
         memset(buffer,0,_size*sizeof(element_t));
     }
 
 private:
-    uint8_t _size,_head,_tail;
+    uint8_t _size,_head,_tail,_new_data;
 };
 
 
