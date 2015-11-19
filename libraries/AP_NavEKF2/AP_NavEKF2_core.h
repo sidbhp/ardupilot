@@ -88,34 +88,42 @@ public:
      * Zeros old data so it cannot not be used again
      * Returns false if no data can be found that is less than 500msec old
     */
-    bool recall(element_type &element,uint32_t sample_time_ms)
+
+    bool recall(element_type &element,uint32_t sample_time)
     {
         bool success = false;
-        uint8_t bestIndex = 0;
-        uint32_t bestTime_ms = 0;
-        for (uint8_t index=0; index<_size; index++) {
-            // find a measurement older than the fusion time horizon that we haven't checked before that is not too stale
-            if (buffer[index].sample_time != 0 && (buffer[index].sample_time <= sample_time_ms) && (buffer[index].sample_time > sample_time_ms-500)) {
-                // the search for data has been successful so we can return something
-                success = true;
-                // keep looking for newer data that meets the selection criteria
-                if (buffer[index].sample_time > bestTime_ms) {
-                    bestIndex = index;
-                    bestTime_ms = buffer[index].sample_time;
+        uint8_t tail = _tail, bestIndex;
+        if(_head == _tail){
+          if (buffer[tail].sample_time != 0 && buffer[tail].sample_time <= sample_time) {
+                // Find the most recent non-stale measurement that meets the time horizon criteria
+                if (((sample_time - buffer[tail].sample_time) < 500)) {
+                    bestIndex = tail;
+                    success = true;
                 }
-                // zero the time stamp for that piece of data so we won't use it again
-                buffer[index].sample_time = 0;
+            }
+        } else {
+            while (_head != tail) {
+                // find a measurement older than the fusion time horizon that we haven't checked before
+                if (buffer[tail].sample_time != 0 && buffer[tail].sample_time <= sample_time) {
+                    // Find the most recent non-stale measurement that meets the time horizon criteria
+                    if (((sample_time - buffer[tail].sample_time) < 500)) {
+                        bestIndex = tail;
+                        success = true;
+                    }
+                } else if(buffer[tail].sample_time > sample_time){
+                    break;
+                }
+                tail = (tail+1)%_size;
             }
         }
         if (success) {
-            // output the result
             element = buffer[bestIndex].element;
             element.time_ms = bestTime_ms;
             return true;
         } else {
             return false;
         }
-    }
+   }
 
     /*
      * Writes data and timestamp to a Ring buffer and advances indices that
