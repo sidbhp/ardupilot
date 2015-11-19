@@ -254,6 +254,15 @@ void NavEKF2_core::InitialiseVariables()
     imuDataDownSampledNew.delVelDT = 0.0f;
     runUpdates = false;
     framesSincePredict = 0;
+
+    // zero data buffers
+    storedIMU.reset();
+    storedGPS.reset();
+    storedMag.reset();
+    storedBaro.reset();
+    storedTAS.reset();
+    storedRange.reset();
+    storedOutput.reset();
 }
 
 // Initialise the states from accelerometer and magnetometer data (if present)
