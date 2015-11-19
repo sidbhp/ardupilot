@@ -296,7 +296,7 @@ void NavEKF2_core::readIMUData()
         // Time stamp the data
         imuDataDownSampledNew.time_ms = imuSampleTime_ms;
         // Write data to the FIFO IMU buffer
-        storedIMU.push(imuDataDownSampledNew, imuSampleTime_ms);
+        storedIMU.push_youngest_element(imuDataDownSampledNew);
         // zero the accumulated IMU data and quaternion
         imuDataDownSampledNew.delAng.zero();
         imuDataDownSampledNew.delVel.zero();
@@ -314,7 +314,7 @@ void NavEKF2_core::readIMUData()
     }
 
     // extract the oldest available data from the FIFO buffer
-    imuDataDelayed = storedIMU.pop();
+    imuDataDelayed = storedIMU.pop_oldest_element();
     float minDT = 0.1f*dtEkfAvg;
     imuDataDelayed.delAngDT = max(imuDataDelayed.delAngDT,minDT);
     imuDataDelayed.delVelDT = max(imuDataDelayed.delVelDT,minDT);

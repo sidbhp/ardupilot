@@ -31,6 +31,7 @@
 #include "AP_NavEKF2.h"
 #include <stdio.h>
 #include <AP_Math/vectorN.h>
+#include <AP_NavEKF2/AP_NavEKF2_Buffer.h>
 
 // GPS pre-flight check bit locations
 #define MASK_GPS_NSATS      (1<<0)
@@ -41,157 +42,6 @@
 #define MASK_GPS_POS_DRIFT  (1<<5)
 #define MASK_GPS_VERT_SPD   (1<<6)
 #define MASK_GPS_HORIZ_SPD  (1<<7)
-
-
-template <typename element_type>
-class timed_ring_buffer_t
-{
-public:
-    struct element_t{
-        element_type element;
-        uint32_t sample_time;
-    } *buffer;
-
-    bool init(uint32_t size)
-    {
-        buffer = new element_t[size];
-        memset(buffer,0,_size*sizeof(element_t));
-        if(buffer == NULL)
-        {
-            return false;
-        }
-        _size = size;
-        _head = 0;
-        _tail = 1;
-        return true;
-    }
-
-    void sorted_store(element_type element, uint32_t sample_time)
-    {
-        uint8_t head = _head;    
-        //will drop the element if older than tail i.e. recently fetched data
-        while(head != _tail) {
-            if(buffer[(head - 1)%_size].sample_time < sample_time) {
-                buffer[head].element = element;
-            } else {
-                buffer[head] = buffer[(head - 1)%_size];
-                head = (head-1)%_size;
-            }
-        }
-        _head = (_head+1)%_size;
-        return;
-    }
-
-    /*
-     * Searches through a ring buffer and return the newest data that is older than the
-     * time specified by sample_time_ms
-     * Zeros old data so it cannot not be used again
-     * Returns false if no data can be found that is less than 500msec old
-    */
-
-    bool recall(element_type &element,uint32_t sample_time)
-    {
-        bool success = false;
-        uint8_t tail = _tail, bestIndex;
-        if(_head == _tail){
-          if (buffer[tail].sample_time != 0 && buffer[tail].sample_time <= sample_time) {
-                // Find the most recent non-stale measurement that meets the time horizon criteria
-                if (((sample_time - buffer[tail].sample_time) < 500)) {
-                    bestIndex = tail;
-                    success = true;
-                }
-            }
-        } else {
-            while (_head != tail) {
-                // find a measurement older than the fusion time horizon that we haven't checked before
-                if (buffer[tail].sample_time != 0 && buffer[tail].sample_time <= sample_time) {
-                    // Find the most recent non-stale measurement that meets the time horizon criteria
-                    if (((sample_time - buffer[tail].sample_time) < 500)) {
-                        bestIndex = tail;
-                        success = true;
-                    }
-                } else if(buffer[tail].sample_time > sample_time){
-                    break;
-                }
-                tail = (tail+1)%_size;
-            }
-        }
-        if (success) {
-            element = buffer[bestIndex].element;
-            element.time_ms = bestTime_ms;
-            return true;
-        } else {
-            return false;
-        }
-   }
-
-    /*
-     * Writes data and timestamp to a Ring buffer and advances indices that
-     * define the location of the newest and oldest data
-    */
-    inline void push(element_type element, uint32_t sample_time)
-    {
-        // Advance head to next available index
-        _head = (_head+1)%_size;
-        // New data is written at the head
-        buffer[_head].element = element;
-        buffer[_head].sample_time = sample_time;
-        // The tail is where the oldest data is
-        _tail = (_head+1)%_size;
-    }
-
-    /*
-     * Writes data to a Ring buffer and advances indices that
-     * define the location of the newest and oldest data
-    */
-    inline void push(element_type element)
-    {
-        // Advance head to next available index
-        _head = (_head+1)%_size;
-        // New data is written at the head
-        buffer[_head].element = element;
-        // The tail is where the oldest data is
-        _tail = (_head+1)%_size;
-    }
-
-    // retrieve the oldest data from the ring buffer tail
-    inline element_type pop() {
-        element_type ret = buffer[_tail].element;
-        return ret;
-    }
-
-    // writes the dame data to all elements in the ring buffer
-    inline void reset_history(element_type element, uint32_t sample_time) {
-        for (uint8_t index=0; index<_size; index++) {
-            buffer[index].sample_time = sample_time;
-            buffer[index].element = element;
-        }
-    }
-
-    // zeroes all data in the ring buffer
-    inline void reset() {
-        _head = 0;
-        _tail = 1;
-        memset(buffer,0,_size*sizeof(element_t));
-    }
-
-    // retrieves data from the ring buffer at a specified index
-    inline element_type& operator[](uint32_t index) {
-        return buffer[index].element;
-    }
-
-    // returns the index for the ring buffer tail
-    inline uint8_t get_tail(){
-        return _tail;
-    }
-
-    // returns the index for the ring buffer head
-    inline uint8_t get_head(){
-        return _head;
-    }
-private:
-    uint8_t _size,_head,_tail;
-};
 
 class AP_AHRS;
 
@@ -788,13 +638,13 @@ private:
     Matrix24 KH;                    // intermediate result used for covariance updates
     Matrix24 KHP;                   // intermediate result used for covariance updates
     Matrix24 P;                     // covariance matrix
-    timed_ring_buffer_t<imu_elements> storedIMU;      // IMU data buffer
-    timed_ring_buffer_t<gps_elements> storedGPS;      // GPS data buffer
-    timed_ring_buffer_t<mag_elements> storedMag;      // Magnetometer data buffer
-    timed_ring_buffer_t<baro_elements> storedBaro;    // Baro data buffer
-    timed_ring_buffer_t<tas_elements> storedTAS;      // TAS data buffer
-    timed_ring_buffer_t<range_elements> storedRange;
-    timed_ring_buffer_t<output_elements> storedOutput;// output state buffer
+    imu_ring_buffer_t<imu_elements> storedIMU;      // IMU data buffer
+    obs_ring_buffer_t<gps_elements> storedGPS;      // GPS data buffer
+    obs_ring_buffer_t<mag_elements> storedMag;      // Magnetometer data buffer
+    obs_ring_buffer_t<baro_elements> storedBaro;    // Baro data buffer
+    obs_ring_buffer_t<tas_elements> storedTAS;      // TAS data buffer
+    obs_ring_buffer_t<range_elements> storedRange;
+    imu_ring_buffer_t<output_elements> storedOutput;// output state buffer
     Vector3f correctedDelAng;       // delta angles about the xyz body axes corrected for errors (rad)
     Quaternion correctedDelAngQuat; // quaternion representation of correctedDelAng
     Vector3f correctedDelVel;       // delta velocities along the XYZ body axes for weighted average of IMU1 and IMU2 corrected for errors (m/s)
@@ -956,7 +806,7 @@ private:
     float lastInnovation;
 
     // variables added for optical flow fusion
-    timed_ring_buffer_t<of_elements> storedOF;    // OF data buffer
+    obs_ring_buffer_t<of_elements> storedOF;    // OF data buffer
     of_elements ofDataNew;          // OF data at the current time horizon
     of_elements ofDataDelayed;      // OF data at the fusion time horizon
     uint8_t ofStoreIndex;           // OF data storage index
