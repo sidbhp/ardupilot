@@ -33,7 +33,7 @@ public:
      * Searches through a ring buffer and return the newest data that is older than the
      * time specified by sample_time_ms
      * Zeros old data so it cannot not be used again
-     * Returns false if no data can be found that is less than 500msec old
+     * Returns false if no data can be found that is less than 100msec old
     */
 
     bool recall(element_type &element,uint32_t sample_time)
@@ -47,7 +47,7 @@ public:
         if(_head == tail) {
             if (buffer[tail].element.time_ms != 0 && buffer[tail].element.time_ms <= sample_time) {
                 // if head is equal to tail just check if the data is unused and within time horizon window
-                if (((sample_time - buffer[tail].element.time_ms) < 500)) {
+                if (((sample_time - buffer[tail].element.time_ms) < 100)) {
                     bestIndex = tail;
                     success = true;
                     _new_data = false;
@@ -58,7 +58,7 @@ public:
                 // find a measurement older than the fusion time horizon that we haven't checked before
                 if (buffer[tail].element.time_ms != 0 && buffer[tail].element.time_ms <= sample_time) {
                     // Find the most recent non-stale measurement that meets the time horizon criteria
-                    if (((sample_time - buffer[tail].element.time_ms) < 500)) {
+                    if (((sample_time - buffer[tail].element.time_ms) < 100)) {
                         bestIndex = tail;
                         success = true;
                     }
