@@ -50,6 +50,7 @@ namespace Linux {
     class CameraSensor_Mt9v117;
     class VideoIn;
     class OpticalFlow_Onboard;
+    class OpticalFlow_Qflight;
     class Flow_PX4;
 }
 

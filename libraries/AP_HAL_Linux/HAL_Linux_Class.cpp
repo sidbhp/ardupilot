@@ -172,6 +172,8 @@ static Scheduler schedulerInstance;
 
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP
 static OpticalFlow_Onboard opticalFlow;
+#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_QFLIGHT
+static OpticalFlow_Qflight opticalFlow;
 #else
 static Empty::OpticalFlow opticalFlow;
 #endif
