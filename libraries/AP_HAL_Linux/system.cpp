@@ -7,17 +7,32 @@
 #include <AP_HAL/system.h>
 #include <AP_HAL_Linux/Scheduler.h>
 
+#include <AP_HAL_Linux/qflight/qflight_util.h>
+#include <AP_HAL_Linux/qflight/qflight_dsp.h>
+
 extern const AP_HAL::HAL& hal;
 
 namespace AP_HAL {
+static uint64_t time_offset;
 
-static struct {
+static struct{
     struct timespec start_time;
-} state;
+}state;
 
 void init()
 {
-    clock_gettime(CLOCK_MONOTONIC, &state.start_time);
+    struct timespec t0, t1;
+    uint64_t T0,T1;
+    for(uint8_t i=0;i<20;i++) {
+        clock_gettime(CLOCK_MONOTONIC, &t0);
+        T0 = 1.0e6*(st.tv_sec + (st.tv_nsec*1.0e-9));
+        qflight_get_time(&dsptime);
+        clock_gettime(CLOCK_MONOTONIC, &t0);
+        T1 = 1.0e6*(ts.tv_sec + (ts.tv_nsec*1.0e-9));
+        offset = (dsptime - (T0-T1)/2) - T0;
+        time_offset = time_offset + (offset - time_offset)/(i+1);
+    }
+    state.start_time = t1;
 }
 
 void panic(const char *errormsg, ...)
@@ -72,6 +87,11 @@ uint64_t millis64()
     return 1.0e3*((ts.tv_sec + (ts.tv_nsec*1.0e-9)) -
                   (state.start_time.tv_sec +
                    (state.start_time.tv_nsec*1.0e-9)));
+}
+
+uint64_t get_offsetTime()
+{
+    return micros64() + time_offset;
 }
 
 } // namespace AP_HAL
