@@ -12,4 +12,5 @@ interface qflight {
     long UART_read(in int32 fd, rout sequence<uint8> buf, rout int32 nread);
     long UART_write(in int32 fd, in sequence<uint8> buf, rout int32 nwritten);
     long UART_close(in int32 fd);
+    long get_time(rout uint64 time);
 };

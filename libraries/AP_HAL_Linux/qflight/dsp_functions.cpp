@@ -393,3 +393,11 @@ int qflight_UART_set_baudrate(int32_t fd, uint32_t baudrate)
     }
     return -1;
 }
+
+int qflight_get_time(uint64_t *time)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    *time = 1.0e6*(ts.tv_sec + (ts.tv_nsec*1.0e-9));
+    return 0;
+}
