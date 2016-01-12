@@ -4,7 +4,7 @@ FLIGHT_BOARD		 ?= flight4
 
 HEXAGON_TOOLS_ROOT	 ?= $(HOME)/Qualcomm/HEXAGON_Tools/7.2.11
 HEXAGON_SDK_ROOT	 ?= $(HOME)/Qualcomm/Hexagon_SDK/2.0
-HEXAGON_FC_ADDON	 ?= $(HOME)/Qualcomm/HexagonFCAddon/flight_controller
+HEXAGON_FC_ADDON	 ?= /opt/HexagonFCAddon/flight_controller
 V_ARCH			 = v5
 CROSSDEV		 = hexagon-
 HEXAGON_BIN		 = $(addsuffix /Tools/bin,$(HEXAGON_TOOLS_ROOT))
@@ -37,7 +37,7 @@ GENERATE_TARGETS = $(GENERATE_DSP_C) $(GENERATE_ARM_C) $(QFLIGHT_BUILD)/qflight_
 LIBOBJS += $(QFLIGHT_BUILD)/qflight_stub.o
 
 # DSP build flags
-DSP_INC=$(SHARED_INC) -I$(HEXAGON_FC_ADDON)/hexagon/inc -I$(HEXAGON_FC_ADDON)/hexagon/inc/dspal/sys -I$(HEXAGON_FC_ADDON)/hexagon/inc/dspal/sys/sys -I$(HEXAGON_FC_ADDON)/hexagon/inc/dspal/include -I$(HEXAGON_SDK_ROOT)/lib/common/qurt/ADSPv5MP/include -I$(HEXAGON_SDK_ROOT)/lib/common/remote/ship/hexagon_ReleaseG -I$(QFLIGHT_BUILD) -I$(HEXAGON_SDK_ROOT)/inc/stddef -I$(SKETCHBOOK)/libraries
+DSP_INC=$(SHARED_INC) -I$(HEXAGON_FC_ADDON)/hexagon/inc -I$(HEXAGON_FC_ADDON)/hexagon/inc/dspal/sys -I$(HEXAGON_FC_ADDON)/hexagon/inc/dspal/sys/sys -I$(HEXAGON_FC_ADDON)/hexagon/inc/dspal/include -I$(HEXAGON_SDK_ROOT)/lib/common/qurt/ADSPv5MP/include -I$(HEXAGON_SDK_ROOT)/lib/common/remote/ship/hexagon_Debug -I$(QFLIGHT_BUILD) -I$(HEXAGON_SDK_ROOT)/inc/stddef -I$(SKETCHBOOK)/libraries
 DSP_FLAGS=-mv5 -G0 -g -O3 -fno-exceptions -fno-strict-aliasing -fno-zero-initialized-in-bss -fdata-sections -fpic -D__V_DYNAMIC__  $(DSP_INC) -D_PID_T -D_UID_T -D_TIMER_T -D_HAS_C9X
 
 $(GENERATE_TARGETS): $(QFLIGHT_SRC)/qflight_dsp.idl
@@ -47,10 +47,10 @@ $(GENERATE_TARGETS): $(QFLIGHT_SRC)/qflight_dsp.idl
 
 DSP_LINK_FLAGS = -mv5 -O3 -G0 -fpic -shared -Wl,-Bsymbolic -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=free -Wl,--wrap=realloc -Wl,--wrap=memalign -Wl,--wrap=__stack_chk_fail -Wl,-soname=libqflight_skel.so 
 
-ARM_INC=-I$(HEXAGON_SDK_ROOT)/lib/common/remote/ship/UbuntuARM_ReleaseG -I$(HEXAGON_SDK_ROOT)/lib/common/rpcmem/UbuntuARM_ReleaseG/ship -I$(HEXAGON_SDK_ROOT)/inc/stddef -I$(BUILDROOT)/libraries -I$(HEXAGON_SDK_ROOT)/inc/stddef
+ARM_INC=-I$(HEXAGON_SDK_ROOT)/lib/common/remote/ship/UbuntuARM_Debug -I$(HEXAGON_SDK_ROOT)/lib/common/rpcmem/UbuntuARM_Debug/ship -I$(HEXAGON_SDK_ROOT)/inc/stddef -I$(BUILDROOT)/libraries -I$(HEXAGON_SDK_ROOT)/inc/stddef
 ARM_CFLAGS=-fPIC -mword-relocations -mthumb-interwork -mfloat-abi=hard -mfpu=neon -mtune=cortex-a8 -march=armv7-a -g -O3 -fno-strict-aliasing -DARM_ARCH_7A -DUSE_SYSLOG $(ARM_INC)
 
-ARM_LINK_LIBS1  = -L$(HEXAGON_SDK_ROOT)/lib/common/remote/ship/UbuntuARM_ReleaseG -ladsprpc $(HEXAGON_SDK_ROOT)/lib/common/rpcmem/UbuntuARM_ReleaseG/ship/rpcmem.a $(HEXAGON_SDK_ROOT)/lib/common/adspmsgd/ship/UbuntuARM_ReleaseG/adspmsgd.a
+ARM_LINK_LIBS1  = -L$(HEXAGON_SDK_ROOT)/lib/common/remote/ship/UbuntuARM_Debug -ladsprpc $(HEXAGON_SDK_ROOT)/lib/common/rpcmem/UbuntuARM_Debug/ship/rpcmem.a $(HEXAGON_SDK_ROOT)/lib/common/adspmsgd/ship/UbuntuARM_Debug/adspmsgd.a
 ARM_LINK_LIBS2  = -lm -lc -lsupc++ -lgcc_eh -lgcc
 ARM_LINK_FLAGS = -march=armv7-a -mthumb-interwork -mfloat-abi=hard -mfpu=neon -mtune=cortex-a8 -Wl,-unresolved-symbols=ignore-in-shared-libs -Wl,-ldl
 
@@ -70,7 +70,7 @@ $(BUILDROOT)/libraries/%.do: $(SKETCHBOOK)/libraries/%.c
 
 $(BUILDROOT)/libraries/AP_HAL_Linux/qflight/%.o: $(BUILDROOT)/libraries/AP_HAL_Linux/qflight/%.c
 	$(RULEHDR)
-	$(v)$(CC) -c -fPIC -mword-relocations -mthumb-interwork -mfloat-abi=hard -mfpu=neon -mtune=cortex-a8 -march=armv7-a -g -O3 -fno-strict-aliasing -DARM_ARCH_7A -DUSE_SYSLOG -I$(HEXAGON_SDK_ROOT)/inc/stddef -I$(HEXAGON_SDK_ROOT)/lib/common/adspmsgd/ship/UbuntuARM_ReleaseG -I$(HEXAGON_SDK_ROOT)/lib/common/rpcmem/UbuntuARM_ReleaseG/ship -I$(HEXAGON_SDK_ROOT)/lib/common/rpcmem/UbuntuARM_ReleaseG/ship -I$(HEXAGON_SDK_ROOT)/lib/common/remote/ship/UbuntuARM_ReleaseG -std=gnu99 -o $@ $<
+	$(v)$(CC) -c -fPIC -mword-relocations -mthumb-interwork -mfloat-abi=hard -mfpu=neon -mtune=cortex-a8 -march=armv7-a -g -O3 -fno-strict-aliasing -DARM_ARCH_7A -DUSE_SYSLOG -I$(HEXAGON_SDK_ROOT)/inc/stddef -I$(HEXAGON_SDK_ROOT)/lib/common/adspmsgd/ship/UbuntuARM_Debug -I$(HEXAGON_SDK_ROOT)/lib/common/rpcmem/UbuntuARM_Debug/ship -I$(HEXAGON_SDK_ROOT)/lib/common/rpcmem/UbuntuARM_Debug/ship -I$(HEXAGON_SDK_ROOT)/lib/common/remote/ship/UbuntuARM_Debug -std=gnu99 -o $@ $<
 
 $(BUILDROOT)/libraries/%.do: $(SKETCHBOOK)/libraries/%.cpp
 	$(RULEHDR)
@@ -98,7 +98,7 @@ $(LIBSKETCH_SKEL_SO): $(DSPSKELOBJS)
 $(SKETCHELF): $(SKETCHOBJS) $(LIBOBJS)
 	@echo "Building $(SKETCHELF)"
 	$(RULEHDR)
-	$(v)$(QFLIGHT_CC) -march=armv7-a -mthumb-interwork -mfloat-abi=hard -mfpu=neon -mtune=cortex-a8 -Wl,-unresolved-symbols=ignore-in-shared-libs -Wl,-ldl -o $@ -Wl,"-(" $(SKETCHOBJS) $(LIBOBJS) -L$(HEXAGON_SDK_ROOT)/lib/common/remote/ship/UbuntuARM_ReleaseG/ -ladsprpc $(HEXAGON_SDK_ROOT)/lib/common/rpcmem/UbuntuARM_ReleaseG/ship/rpcmem.a $(HEXAGON_SDK_ROOT)/lib/common/adspmsgd/ship/UbuntuARM_ReleaseG/adspmsgd.a -Wl,"-)" -lm -lc -lsupc++ -lgcc_eh -lgcc -lpthread -lstdc++
+	$(v)$(QFLIGHT_CC) -march=armv7-a -mthumb-interwork -mfloat-abi=hard -mfpu=neon -mtune=cortex-a8 -Wl,-unresolved-symbols=ignore-in-shared-libs -Wl,-ldl -o $@ -Wl,"-(" $(SKETCHOBJS) $(LIBOBJS) -L$(HEXAGON_SDK_ROOT)/lib/common/remote/ship/UbuntuARM_Debug/ -ladsprpc $(HEXAGON_SDK_ROOT)/lib/common/rpcmem/UbuntuARM_Debug/ship/rpcmem.a $(HEXAGON_SDK_ROOT)/lib/common/adspmsgd/ship/UbuntuARM_Debug/adspmsgd.a -Wl,"-)" -lm -lc -lsupc++ -lgcc_eh -lgcc -lpthread -lstdc++
 #$(v)$(LD) $(LDFLAGS) -o $@ $(SKETCHOBJS) $(LIBOBJS) $(LIBS)
 	$(v)cp $(SKETCHELF) .
 	@echo "Firmware is in $(BUILDELF)"

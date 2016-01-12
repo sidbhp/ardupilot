@@ -50,6 +50,7 @@ void AP_InertialSensor_QFLIGHT::timer_update(void)
         }
     }
     int ret = qflight_get_imu_data((uint8_t *)imubuf, sizeof(*imubuf));
+    uint64_t linux_sample_time;
     if (ret != 0) {
         return;
     }
@@ -59,8 +60,9 @@ void AP_InertialSensor_QFLIGHT::timer_update(void)
         Vector3f gyro(b.gyro[0], b.gyro[1], b.gyro[2]);
         _rotate_and_correct_accel(accel_instance, accel);
         _rotate_and_correct_gyro(gyro_instance, gyro);
-        _notify_new_accel_raw_sample(accel_instance, accel, b.timestamp);
-        _notify_new_gyro_raw_sample(gyro_instance, gyro, b.timestamp);
+        linux_sample_time = AP_HAL::dsp2linuxTime(b.timestamp);
+        _notify_new_accel_raw_sample(accel_instance, accel, linux_sample_time);
+        _notify_new_gyro_raw_sample(gyro_instance, gyro, linux_sample_time);
     }
 }
 

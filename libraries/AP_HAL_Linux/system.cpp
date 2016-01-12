@@ -22,13 +22,13 @@ static struct{
 void init()
 {
     struct timespec t0, t1;
-    uint64_t T0,T1;
+    uint64_t T0,T1,dsptime,offset;
     for(uint8_t i=0;i<20;i++) {
         clock_gettime(CLOCK_MONOTONIC, &t0);
-        T0 = 1.0e6*(st.tv_sec + (st.tv_nsec*1.0e-9));
+        T0 = 1.0e6*(t0.tv_sec + (t0.tv_nsec*1.0e-9));
         qflight_get_time(&dsptime);
         clock_gettime(CLOCK_MONOTONIC, &t0);
-        T1 = 1.0e6*(ts.tv_sec + (ts.tv_nsec*1.0e-9));
+        T1 = 1.0e6*(t1.tv_sec + (t1.tv_nsec*1.0e-9));
         offset = (dsptime - (T0-T1)/2) - T0;
         time_offset = time_offset + (offset - time_offset)/(i+1);
     }
@@ -89,9 +89,8 @@ uint64_t millis64()
                    (state.start_time.tv_nsec*1.0e-9)));
 }
 
-uint64_t get_offsetTime()
+uint64_t dsp2linuxTime(uint64_t dsptime)
 {
-    return micros64() + time_offset;
+    return dsptime - time_offset;
 }
-
 } // namespace AP_HAL
