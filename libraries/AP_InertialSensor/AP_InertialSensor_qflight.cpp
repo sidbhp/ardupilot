@@ -1,7 +1,10 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #include <AP_HAL/AP_HAL.h>
-
+#define __STDC_FORMAT_MACROS 1
+#include <stdint.h>
+#include <stdio.h>
+#include <inttypes.h>
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_QFLIGHT
 
 #include "AP_InertialSensor_qflight.h"
@@ -50,7 +53,7 @@ void AP_InertialSensor_QFLIGHT::timer_update(void)
         }
     }
     int ret = qflight_get_imu_data((uint8_t *)imubuf, sizeof(*imubuf));
-    uint64_t linux_sample_time;
+    int64_t linux_sample_time;
     if (ret != 0) {
         return;
     }
@@ -60,7 +63,7 @@ void AP_InertialSensor_QFLIGHT::timer_update(void)
         Vector3f gyro(b.gyro[0], b.gyro[1], b.gyro[2]);
         _rotate_and_correct_accel(accel_instance, accel);
         _rotate_and_correct_gyro(gyro_instance, gyro);
-        linux_sample_time = AP_HAL::dsp2linuxTime(b.timestamp);
+        linux_sample_time = b.timestamp - AP_HAL::dsp2linuxtimeoff();
         _notify_new_accel_raw_sample(accel_instance, accel, linux_sample_time);
         _notify_new_gyro_raw_sample(gyro_instance, gyro, linux_sample_time);
     }
