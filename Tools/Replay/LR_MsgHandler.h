@@ -134,7 +134,17 @@ public:
 };
 
 
-
+class LR_MsgHandler_OF : public LR_MsgHandler
+{
+public:
+    LR_MsgHandler_OF(log_Format &_f, DataFlash_Class &_dataflash,
+                      uint64_t &_last_timestamp_usec, OpticalFlow &_optflow)
+    : LR_MsgHandler(_f, _dataflash, _last_timestamp_usec),
+      optflow(_optflow) { };
+     void process_message(uint8_t *msg);
+private:
+    OpticalFlow &optflow;
+};
 
 class LR_MsgHandler_GPS_Base : public LR_MsgHandler
 {

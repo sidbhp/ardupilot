@@ -1,5 +1,5 @@
 #include "LR_MsgHandler.h"
-
+#include <AP_OpticalFlow/AP_OpticalFlow.h>
 extern const AP_HAL::HAL& hal;
 
 LR_MsgHandler::LR_MsgHandler(struct log_Format &_f,
@@ -122,6 +122,18 @@ void LR_MsgHandler_Event::process_message(uint8_t *msg)
     }
 }
 
+void LR_MsgHandler_OF::process_message(uint8_t *msg)
+{
+    wait_timestamp_from_msg(msg);
+    struct OpticalFlow::OpticalFlow_state state;
+    state.device_id = 0;
+    field_value(msg, "Qual",state.surface_quality);
+    field_value(msg, "flowX",state.flowRate.x);
+    field_value(msg, "flowY",state.flowRate.y);
+    field_value(msg, "bodyX",state.bodyRate.x);
+    field_value(msg, "bodyX",state.bodyRate.y);
+    optflow.setHIL(state);
+}
 
 void LR_MsgHandler_GPS2::process_message(uint8_t *msg)
 {

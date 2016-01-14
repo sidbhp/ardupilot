@@ -61,6 +61,8 @@
 #define INT16_MAX 32767
 #endif
 
+#define OPTFLOW       ENABLED
+
 #include "LogReader.h"
 #include "DataFlashFileReader.h"
 
@@ -89,6 +91,7 @@ public:
     AP_InertialNav_NavEKF inertial_nav{ahrs};
     AP_Vehicle::FixedWing aparm;
     AP_Airspeed airspeed{aparm};
+    OpticalFlow optflow{ahrs};
     DataFlash_Class dataflash{"Replay v0.1"};
 
 private:
@@ -235,7 +238,7 @@ private:
     SITL::SITL sitl;
 #endif
 
-    LogReader logreader{_vehicle.ahrs, _vehicle.ins, _vehicle.barometer, _vehicle.compass, _vehicle.gps, _vehicle.airspeed, _vehicle.dataflash, log_structure, ARRAY_SIZE(log_structure), nottypes};
+    LogReader logreader{_vehicle.ahrs, _vehicle.ins, _vehicle.barometer, _vehicle.compass, _vehicle.gps, _vehicle.airspeed, _vehicle.optflow, _vehicle.dataflash, log_structure, ARRAY_SIZE(log_structure), nottypes};
 
     FILE *plotf;
     FILE *plotf2;
