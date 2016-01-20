@@ -29,7 +29,7 @@
 extern const AP_HAL::HAL& hal;
 
 LogReader::LogReader(AP_AHRS &_ahrs, AP_InertialSensor &_ins, AP_Baro &_baro, Compass &_compass, AP_GPS &_gps, 
-                     AP_Airspeed &_airspeed, OpticalFlow &_optflow, DataFlash_Class &_dataflash, const struct LogStructure *_structure, 
+                     AP_Airspeed &_airspeed, OpticalFlow &_optflow, RangeFinder &_rngfinder, DataFlash_Class &_dataflash, const struct LogStructure *_structure, 
                      uint8_t _num_types, const char **&_nottypes):
     vehicle(VehicleType::VEHICLE_UNKNOWN),
     ahrs(_ahrs),
@@ -37,6 +37,7 @@ LogReader::LogReader(AP_AHRS &_ahrs, AP_InertialSensor &_ins, AP_Baro &_baro, Co
     baro(_baro),
     compass(_compass),
     optflow(_optflow),
+    rngfinder(_rngfinder),
     gps(_gps),
     airspeed(_airspeed),
     dataflash(_dataflash),
@@ -253,7 +254,11 @@ bool LogReader::handle_log_format_msg(const struct log_Format &f)
 	} else if (streq(name, "OF")) {
     msgparser[f.type] = new LR_MsgHandler_OF(formats[f.type], dataflash,
                                                       last_timestamp_usec,
-                                                      optflow);
+                                                      optflow,(AP_AHRS_NavEKF&)ahrs);
+  } else if (streq(name, "RFND")) {
+    msgparser[f.type] = new LR_MsgHandler_RFND(formats[f.type], dataflash,
+                                                      last_timestamp_usec,
+                                                      rngfinder);
   } else {
             debug("  No parser for (%s)\n", name);
 	}

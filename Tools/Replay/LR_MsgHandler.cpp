@@ -127,14 +127,28 @@ void LR_MsgHandler_OF::process_message(uint8_t *msg)
     wait_timestamp_from_msg(msg);
     struct OpticalFlow::OpticalFlow_state state;
     state.device_id = 0;
+    uint64_t time_of;
+    field_value(msg, "TimeUS", time_of);
     field_value(msg, "Qual",state.surface_quality);
     field_value(msg, "flowX",state.flowRate.x);
     field_value(msg, "flowY",state.flowRate.y);
     field_value(msg, "bodyX",state.bodyRate.x);
     field_value(msg, "bodyX",state.bodyRate.y);
     optflow.setHIL(state);
+    uint32_t last_of_update = time_of/1000;
+    uint8_t flowQuality = optflow.quality();
+    Vector2f flowRate = optflow.flowRate();
+    Vector2f bodyRate = optflow.bodyRate();
+    ahrs.writeOptFlowMeas(flowQuality, flowRate, bodyRate, last_of_update);
 }
 
+void LR_MsgHandler_RFND::process_message(uint8_t *msg)
+{
+    wait_timestamp_from_msg(msg);
+    float distance;
+    field_value(msg, "Dist1", distance);
+    rngfinder.setHIL(distance);
+}
 void LR_MsgHandler_GPS2::process_message(uint8_t *msg)
 {
     // only LOG_GPS_MSG gives us relative altitude.  We still log

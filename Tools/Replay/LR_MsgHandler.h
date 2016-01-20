@@ -138,13 +138,27 @@ class LR_MsgHandler_OF : public LR_MsgHandler
 {
 public:
     LR_MsgHandler_OF(log_Format &_f, DataFlash_Class &_dataflash,
-                      uint64_t &_last_timestamp_usec, OpticalFlow &_optflow)
+                      uint64_t &_last_timestamp_usec, OpticalFlow &_optflow, AP_AHRS_NavEKF &_ahrs)
     : LR_MsgHandler(_f, _dataflash, _last_timestamp_usec),
-      optflow(_optflow) { };
+      optflow(_optflow), ahrs(_ahrs) { };
      void process_message(uint8_t *msg);
 private:
     OpticalFlow &optflow;
+    AP_AHRS_NavEKF &ahrs;
 };
+
+class LR_MsgHandler_RFND : public LR_MsgHandler
+{
+public:
+    LR_MsgHandler_RFND(log_Format &_f, DataFlash_Class &_dataflash,
+                      uint64_t &_last_timestamp_usec, RangeFinder &_rngfinder)
+    : LR_MsgHandler(_f, _dataflash, _last_timestamp_usec),
+      rngfinder(_rngfinder) { };
+     void process_message(uint8_t *msg);
+private:
+    RangeFinder &rngfinder;
+};
+
 
 class LR_MsgHandler_GPS_Base : public LR_MsgHandler
 {

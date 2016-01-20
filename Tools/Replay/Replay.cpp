@@ -13,6 +13,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#define OPTFLOW       ENABLED
 
 #include <AP_Common/AP_Common.h>
 #include <AP_Param/AP_Param.h>
@@ -61,7 +62,6 @@
 #define INT16_MAX 32767
 #endif
 
-#define OPTFLOW       ENABLED
 
 #include "LogReader.h"
 #include "DataFlashFileReader.h"
@@ -142,6 +142,12 @@ const AP_Param::Info ReplayVehicle::var_info[] = {
     // @Path: ../libraries/AP_Compass/AP_Compass.cpp
     GOBJECT(compass, "COMPASS_", Compass),
 
+#if OPTFLOW == ENABLED
+    // @Group: FLOW
+    // @Path: ../libraries/AP_OpticalFlow/OpticalFlow.cpp
+    GOBJECT(optflow,   "FLOW", OpticalFlow),
+#endif
+
     AP_VAREND
 };
 
@@ -205,6 +211,10 @@ void ReplayVehicle::setup(void)
     barometer.update();
     compass.init();
     ins.set_hil_mode();
+    rng.set_hil_mode();
+    rng.init();
+    optflow.set_hil_mode();
+    optflow.init();
 }
 
 class Replay : public AP_HAL::HAL::Callbacks {
@@ -238,7 +248,7 @@ private:
     SITL::SITL sitl;
 #endif
 
-    LogReader logreader{_vehicle.ahrs, _vehicle.ins, _vehicle.barometer, _vehicle.compass, _vehicle.gps, _vehicle.airspeed, _vehicle.optflow, _vehicle.dataflash, log_structure, ARRAY_SIZE(log_structure), nottypes};
+    LogReader logreader{_vehicle.ahrs, _vehicle.ins, _vehicle.barometer, _vehicle.compass, _vehicle.gps, _vehicle.airspeed, _vehicle.optflow, _vehicle.rng, _vehicle.dataflash, log_structure, ARRAY_SIZE(log_structure), nottypes};
 
     FILE *plotf;
     FILE *plotf2;
@@ -750,7 +760,7 @@ void Replay::read_sensors(const char *type)
         }
         if (downsample == 0 || ++output_counter % downsample == 0) {
             if (!LogReader::in_list("EKF", nottypes)) {
-                _vehicle.dataflash.Log_Write_EKF(_vehicle.ahrs,false);
+                _vehicle.dataflash.Log_Write_EKF(_vehicle.ahrs,_vehicle.optflow.enabled());
             }
             if (!LogReader::in_list("AHRS2", nottypes)) {
                 _vehicle.dataflash.Log_Write_AHRS2(_vehicle.ahrs);

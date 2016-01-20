@@ -5,7 +5,7 @@
 class LogReader : public DataFlashFileReader
 {
 public:
-    LogReader(AP_AHRS &_ahrs, AP_InertialSensor &_ins, AP_Baro &_baro, Compass &_compass, AP_GPS &_gps, AP_Airspeed &_airspeed, OpticalFlow &_optflow, DataFlash_Class &_dataflash, const struct LogStructure *structure, uint8_t num_types, const char **&nottypes);
+    LogReader(AP_AHRS &_ahrs, AP_InertialSensor &_ins, AP_Baro &_baro, Compass &_compass, AP_GPS &_gps, AP_Airspeed &_airspeed, OpticalFlow &_optflow, RangeFinder &_rngfinder, DataFlash_Class &_dataflash, const struct LogStructure *structure, uint8_t num_types, const char **&nottypes);
     bool wait_type(const char *type);
 
     const Vector3f &get_attitude(void) const { return attitude; }
@@ -42,6 +42,7 @@ private:
     AP_Airspeed &airspeed;
     DataFlash_Class &dataflash;
     OpticalFlow &optflow;
+    RangeFinder &rngfinder;
     uint8_t accel_mask;
     uint8_t gyro_mask;
     bool use_imt = true;
