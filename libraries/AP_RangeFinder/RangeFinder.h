@@ -48,7 +48,8 @@ public:
         RangeFinder_TYPE_PX4_PWM= 5,
         RangeFinder_TYPE_BBB_PRU= 6,
         RangeFinder_TYPE_LWI2C  = 7,
-        RangeFinder_TYPE_LWSER  = 8
+        RangeFinder_TYPE_LWSER  = 8,
+        RangeFinder_TYPE_HIL    = 9
     };
 
     enum RangeFinder_Function {
@@ -178,6 +179,8 @@ public:
      */
     bool pre_arm_check() const;
 
+    void setHIL(float distance);
+    void set_hil_mode() { _hil_mode =true;}
 private:
     RangeFinder_State state[RANGEFINDER_MAX_INSTANCES];
     AP_RangeFinder_Backend *drivers[RANGEFINDER_MAX_INSTANCES];
@@ -185,7 +188,7 @@ private:
     uint8_t num_instances:3;
     float estimated_terrain_height;
     AP_SerialManager &serial_manager;
-
+    bool _hil_mode;
     void detect_instance(uint8_t instance);
     void update_instance(uint8_t instance);  
 

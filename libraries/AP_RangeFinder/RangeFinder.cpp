@@ -23,7 +23,8 @@
 #include "AP_RangeFinder_BBB_PRU.h"
 #include "AP_RangeFinder_LightWareI2C.h"
 #include "AP_RangeFinder_LightWareSerial.h"
-
+#include "AP_RangeFinder_HIL.h"
+#include <stdio.h>
 // table of user settable parameters
 const AP_Param::GroupInfo RangeFinder::var_info[] = {
     // @Param: _TYPE
@@ -470,6 +471,12 @@ void RangeFinder::update(void)
 void RangeFinder::detect_instance(uint8_t instance)
 {
     uint8_t type = _type[instance];
+    if(_hil_mode && primary_instance == instance) {
+        _type[instance] = RangeFinder_TYPE_HIL;
+        state[instance].instance = instance;
+        drivers[instance] = new AP_RangeFinder_HIL(*this, instance, state[instance]);
+        return;
+    }
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     if (type == RangeFinder_TYPE_PLI2C || 
         type == RangeFinder_TYPE_MBI2C) {
@@ -523,6 +530,7 @@ void RangeFinder::detect_instance(uint8_t instance)
         }
     }
 #endif
+
     if (type == RangeFinder_TYPE_LWSER) {
         if (AP_RangeFinder_LightWareSerial::detect(*this, instance, serial_manager)) {
             state[instance].instance = instance;
@@ -606,4 +614,10 @@ void RangeFinder::update_pre_arm_check(uint8_t instance)
          ((int16_t)state[instance].pre_arm_distance_min > (MIN(_ground_clearance_cm[instance],min_distance_cm(instance)) - 10))) {
         state[instance].pre_arm_check = true;
     }
+}
+
+void RangeFinder::setHIL(float distance)
+{ 
+    state[primary_instance].distance_cm = distance * 100;
+    state[primary_instance].status = RangeFinder_Good;
 }
