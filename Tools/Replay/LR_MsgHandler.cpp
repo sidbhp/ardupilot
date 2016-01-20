@@ -146,7 +146,7 @@ void LR_MsgHandler_RFND::process_message(uint8_t *msg)
 {
     wait_timestamp_from_msg(msg);
     float distance;
-    field_value(msg, "Dist1", distance);
+    field_value(msg, "SAlt", distance);
     rngfinder.setHIL(distance);
 }
 void LR_MsgHandler_GPS2::process_message(uint8_t *msg)

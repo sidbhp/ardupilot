@@ -255,7 +255,7 @@ bool LogReader::handle_log_format_msg(const struct log_Format &f)
     msgparser[f.type] = new LR_MsgHandler_OF(formats[f.type], dataflash,
                                                       last_timestamp_usec,
                                                       optflow,(AP_AHRS_NavEKF&)ahrs);
-  } else if (streq(name, "RFND")) {
+  } else if (streq(name, "CTUN")) {
     msgparser[f.type] = new LR_MsgHandler_RFND(formats[f.type], dataflash,
                                                       last_timestamp_usec,
                                                       rngfinder);
