@@ -11,7 +11,7 @@ const AP_Param::GroupInfo OpticalFlow::var_info[] = {
     // @Description: Setting this to Enabled(1) will enable optical flow. Setting this to Disabled(0) will disable optical flow
     // @Values: 0:Disabled, 1:Enabled
     // @User: Standard
-    AP_GROUPINFO("_ENABLE", 0,  OpticalFlow,    _enabled,   0),
+    AP_GROUPINFO("_ENABLE", 0,  OpticalFlow,    _enabled,   1),
 
     // @Param: _FXSCALER
     // @DisplayName: X axis optical flow scale factor correction
@@ -42,19 +42,8 @@ const AP_Param::GroupInfo OpticalFlow::var_info[] = {
 
 // default constructor
 OpticalFlow::OpticalFlow(AP_AHRS_NavEKF& ahrs) :
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
-    backend(new AP_OpticalFlow_PX4(*this)),
-#elif CONFIG_HAL_BOARD == HAL_BOARD_SITL
-    backend(new AP_OpticalFlow_HIL(*this)),
-#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP ||\
-      CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_MINLURE
-    backend(new AP_OpticalFlow_Onboard(*this, ahrs)),
-#elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
-    backend(new AP_OpticalFlow_Linux(*this)),
-#else
-    backend(NULL),
-#endif
-    _last_update_ms(0)
+    _last_update_ms(0),
+    _hil_mode(false)
 {
     AP_Param::setup_object_defaults(this, var_info);
 
@@ -66,6 +55,23 @@ OpticalFlow::OpticalFlow(AP_AHRS_NavEKF& ahrs) :
 
 void OpticalFlow::init(void)
 {
+    if(_hil_mode) {
+        backend = new AP_OpticalFlow_HIL(*this);
+    } else {
+    #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+        backend = new AP_OpticalFlow_PX4(*this);
+    #elif CONFIG_HAL_BOARD == HAL_BOARD_SITL
+        backend = new AP_OpticalFlow_HIL(*this);
+    #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP ||\
+          CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_MINLURE
+        backend = new AP_OpticalFlow_Onboard(*this, ahrs);
+    #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
+        backend = new AP_OpticalFlow_Linux(*this);
+    #else
+        backend(NULL);
+    #endif
+    }
+
     if (backend != NULL) {
         backend->init();
     } else {

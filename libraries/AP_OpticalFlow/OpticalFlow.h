@@ -73,7 +73,7 @@ public:
 
     // support for HIL/SITL
     void setHIL(const struct OpticalFlow_state &state);
-
+    void set_hil_mode() {_hil_mode = true;}
 private:
     OpticalFlow_backend *backend;
 
@@ -86,7 +86,7 @@ private:
     AP_Int16 _flowScalerX;          // X axis flow scale factor correction - parts per thousand
     AP_Int16 _flowScalerY;          // Y axis flow scale factor correction - parts per thousand
     AP_Int16 _yawAngle_cd;          // yaw angle of sensor X axis with respect to vehicle X axis - centi degrees
-
+    bool _hil_mode;
 
     // state filled in by backend
     struct OpticalFlow_state _state;
