@@ -31,7 +31,7 @@ const AP_Param::GroupInfo RangeFinder::var_info[] = {
     // @Description: What type of rangefinder device that is connected
     // @Values: 0:None,1:Analog,2:APM2-MaxbotixI2C,3:APM2-PulsedLightI2C,4:PX4-I2C,5:PX4-PWM,6:BBB-PRU,7:LightWareI2C,8:LightWareSerial
     // @User: Standard
-    AP_GROUPINFO("_TYPE",    0, RangeFinder, _type[0], 0),
+    AP_GROUPINFO("_TYPE",    0, RangeFinder, _type[0], 8),
 
     // @Param: _PIN
     // @DisplayName: Rangefinder pin

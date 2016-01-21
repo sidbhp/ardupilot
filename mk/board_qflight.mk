@@ -4,7 +4,7 @@ FLIGHT_BOARD		 ?= flight4
 
 HEXAGON_TOOLS_ROOT	 ?= $(HOME)/Qualcomm/HEXAGON_Tools/7.2.11
 HEXAGON_SDK_ROOT	 ?= $(HOME)/Qualcomm/Hexagon_SDK/2.0
-HEXAGON_FC_ADDON	 ?= /opt/HexagonFCAddon/flight_controller
+HEXAGON_FC_ADDON	 ?= $(HOME)/Qualcomm/HexagonFCAddon/flight_controller
 V_ARCH			 = v5
 CROSSDEV		 = hexagon-
 HEXAGON_BIN		 = $(addsuffix /Tools/bin,$(HEXAGON_TOOLS_ROOT))

@@ -1,7 +1,7 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #include <stdlib.h>
-
+#include <stdio.h>
 #include <AP_AHRS/AP_AHRS.h>
 #include <AP_Baro/AP_Baro.h>
 #include <AP_BattMonitor/AP_BattMonitor.h>
@@ -641,6 +641,7 @@ void DataFlash_Block::ListAvailableLogs(AP_HAL::BetterStream *port)
 // the format of supported messages in the log
 void DataFlash_Class::StartNewLog(void)
 {
+    printf("Logfile created ....\n");
     for (uint8_t i=0; i<_next_backend; i++) {
         backends[i]->start_new_log();
     }

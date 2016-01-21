@@ -5,6 +5,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <inttypes.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_QFLIGHT
 
 #include "AP_InertialSensor_qflight.h"
@@ -12,6 +15,10 @@
 #include <AP_HAL_Linux/qflight/qflight_dsp.h>
 
 const extern AP_HAL::HAL& hal;
+static bool offset_set;
+static int64_t time_offset;
+void calc_time_offset();
+uint64_t read_dsp_cnt();
 
 AP_InertialSensor_QFLIGHT::AP_InertialSensor_QFLIGHT(AP_InertialSensor &imu) :
     AP_InertialSensor_Backend(imu)
@@ -53,7 +60,9 @@ void AP_InertialSensor_QFLIGHT::timer_update(void)
         }
     }
     int ret = qflight_get_imu_data((uint8_t *)imubuf, sizeof(*imubuf));
-    int64_t linux_sample_time;
+    uint64_t linux_sample_time;
+    static uint64_t prev_dsp_cnt, prev_linux_time;
+    
     if (ret != 0) {
         return;
     }
@@ -63,7 +72,16 @@ void AP_InertialSensor_QFLIGHT::timer_update(void)
         Vector3f gyro(b.gyro[0], b.gyro[1], b.gyro[2]);
         _rotate_and_correct_accel(accel_instance, accel);
         _rotate_and_correct_gyro(gyro_instance, gyro);
-        linux_sample_time = b.timestamp - AP_HAL::dsp2linuxtimeoff();
+        linux_sample_time = b.timestamp - time_offset;
+        
+        uint64_t timestamp_da, dspcnt;
+        struct timespec td;
+        clock_gettime(CLOCK_MONOTONIC, &td);
+        timestamp_da = 1.0e6*((td.tv_sec + (td.tv_nsec*1.0e-9)));
+        //dspcnt = read_dsp_cnt();
+        //printf("dspcnt:%llu timestamp_da: %lld frequency:%f \n",dspcnt, timestamp_da, float(dspcnt - prev_dsp_cnt)/float(timestamp_da - prev_linux_time));
+        prev_dsp_cnt = dspcnt;
+        prev_linux_time = timestamp_da;
         _notify_new_accel_raw_sample(accel_instance, accel, linux_sample_time);
         _notify_new_gyro_raw_sample(gyro_instance, gyro, linux_sample_time);
     }
@@ -75,5 +93,71 @@ bool AP_InertialSensor_QFLIGHT::update(void)
     update_gyro(gyro_instance);
     return true;
 }
+/*
+void calc_time_offset()
+{
+    uint64_t dsptime;
+    char time_str[17];
+    int8_t fd = open("/sys/kernel/boot_adsp/qdsp_qtimer", O_RDONLY);
+    if(fd == -1) {
+        AP_HAL::panic("\nDSP time file open Failed with error: %s !!\n", strerror(errno));
+    }
+    int8_t len = read(fd,time_str,17);
+    if(len == -1) {
+        AP_HAL::panic("\nDSP time Read Failed!!\n");
+    } else {
+        time_str[len-1] = '\0';
+    }
 
+    uint64_t timestamp_da, rpcdsptime;
+    struct timespec td;
+    clock_gettime(CLOCK_MONOTONIC, &td);
+    timestamp_da = 1.0e6*((td.tv_sec + (td.tv_nsec*1.0e-9)));
+
+    int ret  = sscanf(time_str,"%llx",&dsptime);
+    close(fd);
+    dsptime /= 19.25;
+    qflight_get_time(&rpcdsptime);
+    time_offset = dsptime - timestamp_da;
+    //printf("rpcdsptime:%llu dsptime:%llu timestamp_da:%llu\n", rpcdsptime, dsptime, timestamp_da);
+    //printf("rpc - dsp:%lld timestamp_da - dsp:%lld rpc - timestamp_da:%lld\n", rpcdsptime - dsptime, timestamp_da - dsptime, rpcdsptime - timestamp_da);
+    offset_set = true;
+}
+uint64_t read_dsp_cnt()
+{
+    uint64_t dsptime;
+    char time_str[17];
+    int8_t fd = open("/sys/kernel/boot_adsp/qdsp_qtimer", O_RDONLY);
+    if(fd == -1) {
+        AP_HAL::panic("\nDSP time file open Failed with error: %s !!\n", strerror(errno));
+    }
+    int8_t len = read(fd,time_str,17);
+    if(len == -1) {
+        AP_HAL::panic("\nDSP time Read Failed!!\n");
+    } else {
+        time_str[len-1] = '\0';
+    }
+    int ret  = sscanf(time_str,"%llx",&dsptime);
+    close(fd);
+    return dsptime;
+}
+
+uint64_t read_arch_time()
+{
+    uint64_t arch_time;
+    char time_str[17];
+    int8_t fd = open("/sys/kernel/boot_adsp/arch_qtimer", O_RDONLY);
+    if(fd == -1) {
+        AP_HAL::panic("\nDSP time file open Failed with error: %s !!\n", strerror(errno));
+    }
+    int8_t len = read(fd,time_str,17);
+    if(len == -1) {
+        AP_HAL::panic("\nDSP time Read Failed!!\n");
+    } else {
+        time_str[len-1] = '\0';
+    }
+    int ret  = sscanf(time_str,"%llx",&arch_time);
+    close(fd);
+    return arch_time;
+}*/
 #endif // HAL_BOARD_QFLIGHT

@@ -18,7 +18,7 @@
 #include "AP_RangeFinder_LightWareSerial.h"
 #include <AP_SerialManager/AP_SerialManager.h>
 #include <ctype.h>
-
+#include <stdio.h>
 extern const AP_HAL::HAL& hal;
 
 /* 
@@ -53,13 +53,13 @@ bool AP_RangeFinder_LightWareSerial::get_reading(uint16_t &reading_cm)
     if (uart == nullptr) {
         return false;
     }
-
     // read any available lines from the lidar
     float sum = 0;
     uint16_t count = 0;
     int16_t nbytes = uart->available();
     while (nbytes-- > 0) {
         char c = uart->read();
+        //printf("%c",c);
         if (c == '\r') {
             linebuf[linebuf_len] = 0;
             sum += atof(linebuf);
@@ -75,7 +75,7 @@ bool AP_RangeFinder_LightWareSerial::get_reading(uint16_t &reading_cm)
     }
 
     // we need to write a byte to prompt another reading
-    uart->write('\n');
+    //uart->write('\n');
 
     if (count == 0) {
         return false;

@@ -62,7 +62,6 @@ int16_t Copter::read_sonar(void)
     temp = MAX(temp, 0.707f);
     temp_alt = (float)temp_alt * temp;
  #endif
-
     return temp_alt;
 #else
     return 0;
