@@ -133,7 +133,7 @@ void LR_MsgHandler_OF::process_message(uint8_t *msg)
     field_value(msg, "flowX",state.flowRate.x);
     field_value(msg, "flowY",state.flowRate.y);
     field_value(msg, "bodyX",state.bodyRate.x);
-    field_value(msg, "bodyX",state.bodyRate.y);
+    field_value(msg, "bodyY",state.bodyRate.y);
     optflow.setHIL(state);
     uint32_t last_of_update = time_of/1000;
     uint8_t flowQuality = optflow.quality();
