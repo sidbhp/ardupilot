@@ -1,7 +1,8 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#include <AP_HAL/AP_HAL.h>
 #define __STDC_FORMAT_MACROS 1
+
+#include <AP_HAL/AP_HAL.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <inttypes.h>
@@ -66,22 +67,24 @@ void AP_InertialSensor_QFLIGHT::timer_update(void)
     if (ret != 0) {
         return;
     }
+
+    uint64_t timestamp_da, dspcnt;
+    struct timespec td;
+    clock_gettime(CLOCK_MONOTONIC, &td);
+    timestamp_da = 1.0e6*((td.tv_sec + (td.tv_nsec*1.0e-9)));
+
     for (uint16_t i=0; i<imubuf->num_samples; i++) {
         DSPBuffer::IMU::BUF &b = imubuf->buf[i];
         Vector3f accel(b.accel[0], b.accel[1], b.accel[2]);
         Vector3f gyro(b.gyro[0], b.gyro[1], b.gyro[2]);
         _rotate_and_correct_accel(accel_instance, accel);
         _rotate_and_correct_gyro(gyro_instance, gyro);
-        linux_sample_time = b.timestamp - time_offset;
-        
-        uint64_t timestamp_da, dspcnt;
-        struct timespec td;
-        clock_gettime(CLOCK_MONOTONIC, &td);
-        timestamp_da = 1.0e6*((td.tv_sec + (td.tv_nsec*1.0e-9)));
-        //dspcnt = read_dsp_cnt();
-        //printf("dspcnt:%llu timestamp_da: %lld frequency:%f \n",dspcnt, timestamp_da, float(dspcnt - prev_dsp_cnt)/float(timestamp_da - prev_linux_time));
-        prev_dsp_cnt = dspcnt;
-        prev_linux_time = timestamp_da;
+
+	// Despite being a uint64_t, the time from the Qualcomm driver wraps at 2^31 us.
+	uint32_t time_ago = (timestamp_da - (b.timestamp - time_offset)) & 0x7fffffff;
+        linux_sample_time = timestamp_da - time_ago;
+
+//	printf("dsp:%" PRIu64 ", linux:%" PRIu64 ", (%" PRIu64 " %uus ago)\n", b.timestamp, linux_sample_time, timestamp_da - linux_sample_time, time_ago);
         _notify_new_accel_raw_sample(accel_instance, accel, linux_sample_time);
         _notify_new_gyro_raw_sample(gyro_instance, gyro, linux_sample_time);
     }
@@ -89,11 +92,12 @@ void AP_InertialSensor_QFLIGHT::timer_update(void)
 
 bool AP_InertialSensor_QFLIGHT::update(void) 
 {
+    calc_time_offset();
     update_accel(accel_instance);
     update_gyro(gyro_instance);
     return true;
 }
-/*
+
 void calc_time_offset()
 {
     uint64_t dsptime;
@@ -116,11 +120,11 @@ void calc_time_offset()
 
     int ret  = sscanf(time_str,"%llx",&dsptime);
     close(fd);
-    dsptime /= 19.25;
+    dsptime /= 19.2;
     qflight_get_time(&rpcdsptime);
     time_offset = dsptime - timestamp_da;
-    //printf("rpcdsptime:%llu dsptime:%llu timestamp_da:%llu\n", rpcdsptime, dsptime, timestamp_da);
-    //printf("rpc - dsp:%lld timestamp_da - dsp:%lld rpc - timestamp_da:%lld\n", rpcdsptime - dsptime, timestamp_da - dsptime, rpcdsptime - timestamp_da);
+//    printf("rpcdsptime:%llu dsptime:%llu timestamp_da:%llu\n", rpcdsptime, dsptime, timestamp_da);
+//    printf("rpc - dsp:%lld timestamp_da - dsp:%lld rpc - timestamp_da:%lld\n", rpcdsptime - dsptime, timestamp_da - dsptime, rpcdsptime - timestamp_da);
     offset_set = true;
 }
 uint64_t read_dsp_cnt()
@@ -159,5 +163,5 @@ uint64_t read_arch_time()
     int ret  = sscanf(time_str,"%llx",&arch_time);
     close(fd);
     return arch_time;
-}*/
+}
 #endif // HAL_BOARD_QFLIGHT
