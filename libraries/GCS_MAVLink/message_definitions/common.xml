@@ -355,7 +355,10 @@
                <entry value="153" name="MAV_COMP_ID_SERVO14">
                     <description/>
                </entry>
-               <entry value="154" name="MAV_COMP_ID_GIMBAL">
+               <entry value="154" name="MAV_COMP_ID_SOLO_GIMBAL">
+                    <description/>
+               </entry>
+               <entry value="156" name="MAV_COMP_ID_QX1_GIMBAL">
                     <description/>
                </entry>
                <entry value="155" name="MAV_COMP_ID_LOG">
