@@ -390,7 +390,9 @@ AP_Mount::AP_Mount(const AP_AHRS_TYPE &ahrs, const struct Location &current_loc)
     _ahrs(ahrs),
     _current_loc(current_loc),
     _num_instances(0),
-    _primary(0)
+    _mav_gimbal_found(false),
+    _primary(0),
+    primary_set(false)
 {
 	AP_Param::setup_object_defaults(this, var_info);
 
@@ -411,9 +413,6 @@ void AP_Mount::init(DataFlash_Class *dataflash, const AP_SerialManager& serial_m
 
     _dataflash = dataflash;
     
-    // primary is reset to the first instantiated mount
-    bool primary_set = false;
-
     // create each instance
     for (uint8_t instance=0; instance<AP_MOUNT_MAX_INSTANCES; instance++) {
         MountType mount_type = get_mount_type(instance);
@@ -422,14 +421,6 @@ void AP_Mount::init(DataFlash_Class *dataflash, const AP_SerialManager& serial_m
         if (mount_type == Mount_Type_Servo) {
             _backends[instance] = new AP_Mount_Servo(*this, state[instance], instance);
             _num_instances++;
-
-#if AP_AHRS_NAVEKF_AVAILABLE
-        // check for MAVLink mounts
-        } else if (mount_type == Mount_Type_MAVLink) {
-            _backends[instance] = new AP_Mount_MAVLink(*this, state[instance], instance);
-            _num_instances++;
-#endif
-
         // check for Alexmos mounts
         } else if (mount_type == Mount_Type_Alexmos) {
             _backends[instance] = new AP_Mount_Alexmos(*this, state[instance], instance);
@@ -453,8 +444,35 @@ void AP_Mount::init(DataFlash_Class *dataflash, const AP_SerialManager& serial_m
 }
 
 // update - give mount opportunity to update servos.  should be called at 10hz or higher
-void AP_Mount::update()
+void AP_Mount::update(uint8_t mount_compid,  const AP_SerialManager& serial_manager)
 {
+#if AP_AHRS_NAVEKF_AVAILABLE
+    for (uint8_t instance=0; instance<AP_MOUNT_MAX_INSTANCES; instance++) {
+        MountType mount_type = get_mount_type(instance);
+        // check for MAVLink mounts
+        if (mount_type == Mount_Type_MAVLink && !_mav_gimbal_found) {
+            if(mount_compid == MAV_COMP_ID_SOLO_GIMBAL) {    
+                _backends[instance] = new AP_Mount_MAVLink(*this, state[instance], instance);
+                _num_instances++;
+                _mav_gimbal_found = true;
+            } 
+            if (mount_compid == MAV_COMP_ID_QX1_GIMBAL) {
+                _backends[instance] = new AP_Mount_Servo(*this, state[instance], instance);
+                _num_instances++;
+                _mav_gimbal_found = true;
+            }
+            // init new instance
+            if (_backends[instance] != NULL) {
+                _backends[instance]->init(serial_manager);
+                if (!primary_set) {
+                    _primary = instance;
+                    primary_set = true;
+                }
+            }
+        }
+    }
+#endif
+
     // update each instance
     for (uint8_t instance=0; instance<AP_MOUNT_MAX_INSTANCES; instance++) {
         if (_backends[instance] != NULL) {
