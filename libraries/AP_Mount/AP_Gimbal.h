@@ -90,7 +90,7 @@ private:
     float _yaw_rate_ff_ef_filt;
     float _vehicle_yaw_rate_ef_filt;
 
-    static const uint8_t _compid = MAV_COMP_ID_GIMBAL;
+    static const uint8_t _compid = MAV_COMP_ID_SOLO_GIMBAL;
 
     void update_estimators();
     void send_controls(mavlink_channel_t chan);

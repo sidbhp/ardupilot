@@ -73,7 +73,7 @@ public:
     void init(DataFlash_Class *dataflash ,const AP_SerialManager& serial_manager);
 
     // update - give mount opportunity to update servos.  should be called at 10hz or higher
-    void update();
+    void update(uint8_t mount_sysid, const AP_SerialManager& serial_manager);
 
     // get_mount_type - returns the type of mount
     AP_Mount::MountType get_mount_type() const { return get_mount_type(_primary); }
@@ -143,7 +143,9 @@ protected:
     uint8_t             _num_instances;     // number of mounts instantiated
     uint8_t             _primary;           // primary mount
     AP_Mount_Backend    *_backends[AP_MOUNT_MAX_INSTANCES];         // pointers to instantiated mounts
-
+    bool _mav_gimbal_found;
+    // primary is reset to the first instantiated mount
+    bool primary_set = false;
     DataFlash_Class *_dataflash;
 
     // backend state including parameters

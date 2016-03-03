@@ -94,6 +94,23 @@ void AP_Mount_Servo::update()
     move_servo(_roll_idx, _angle_bf_output_deg.x*10, _state._roll_angle_min*0.1f, _state._roll_angle_max*0.1f);
     move_servo(_tilt_idx, _angle_bf_output_deg.y*10, _state._tilt_angle_min*0.1f, _state._tilt_angle_max*0.1f);
     move_servo(_pan_idx,  _angle_bf_output_deg.z*10, _state._pan_angle_min*0.1f, _state._pan_angle_max*0.1f);
+    uint32_t tstamp = hal.scheduler->millis();
+    struct log_Gimbal1 pkt1 = {
+        LOG_PACKET_HEADER_INIT(LOG_GIMBAL1_MSG),
+        time_ms : tstamp,
+        delta_time      : 0,
+        delta_angles_x  : 0,
+        delta_angles_y  : 0,
+        delta_angles_z  : 0,
+        delta_velocity_x : 0,
+        delta_velocity_y : 0,
+        delta_velocity_z : 0,
+        joint_angles_x  : _angle_bf_output_deg.x,
+        joint_angles_y  : _angle_bf_output_deg.y,
+        joint_angles_z  : _angle_bf_output_deg.z
+    };
+    _frontend._dataflash->WriteBlock(&pkt1, sizeof(pkt1));
+
 }
 
 // set_mode - sets mount's mode
@@ -126,7 +143,7 @@ void AP_Mount_Servo::status_msg(mavlink_channel_t chan)
 void AP_Mount_Servo::stabilize()
 {
     // only do the full 3D frame transform if we are doing pan control
-    if (_state._stab_pan) {
+    if (false) {
         Matrix3f m;                         ///< holds 3 x 3 matrix, var is used as temp in calcs
         Matrix3f cam;                       ///< Rotation matrix earth to camera. Desired camera from input.
         Matrix3f gimbal_target;             ///< Rotation matrix from plane to camera. Then Euler angles to the servos.
@@ -201,5 +218,9 @@ void AP_Mount_Servo::move_servo(uint8_t function_idx, int16_t angle, int16_t ang
 {
 	// saturate to the closest angle limit if outside of [min max] angle interval
 	int16_t servo_out = closest_limit(angle, angle_min, angle_max);
-	RC_Channel_aux::move_servo((RC_Channel_aux::Aux_servo_function_t)function_idx, servo_out, angle_min, angle_max);
+    mavlink_channel_t chan = MAVLINK_COMM_2;
+    mavlink_command_long_t packet;
+    packet.param1 = function_idx - RC_Channel_aux::k_mount_pan;
+    packet.param2 = servo_out;
+    mavlink_msg_command_long_send(chan,mavlink_system.sysid,MAV_COMP_ID_QX1_GIMBAL,MAV_CMD_DO_SET_SERVO,0,function_idx - RC_Channel_aux::k_mount_pan,servo_out*10,0,0,0,0,0);
 }
