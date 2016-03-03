@@ -663,6 +663,7 @@ static AP_HAL::AnalogSource* rssi_analog_source;
 #if MOUNT == ENABLED
 // current_loc uses the baro/gps soloution for altitude rather than gps only.
 static AP_Mount camera_mount(ahrs, current_loc);
+static uint8_t mount_compid;
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -774,7 +775,7 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
 #if COPTER_LEDS == ENABLED
     { update_copter_leds,   40,      5 },
 #endif
-    { update_mount,          8,     45 },
+    { update_mount,          1,     10 },
     { ten_hz_logging_loop,  40,     30 },
     { fifty_hz_logging_loop, 8,     22 },
     { full_rate_logging_loop,1,     22 },
@@ -975,7 +976,8 @@ static void update_mount()
 {
 #if MOUNT == ENABLED
     // update camera mount's position
-    camera_mount.update();
+    camera_mount.update(mount_compid, serial_manager);
+
 #endif
 
 #if CAMERA == ENABLED
