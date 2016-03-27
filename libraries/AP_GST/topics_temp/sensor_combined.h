@@ -37,22 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define MAGNETOMETER_MODE_NORMAL 0
-#define MAGNETOMETER_MODE_POSITIVE_BIAS 1
-#define MAGNETOMETER_MODE_NEGATIVE_BIAS 2
-#define SENSOR_PRIO_MIN 0
-#define SENSOR_PRIO_VERY_LOW 25
-#define SENSOR_PRIO_LOW 50
-#define SENSOR_PRIO_DEFAULT 75
-#define SENSOR_PRIO_HIGH 100
-#define SENSOR_PRIO_VERY_HIGH 125
-#define SENSOR_PRIO_MAX 255
-
-#endif
 
 /**
  * @addtogroup topics
@@ -60,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT sensor_combined_s {
-#else
 struct sensor_combined_s {
-#endif
 	uint64_t timestamp;
 	uint64_t gyro_timestamp[3];
 	int16_t gyro_raw[9];
@@ -107,7 +89,6 @@ struct sensor_combined_s {
 	float differential_pressure_filtered_pa[3];
 	uint32_t differential_pressure_priority[3];
 	uint32_t differential_pressure_errcount[3];
-#ifdef __cplusplus
 	static const int32_t MAGNETOMETER_MODE_NORMAL = 0;
 	static const int32_t MAGNETOMETER_MODE_POSITIVE_BIAS = 1;
 	static const int32_t MAGNETOMETER_MODE_NEGATIVE_BIAS = 2;
@@ -119,7 +100,6 @@ struct sensor_combined_s {
 	static const uint32_t SENSOR_PRIO_VERY_HIGH = 125;
 	static const uint32_t SENSOR_PRIO_MAX = 255;
 
-#endif
 };
 
 /**

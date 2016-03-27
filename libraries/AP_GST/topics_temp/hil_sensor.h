@@ -37,15 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define MAGNETOMETER_MODE_NORMAL 0
-#define MAGNETOMETER_MODE_POSITIVE_BIAS 1
-#define MAGNETOMETER_MODE_NEGATIVE_BIAS 2
-
-#endif
 
 /**
  * @addtogroup topics
@@ -53,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT hil_sensor_s {
-#else
 struct hil_sensor_s {
-#endif
 	uint64_t timestamp;
 	int16_t gyro_raw[3];
 	float gyro_rad_s[3];
@@ -125,12 +114,10 @@ struct hil_sensor_s {
 	float differential_pressure1_pa;
 	uint64_t differential_pressure1_timestamp;
 	float differential_pressure1_filtered_pa;
-#ifdef __cplusplus
 	static const int32_t MAGNETOMETER_MODE_NORMAL = 0;
 	static const int32_t MAGNETOMETER_MODE_POSITIVE_BIAS = 1;
 	static const int32_t MAGNETOMETER_MODE_NEGATIVE_BIAS = 2;
 
-#endif
 };
 
 /**

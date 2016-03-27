@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT control_state_s {
-#else
 struct control_state_s {
-#endif
 	uint64_t timestamp;
 	float x_acc;
 	float y_acc;
@@ -74,9 +66,7 @@ struct control_state_s {
 	float pitch_rate;
 	float yaw_rate;
 	float horz_acc_mag;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

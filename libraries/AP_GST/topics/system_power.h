@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT system_power_s {
-#else
 struct system_power_s {
-#endif
 	uint64_t timestamp;
 	float voltage5V_v;
 	uint8_t usb_connected;
@@ -62,9 +54,7 @@ struct system_power_s {
 	uint8_t servo_valid;
 	uint8_t periph_5V_OC;
 	uint8_t hipower_5V_OC;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT estimator_status_s {
-#else
 struct estimator_status_s {
-#endif
 	uint64_t timestamp;
 	float states[32];
 	float n_states;
@@ -64,9 +56,7 @@ struct estimator_status_s {
 	uint8_t timeout_flags;
 	float covariances[28];
 	uint16_t gps_check_fail_flags;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

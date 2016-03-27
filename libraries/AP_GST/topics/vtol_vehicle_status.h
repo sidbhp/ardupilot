@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,20 +46,14 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT vtol_vehicle_status_s {
-#else
 struct vtol_vehicle_status_s {
-#endif
 	uint64_t timestamp;
 	bool vtol_in_rw_mode;
 	bool vtol_in_trans_mode;
 	bool vtol_transition_failsafe;
 	bool fw_permanent_stab;
 	float airspeed_tot;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

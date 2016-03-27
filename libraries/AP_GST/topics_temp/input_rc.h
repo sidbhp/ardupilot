@@ -37,27 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define RC_INPUT_SOURCE_UNKNOWN 0
-#define RC_INPUT_SOURCE_PX4FMU_PPM 1
-#define RC_INPUT_SOURCE_PX4IO_PPM 2
-#define RC_INPUT_SOURCE_PX4IO_SPEKTRUM 3
-#define RC_INPUT_SOURCE_PX4IO_SBUS 4
-#define RC_INPUT_SOURCE_PX4IO_ST24 5
-#define RC_INPUT_SOURCE_MAVLINK 6
-#define RC_INPUT_SOURCE_QURT 7
-#define RC_INPUT_SOURCE_PX4FMU_SPEKTRUM 8
-#define RC_INPUT_SOURCE_PX4FMU_SBUS 9
-#define RC_INPUT_SOURCE_PX4FMU_ST24 10
-#define RC_INPUT_SOURCE_PX4FMU_SUMD 11
-#define RC_INPUT_SOURCE_PX4FMU_DSM 12
-#define RC_INPUT_SOURCE_PX4IO_SUMD 13
-#define RC_INPUT_MAX_CHANNELS 18
-
-#endif
 
 /**
  * @addtogroup topics
@@ -65,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT input_rc_s {
-#else
 struct input_rc_s {
-#endif
 	uint64_t timestamp_publication;
 	uint64_t timestamp_last_signal;
 	uint32_t channel_count;
@@ -81,7 +58,6 @@ struct input_rc_s {
 	uint16_t rc_ppm_frame_length;
 	uint8_t input_source;
 	uint16_t values[18];
-#ifdef __cplusplus
 	static const uint8_t RC_INPUT_SOURCE_UNKNOWN = 0;
 	static const uint8_t RC_INPUT_SOURCE_PX4FMU_PPM = 1;
 	static const uint8_t RC_INPUT_SOURCE_PX4IO_PPM = 2;
@@ -98,7 +74,6 @@ struct input_rc_s {
 	static const uint8_t RC_INPUT_SOURCE_PX4IO_SUMD = 13;
 	static const uint8_t RC_INPUT_MAX_CHANNELS = 18;
 
-#endif
 };
 
 /**

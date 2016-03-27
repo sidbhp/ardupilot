@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT vehicle_gps_position_s {
-#else
 struct vehicle_gps_position_s {
-#endif
 	uint64_t timestamp_position;
 	int32_t lat;
 	int32_t lon;
@@ -80,9 +72,7 @@ struct vehicle_gps_position_s {
 	uint64_t timestamp_time;
 	uint64_t time_utc_usec;
 	uint8_t satellites_used;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

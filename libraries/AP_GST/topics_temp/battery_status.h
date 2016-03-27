@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,20 +46,14 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT battery_status_s {
-#else
 struct battery_status_s {
-#endif
 	uint64_t timestamp;
 	float voltage_v;
 	float voltage_filtered_v;
 	float current_a;
 	float discharged_mah;
 	bool is_powering_off;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

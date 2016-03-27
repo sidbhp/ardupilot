@@ -37,14 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define RC_PARAM_MAP_NCHAN 3
-#define PARAM_ID_LEN 16
-
-#endif
 
 /**
  * @addtogroup topics
@@ -52,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT rc_parameter_map_s {
-#else
 struct rc_parameter_map_s {
-#endif
 	uint64_t timestamp;
 	bool valid[3];
 	int32_t param_index[3];
@@ -65,11 +55,9 @@ struct rc_parameter_map_s {
 	float value0[3];
 	float value_min[3];
 	float value_max[3];
-#ifdef __cplusplus
 	static const uint8_t RC_PARAM_MAP_NCHAN = 3;
 	static const uint8_t PARAM_ID_LEN = 16;
 
-#endif
 };
 
 /**

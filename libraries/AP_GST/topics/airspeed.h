@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,20 +46,14 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT airspeed_s {
-#else
 struct airspeed_s {
-#endif
 	uint64_t timestamp;
 	float indicated_airspeed_m_s;
 	float true_airspeed_m_s;
 	float true_airspeed_unfiltered_m_s;
 	float air_temperature_celsius;
 	float confidence;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

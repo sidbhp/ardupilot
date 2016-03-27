@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT ekf2_innovations_s {
-#else
 struct ekf2_innovations_s {
-#endif
 	uint64_t timestamp;
 	float vel_pos_innov[6];
 	float mag_innov[3];
@@ -62,9 +54,7 @@ struct ekf2_innovations_s {
 	float vel_pos_innov_var[6];
 	float mag_innov_var[3];
 	float heading_innov_var;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

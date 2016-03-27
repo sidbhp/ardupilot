@@ -37,34 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define RC_CHANNELS_FUNCTION_MAX 21
-#define RC_CHANNELS_FUNCTION_THROTTLE 0
-#define RC_CHANNELS_FUNCTION_ROLL 1
-#define RC_CHANNELS_FUNCTION_PITCH 2
-#define RC_CHANNELS_FUNCTION_YAW 3
-#define RC_CHANNELS_FUNCTION_MODE 4
-#define RC_CHANNELS_FUNCTION_RETURN 5
-#define RC_CHANNELS_FUNCTION_POSCTL 6
-#define RC_CHANNELS_FUNCTION_LOITER 7
-#define RC_CHANNELS_FUNCTION_OFFBOARD 8
-#define RC_CHANNELS_FUNCTION_ACRO 9
-#define RC_CHANNELS_FUNCTION_FLAPS 10
-#define RC_CHANNELS_FUNCTION_AUX_1 11
-#define RC_CHANNELS_FUNCTION_AUX_2 12
-#define RC_CHANNELS_FUNCTION_AUX_3 13
-#define RC_CHANNELS_FUNCTION_AUX_4 14
-#define RC_CHANNELS_FUNCTION_AUX_5 15
-#define RC_CHANNELS_FUNCTION_PARAM_1 16
-#define RC_CHANNELS_FUNCTION_PARAM_2 17
-#define RC_CHANNELS_FUNCTION_PARAM_3_5 18
-#define RC_CHANNELS_FUNCTION_RATTITUDE 19
-#define RC_CHANNELS_FUNCTION_KILLSWITCH 20
-
-#endif
 
 /**
  * @addtogroup topics
@@ -72,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT rc_channels_s {
-#else
 struct rc_channels_s {
-#endif
 	uint64_t timestamp;
 	uint64_t timestamp_last_valid;
 	float channels[18];
@@ -85,7 +55,6 @@ struct rc_channels_s {
 	uint8_t rssi;
 	bool signal_lost;
 	uint32_t frame_drop_count;
-#ifdef __cplusplus
 	static const int32_t RC_CHANNELS_FUNCTION_MAX = 21;
 	static const uint8_t RC_CHANNELS_FUNCTION_THROTTLE = 0;
 	static const uint8_t RC_CHANNELS_FUNCTION_ROLL = 1;
@@ -109,7 +78,6 @@ struct rc_channels_s {
 	static const uint8_t RC_CHANNELS_FUNCTION_RATTITUDE = 19;
 	static const uint8_t RC_CHANNELS_FUNCTION_KILLSWITCH = 20;
 
-#endif
 };
 
 /**

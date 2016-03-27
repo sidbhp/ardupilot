@@ -37,14 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define NUM_ACTUATOR_CONTROLS 8
-#define NUM_ACTUATOR_CONTROL_GROUPS 4
-
-#endif
 
 /**
  * @addtogroup topics
@@ -52,19 +46,13 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT actuator_controls_1_s {
-#else
 struct actuator_controls_1_s {
-#endif
 	uint64_t timestamp;
 	uint64_t timestamp_sample;
 	float control[8];
-#ifdef __cplusplus
 	static const uint8_t NUM_ACTUATOR_CONTROLS = 8;
 	static const uint8_t NUM_ACTUATOR_CONTROL_GROUPS = 4;
 
-#endif
 };
 
 /**

@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,18 +46,12 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT vehicle_force_setpoint_s {
-#else
 struct vehicle_force_setpoint_s {
-#endif
 	float x;
 	float y;
 	float z;
 	float yaw;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

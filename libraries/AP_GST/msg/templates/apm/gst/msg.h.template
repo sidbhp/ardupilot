@@ -63,7 +63,7 @@ topic_name = spec.short_name
 @# Generic Includes
 @##############################
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
 @##############################
 @# Includes for dependencies
@@ -77,13 +77,6 @@ for field in spec.parsed_fields():
       print('#include <uORB/topics/%s.h>'%(name))
 
 }@
-
-@# Constants c style
-#ifndef __cplusplus
-@[for constant in spec.constants]@
-#define @(constant.name) @(int(constant.val))
-@[end for]
-#endif
 
 /**
  * @@addtogroup topics
@@ -140,20 +133,15 @@ def print_field_def(field):
   print('\t%s%s%s %s%s;'%(type_prefix, type_px4, type_appendix, field.name, array_size))
 
 }
-#ifdef __cplusplus
 @#class @(uorb_struct) {
-struct __EXPORT @(uorb_struct) {
 @#public:
-#else
 struct @(uorb_struct) {
-#endif
 @{
 # loop over all fields and print the type and name
 for field in spec.parsed_fields():
   if (not field.is_header):
     print_field_def(field)
 }@
-#ifdef __cplusplus
 @# Constants again c++-ified
 @{
 for constant in spec.constants:
@@ -166,7 +154,6 @@ for constant in spec.constants:
 
   print('\tstatic const %s %s = %s;'%(type_px4, constant.name, int(constant.val)))
 }
-#endif
 };
 
 /**

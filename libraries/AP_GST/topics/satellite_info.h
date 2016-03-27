@@ -37,13 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define SAT_INFO_MAX_SATELLITES 20
-
-#endif
 
 /**
  * @addtogroup topics
@@ -51,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT satellite_info_s {
-#else
 struct satellite_info_s {
-#endif
 	uint64_t timestamp;
 	uint8_t count;
 	uint8_t svid[20];
@@ -63,10 +54,8 @@ struct satellite_info_s {
 	uint8_t elevation[20];
 	uint8_t azimuth[20];
 	uint8_t snr[20];
-#ifdef __cplusplus
 	static const uint8_t SAT_INFO_MAX_SATELLITES = 20;
 
-#endif
 };
 
 /**

@@ -37,13 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define PWM_OUTPUT_MAX_CHANNELS 16
-
-#endif
 
 /**
  * @addtogroup topics
@@ -51,17 +46,11 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT output_pwm_s {
-#else
 struct output_pwm_s {
-#endif
 	uint16_t values[16];
 	uint32_t channel_count;
-#ifdef __cplusplus
 	static const uint8_t PWM_OUTPUT_MAX_CHANNELS = 16;
 
-#endif
 };
 
 /**

@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT vision_position_estimate_s {
-#else
 struct vision_position_estimate_s {
-#endif
 	uint32_t id;
 	uint64_t timestamp_boot;
 	uint64_t timestamp_computer;
@@ -65,9 +57,7 @@ struct vision_position_estimate_s {
 	float vy;
 	float vz;
 	float q[4];
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

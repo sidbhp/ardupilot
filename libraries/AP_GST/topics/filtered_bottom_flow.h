@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,19 +46,13 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT filtered_bottom_flow_s {
-#else
 struct filtered_bottom_flow_s {
-#endif
 	uint64_t timestamp;
 	float sumx;
 	float sumy;
 	float vx;
 	float vy;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

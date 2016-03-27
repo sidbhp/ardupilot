@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT actuator_armed_s {
-#else
 struct actuator_armed_s {
-#endif
 	uint64_t timestamp;
 	bool armed;
 	bool prearmed;
@@ -62,9 +54,7 @@ struct actuator_armed_s {
 	bool lockdown;
 	bool force_failsafe;
 	bool in_esc_calibration_mode;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

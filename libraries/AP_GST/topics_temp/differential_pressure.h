@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,20 +46,14 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT differential_pressure_s {
-#else
 struct differential_pressure_s {
-#endif
 	uint64_t timestamp;
 	uint64_t error_count;
 	float differential_pressure_raw_pa;
 	float differential_pressure_filtered_pa;
 	float max_differential_pressure_pa;
 	float temperature;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

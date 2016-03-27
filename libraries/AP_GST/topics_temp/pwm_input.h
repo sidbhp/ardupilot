@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,18 +46,12 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT pwm_input_s {
-#else
 struct pwm_input_s {
-#endif
 	uint64_t timestamp;
 	uint64_t error_count;
 	uint32_t pulse_width;
 	uint32_t period;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

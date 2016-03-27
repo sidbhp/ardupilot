@@ -37,14 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define NUM_ACTUATOR_OUTPUTS 16
-#define NUM_ACTUATOR_OUTPUT_GROUPS 4
-
-#endif
 
 /**
  * @addtogroup topics
@@ -52,19 +46,13 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT actuator_outputs_s {
-#else
 struct actuator_outputs_s {
-#endif
 	uint64_t timestamp;
 	uint32_t noutputs;
 	float output[16];
-#ifdef __cplusplus
 	static const uint8_t NUM_ACTUATOR_OUTPUTS = 16;
 	static const uint8_t NUM_ACTUATOR_OUTPUT_GROUPS = 4;
 
-#endif
 };
 
 /**

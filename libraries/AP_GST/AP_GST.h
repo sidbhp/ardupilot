@@ -15,7 +15,7 @@
 
 /* Globally Shared Topics - Inspired by uORB on PX4 */
 
-#include <AP_GST_Helper.h>
+#include <AP_GST/AP_GST_Helper.h>
 #include <vector>
 #include "topics/sensor_mag.h"
 #include "topics/sensor_accel.h"
@@ -52,7 +52,10 @@ enum open_type {
 
 class AP_GST {
 
-    AP_GST() : last_fd(0) {}
+    AP_GST() : last_rdwr_fd(0),
+                last_write_fd(0),
+                last_read_fd(0)
+    {}
     int8_t open(struct gst_metadata *meta, enum open_type fdt);
     int8_t write(int8_t fd, const void* data);
     int8_t read(int8_t fd, void *buffer);
@@ -68,6 +71,8 @@ private:
         struct gst_metadata* meta;
         int8_t write_fd;
         int8_t updated;
+        void* context;          //TBD
+        void (*callback)();     //TBD
     };
 
     struct rdwr_info {

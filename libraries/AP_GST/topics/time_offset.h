@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,15 +46,9 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT time_offset_s {
-#else
 struct time_offset_s {
-#endif
 	uint64_t offset_ns;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

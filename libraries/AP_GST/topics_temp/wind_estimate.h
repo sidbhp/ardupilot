@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,19 +46,13 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT wind_estimate_s {
-#else
 struct wind_estimate_s {
-#endif
 	uint64_t timestamp;
 	float windspeed_north;
 	float windspeed_east;
 	float covariance_north;
 	float covariance_east;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,19 +46,13 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT mc_virtual_rates_setpoint_s {
-#else
 struct mc_virtual_rates_setpoint_s {
-#endif
 	uint64_t timestamp;
 	float roll;
 	float pitch;
 	float yaw;
 	float thrust;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

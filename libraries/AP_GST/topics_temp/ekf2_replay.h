@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT ekf2_replay_s {
-#else
 struct ekf2_replay_s {
-#endif
 	uint64_t time_ref;
 	uint64_t gyro_integral_dt;
 	uint64_t accelerometer_integral_dt;
@@ -77,9 +69,7 @@ struct ekf2_replay_s {
 	float vel_e_m_s;
 	float vel_d_m_s;
 	bool vel_ned_valid;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

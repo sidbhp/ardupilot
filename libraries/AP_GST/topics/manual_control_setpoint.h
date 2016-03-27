@@ -37,16 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define SWITCH_POS_NONE 0
-#define SWITCH_POS_ON 1
-#define SWITCH_POS_MIDDLE 2
-#define SWITCH_POS_OFF 3
-
-#endif
 
 /**
  * @addtogroup topics
@@ -54,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT manual_control_setpoint_s {
-#else
 struct manual_control_setpoint_s {
-#endif
 	uint64_t timestamp;
 	float x;
 	float y;
@@ -78,13 +66,11 @@ struct manual_control_setpoint_s {
 	uint8_t acro_switch;
 	uint8_t offboard_switch;
 	uint8_t kill_switch;
-#ifdef __cplusplus
 	static const uint8_t SWITCH_POS_NONE = 0;
 	static const uint8_t SWITCH_POS_ON = 1;
 	static const uint8_t SWITCH_POS_MIDDLE = 2;
 	static const uint8_t SWITCH_POS_OFF = 3;
 
-#endif
 };
 
 /**

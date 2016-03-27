@@ -37,13 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define NUM_ENCODERS 4
-
-#endif
 
 /**
  * @addtogroup topics
@@ -51,18 +46,12 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT encoders_s {
-#else
 struct encoders_s {
-#endif
 	uint64_t timestamp;
 	int64_t counts[4];
 	float velocity[4];
-#ifdef __cplusplus
 	static const uint8_t NUM_ENCODERS = 4;
 
-#endif
 };
 
 /**

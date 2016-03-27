@@ -16,8 +16,8 @@
 #define GST_DEFINE(_name, _struct)			\
 	struct gst_metadata __gst_##_name = {	\
         #_name,				\
-	    sizeof(_struct);	\
-	}; struct hack;
+	    sizeof(_struct)    \
+    };  struct hack;
 
 #define GST_DECLARE(_name)
 

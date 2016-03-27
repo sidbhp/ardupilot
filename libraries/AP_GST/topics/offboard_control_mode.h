@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT offboard_control_mode_s {
-#else
 struct offboard_control_mode_s {
-#endif
 	uint64_t timestamp;
 	bool ignore_thrust;
 	bool ignore_attitude;
@@ -62,9 +54,7 @@ struct offboard_control_mode_s {
 	bool ignore_position;
 	bool ignore_velocity;
 	bool ignore_acceleration_force;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

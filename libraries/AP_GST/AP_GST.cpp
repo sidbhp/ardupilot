@@ -14,10 +14,12 @@
  */
 
 #include <stdlib.h>
+#include <AP_GST/AP_GST.h>
 //TODO:
 // * support for multiple read and write
 // * support for strerr
 // * ability to lock memory
+// * deplay callback system on write
 int8_t AP_GST::open(struct gst_metadata *meta, enum open_type fdt)
 {
     struct rdwr_info rdwr;
@@ -34,7 +36,7 @@ int8_t AP_GST::open(struct gst_metadata *meta, enum open_type fdt)
 
             //update fd list
             rdwr.fd = last_write_fd;
-            rdwr.fdtype = O_WRITE;
+            rdwr.fd_type = O_WRITE;
             rdwr_info_list.push_back(rdwr);
             last_write_fd++;
             return last_rdwr_fd++;
@@ -54,7 +56,7 @@ int8_t AP_GST::open(struct gst_metadata *meta, enum open_type fdt)
             if(write_fd != -1) {
                 new_node = new(read_node);
                 new_node->meta = meta;
-                new_node->fd = write_fd;
+                new_node->write_fd = write_fd;
                 read_list.push_back(new_node);
             } else {
                 return -1;
@@ -62,7 +64,7 @@ int8_t AP_GST::open(struct gst_metadata *meta, enum open_type fdt)
 
             //update fd list
             rdwr.fd = last_read_fd;
-            rdwr.fdtype = O_READ;
+            rdwr.fd_type = O_READ;
             rdwr_info_list.push_back(rdwr);
             last_read_fd++;
             return last_rdwr_fd++;
@@ -71,7 +73,7 @@ int8_t AP_GST::open(struct gst_metadata *meta, enum open_type fdt)
         return -1;
     }
 }
-
+// 
 int8_t AP_GST::write(int8_t fd, const void* data)
 {
     if(fd > last_rdwr_fd || rdwr_info_list[fd].fd_type != O_WRITE) {
@@ -79,7 +81,7 @@ int8_t AP_GST::write(int8_t fd, const void* data)
     }
 
     //convert rdwr fd to write fd
-    fd = rdwr_info_list[last_rdwr_fd];
+    fd = rdwr_info_list[last_rdwr_fd].fd;
     //write data to memory
     memcpy(write_list[fd]->data, data,  write_list[fd]->meta->o_size);
     //raise updated flags of relevant read nodes
@@ -97,8 +99,8 @@ int8_t AP_GST::read(int8_t fd, void* data)
         return -1;
     }
     //convert rdwr fd to read fd
-    fd = rdwr_info_list[last_rdwr_fd];
-    int8_t write_fd = read_list[fd]->fd;
+    fd = rdwr_info_list[last_rdwr_fd].fd;
+    int8_t write_fd = read_list[fd]->write_fd;
     //check for fd sanity
     if(strcmp(read_list[fd]->meta->o_name,write_list[write_fd]->meta->o_name) == 0) {
         return -1;
@@ -115,6 +117,6 @@ int8_t AP_GST::available(int8_t fd)
         return -1;
     }
     //convert rdwr fd to read fd
-    fd = rdwr_info_list[last_rdwr_fd];
+    fd = rdwr_info_list[last_rdwr_fd].fd;
     return read_list[fd]->updated;
 }

@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT vehicle_attitude_s {
-#else
 struct vehicle_attitude_s {
-#endif
 	uint64_t timestamp;
 	float roll;
 	float pitch;
@@ -74,9 +66,7 @@ struct vehicle_attitude_s {
 	float g_comp[3];
 	bool R_valid;
 	bool q_valid;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

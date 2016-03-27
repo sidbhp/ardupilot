@@ -37,17 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define VEHICLE_RESULT_ACCEPTED 0
-#define VEHICLE_RESULT_TEMPORARILY_REJECTED 1
-#define VEHICLE_RESULT_DENIED 2
-#define VEHICLE_RESULT_UNSUPPORTED 3
-#define VEHICLE_RESULT_FAILED 4
-
-#endif
 
 /**
  * @addtogroup topics
@@ -55,21 +46,15 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT vehicle_command_ack_s {
-#else
 struct vehicle_command_ack_s {
-#endif
 	uint16_t command;
 	uint8_t result;
-#ifdef __cplusplus
 	static const uint8_t VEHICLE_RESULT_ACCEPTED = 0;
 	static const uint8_t VEHICLE_RESULT_TEMPORARILY_REJECTED = 1;
 	static const uint8_t VEHICLE_RESULT_DENIED = 2;
 	static const uint8_t VEHICLE_RESULT_UNSUPPORTED = 3;
 	static const uint8_t VEHICLE_RESULT_FAILED = 4;
 
-#endif
 };
 
 /**

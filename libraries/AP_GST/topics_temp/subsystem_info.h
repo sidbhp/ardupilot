@@ -37,29 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define SUBSYSTEM_TYPE_GYRO 1
-#define SUBSYSTEM_TYPE_ACC 2
-#define SUBSYSTEM_TYPE_MAG 4
-#define SUBSYSTEM_TYPE_ABSPRESSURE 8
-#define SUBSYSTEM_TYPE_DIFFPRESSURE 16
-#define SUBSYSTEM_TYPE_GPS 32
-#define SUBSYSTEM_TYPE_OPTICALFLOW 64
-#define SUBSYSTEM_TYPE_CVPOSITION 128
-#define SUBSYSTEM_TYPE_LASERPOSITION 256
-#define SUBSYSTEM_TYPE_EXTERNALGROUNDTRUTH 512
-#define SUBSYSTEM_TYPE_ANGULARRATECONTROL 1024
-#define SUBSYSTEM_TYPE_ATTITUDESTABILIZATION 2048
-#define SUBSYSTEM_TYPE_YAWPOSITION 4096
-#define SUBSYSTEM_TYPE_ALTITUDECONTROL 16384
-#define SUBSYSTEM_TYPE_POSITIONCONTROL 32768
-#define SUBSYSTEM_TYPE_MOTORCONTROL 65536
-#define SUBSYSTEM_TYPE_RANGEFINDER 131072
-
-#endif
 
 /**
  * @addtogroup topics
@@ -67,16 +46,11 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT subsystem_info_s {
-#else
 struct subsystem_info_s {
-#endif
 	bool present;
 	bool enabled;
 	bool ok;
 	uint64_t subsystem_type;
-#ifdef __cplusplus
 	static const uint64_t SUBSYSTEM_TYPE_GYRO = 1;
 	static const uint64_t SUBSYSTEM_TYPE_ACC = 2;
 	static const uint64_t SUBSYSTEM_TYPE_MAG = 4;
@@ -95,7 +69,6 @@ struct subsystem_info_s {
 	static const uint64_t SUBSYSTEM_TYPE_MOTORCONTROL = 65536;
 	static const uint64_t SUBSYSTEM_TYPE_RANGEFINDER = 131072;
 
-#endif
 };
 
 /**

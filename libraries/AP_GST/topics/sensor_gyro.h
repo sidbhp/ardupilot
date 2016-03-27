@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT sensor_gyro_s {
-#else
 struct sensor_gyro_s {
-#endif
 	uint64_t timestamp;
 	uint64_t integral_dt;
 	uint64_t error_count;
@@ -71,9 +63,7 @@ struct sensor_gyro_s {
 	int16_t y_raw;
 	int16_t z_raw;
 	int16_t temperature_raw;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT att_pos_mocap_s {
-#else
 struct att_pos_mocap_s {
-#endif
 	uint32_t id;
 	uint64_t timestamp_boot;
 	uint64_t timestamp_computer;
@@ -62,9 +54,7 @@ struct att_pos_mocap_s {
 	float x;
 	float y;
 	float z;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

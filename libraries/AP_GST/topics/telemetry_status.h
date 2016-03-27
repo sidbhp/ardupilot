@@ -37,17 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define TELEMETRY_STATUS_RADIO_TYPE_GENERIC 0
-#define TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO 1
-#define TELEMETRY_STATUS_RADIO_TYPE_UBIQUITY_BULLET 2
-#define TELEMETRY_STATUS_RADIO_TYPE_WIRE 3
-#define TELEMETRY_STATUS_RADIO_TYPE_USB 4
-
-#endif
 
 /**
  * @addtogroup topics
@@ -55,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT telemetry_status_s {
-#else
 struct telemetry_status_s {
-#endif
 	uint64_t timestamp;
 	uint64_t heartbeat_time;
 	uint64_t telem_time;
@@ -73,14 +60,12 @@ struct telemetry_status_s {
 	uint8_t txbuf;
 	uint8_t system_id;
 	uint8_t component_id;
-#ifdef __cplusplus
 	static const uint8_t TELEMETRY_STATUS_RADIO_TYPE_GENERIC = 0;
 	static const uint8_t TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO = 1;
 	static const uint8_t TELEMETRY_STATUS_RADIO_TYPE_UBIQUITY_BULLET = 2;
 	static const uint8_t TELEMETRY_STATUS_RADIO_TYPE_WIRE = 3;
 	static const uint8_t TELEMETRY_STATUS_RADIO_TYPE_USB = 4;
 
-#endif
 };
 
 /**

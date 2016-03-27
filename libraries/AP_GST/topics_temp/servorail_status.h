@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,17 +46,11 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT servorail_status_s {
-#else
 struct servorail_status_s {
-#endif
 	uint64_t timestamp;
 	float voltage_v;
 	float rssi_v;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,17 +46,11 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT debug_key_value_s {
-#else
 struct debug_key_value_s {
-#endif
 	uint32_t timestamp_ms;
 	int8_t key[10];
 	float value;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT sensor_mag_s {
-#else
 struct sensor_mag_s {
-#endif
 	uint64_t timestamp;
 	uint64_t error_count;
 	float x;
@@ -66,9 +58,7 @@ struct sensor_mag_s {
 	int16_t x_raw;
 	int16_t y_raw;
 	int16_t z_raw;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

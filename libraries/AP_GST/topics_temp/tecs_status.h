@@ -37,19 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define TECS_MODE_NORMAL 0
-#define TECS_MODE_UNDERSPEED 1
-#define TECS_MODE_TAKEOFF 2
-#define TECS_MODE_LAND 3
-#define TECS_MODE_LAND_THROTTLELIM 4
-#define TECS_MODE_BAD_DESCENT 5
-#define TECS_MODE_CLIMBOUT 6
-
-#endif
 
 /**
  * @addtogroup topics
@@ -57,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT tecs_status_s {
-#else
 struct tecs_status_s {
-#endif
 	uint64_t timestamp;
 	float altitudeSp;
 	float altitude_filtered;
@@ -79,7 +64,6 @@ struct tecs_status_s {
 	float throttle_integ;
 	float pitch_integ;
 	uint8_t mode;
-#ifdef __cplusplus
 	static const uint8_t TECS_MODE_NORMAL = 0;
 	static const uint8_t TECS_MODE_UNDERSPEED = 1;
 	static const uint8_t TECS_MODE_TAKEOFF = 2;
@@ -88,7 +72,6 @@ struct tecs_status_s {
 	static const uint8_t TECS_MODE_BAD_DESCENT = 5;
 	static const uint8_t TECS_MODE_CLIMBOUT = 6;
 
-#endif
 };
 
 /**

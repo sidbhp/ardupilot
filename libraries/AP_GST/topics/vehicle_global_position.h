@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT vehicle_global_position_s {
-#else
 struct vehicle_global_position_s {
-#endif
 	uint64_t timestamp;
 	uint64_t time_utc_usec;
 	double lat;
@@ -70,9 +62,7 @@ struct vehicle_global_position_s {
 	bool terrain_alt_valid;
 	bool dead_reckoning;
 	float pressure_alt;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT esc_report_s {
-#else
 struct esc_report_s {
-#endif
 	uint8_t esc_vendor;
 	uint32_t esc_errorcount;
 	int32_t esc_rpm;
@@ -66,9 +58,7 @@ struct esc_report_s {
 	uint16_t esc_address;
 	uint16_t esc_version;
 	uint16_t esc_state;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

@@ -37,15 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define MAV_DISTANCE_SENSOR_LASER 0
-#define MAV_DISTANCE_SENSOR_ULTRASOUND 1
-#define MAV_DISTANCE_SENSOR_INFRARED 2
-
-#endif
 
 /**
  * @addtogroup topics
@@ -53,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT distance_sensor_s {
-#else
 struct distance_sensor_s {
-#endif
 	uint64_t timestamp;
 	float min_distance;
 	float max_distance;
@@ -66,12 +55,10 @@ struct distance_sensor_s {
 	uint8_t type;
 	uint8_t id;
 	uint8_t orientation;
-#ifdef __cplusplus
 	static const uint8_t MAV_DISTANCE_SENSOR_LASER = 0;
 	static const uint8_t MAV_DISTANCE_SENSOR_ULTRASOUND = 1;
 	static const uint8_t MAV_DISTANCE_SENSOR_INFRARED = 2;
 
-#endif
 };
 
 /**

@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT vehicle_control_mode_s {
-#else
 struct vehicle_control_mode_s {
-#endif
 	uint64_t timestamp;
 	bool flag_armed;
 	bool flag_external_manual_override_ok;
@@ -70,9 +62,7 @@ struct vehicle_control_mode_s {
 	bool flag_control_altitude_enabled;
 	bool flag_control_climb_rate_enabled;
 	bool flag_control_termination_enabled;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

@@ -37,22 +37,9 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
 #include <uORB/topics/esc_report.h>
-
-#ifndef __cplusplus
-#define CONNECTED_ESC_MAX 8
-#define ESC_VENDOR_GENERIC 0
-#define ESC_VENDOR_MIKROKOPTER 1
-#define ESC_VENDOR_GRAUPNER_HOTT 2
-#define ESC_CONNECTION_TYPE_PPM 0
-#define ESC_CONNECTION_TYPE_SERIAL 1
-#define ESC_CONNECTION_TYPE_ONESHOOT 2
-#define ESC_CONNECTION_TYPE_I2C 3
-#define ESC_CONNECTION_TYPE_CAN 4
-
-#endif
 
 /**
  * @addtogroup topics
@@ -60,17 +47,12 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT esc_status_s {
-#else
 struct esc_status_s {
-#endif
 	uint16_t counter;
 	uint64_t timestamp;
 	uint8_t esc_count;
 	uint8_t esc_connectiontype;
 	struct esc_report_s esc[8];
-#ifdef __cplusplus
 	static const uint8_t CONNECTED_ESC_MAX = 8;
 	static const uint8_t ESC_VENDOR_GENERIC = 0;
 	static const uint8_t ESC_VENDOR_MIKROKOPTER = 1;
@@ -81,7 +63,6 @@ struct esc_status_s {
 	static const uint8_t ESC_CONNECTION_TYPE_I2C = 3;
 	static const uint8_t ESC_CONNECTION_TYPE_CAN = 4;
 
-#endif
 };
 
 /**

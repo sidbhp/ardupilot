@@ -37,19 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define SETPOINT_TYPE_POSITION 0
-#define SETPOINT_TYPE_VELOCITY 1
-#define SETPOINT_TYPE_LOITER 2
-#define SETPOINT_TYPE_TAKEOFF 3
-#define SETPOINT_TYPE_LAND 4
-#define SETPOINT_TYPE_IDLE 5
-#define SETPOINT_TYPE_OFFBOARD 6
-
-#endif
 
 /**
  * @addtogroup topics
@@ -57,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT position_setpoint_s {
-#else
 struct position_setpoint_s {
-#endif
 	bool valid;
 	uint8_t type;
 	float x;
@@ -89,7 +74,6 @@ struct position_setpoint_s {
 	bool acceleration_valid;
 	bool acceleration_is_force;
 	float acceptance_radius;
-#ifdef __cplusplus
 	static const uint8_t SETPOINT_TYPE_POSITION = 0;
 	static const uint8_t SETPOINT_TYPE_VELOCITY = 1;
 	static const uint8_t SETPOINT_TYPE_LOITER = 2;
@@ -98,7 +82,6 @@ struct position_setpoint_s {
 	static const uint8_t SETPOINT_TYPE_IDLE = 5;
 	static const uint8_t SETPOINT_TYPE_OFFBOARD = 6;
 
-#endif
 };
 
 /**

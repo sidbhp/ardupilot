@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,17 +46,11 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT mission_s {
-#else
 struct mission_s {
-#endif
 	int32_t dataman_id;
 	uint32_t count;
 	int32_t current_seq;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

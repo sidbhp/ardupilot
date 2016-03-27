@@ -37,15 +37,11 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
 #include <uORB/topics/position_setpoint.h>
 #include <uORB/topics/position_setpoint.h>
 #include <uORB/topics/position_setpoint.h>
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -53,18 +49,12 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT position_setpoint_triplet_s {
-#else
 struct position_setpoint_triplet_s {
-#endif
 	struct position_setpoint_s previous;
 	struct position_setpoint_s current;
 	struct position_setpoint_s next;
 	uint8_t nav_state;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,20 +46,14 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT navigation_capabilities_s {
-#else
 struct navigation_capabilities_s {
-#endif
 	uint64_t timestamp;
 	float turn_distance;
 	float landing_horizontal_slope_displacement;
 	float landing_slope_angle_rad;
 	float landing_flare_length;
 	bool abort_landing;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

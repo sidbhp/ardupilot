@@ -37,14 +37,9 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
 #include <uORB/topics/fence_vertex.h>
-
-#ifndef __cplusplus
-#define GEOFENCE_MAX_VERTICES 16
-
-#endif
 
 /**
  * @addtogroup topics
@@ -52,17 +47,11 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT fence_s {
-#else
 struct fence_s {
-#endif
 	uint32_t count;
 	struct fence_vertex_s vertices[16];
-#ifdef __cplusplus
 	static const uint8_t GEOFENCE_MAX_VERTICES = 16;
 
-#endif
 };
 
 /**

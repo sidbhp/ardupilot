@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT uavcan_parameter_request_s {
-#else
 struct uavcan_parameter_request_s {
-#endif
 	uint8_t message_type;
 	uint8_t node_id;
 	char param_id[17];
@@ -62,9 +54,7 @@ struct uavcan_parameter_request_s {
 	uint8_t param_type;
 	int64_t int_value;
 	float real_value;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

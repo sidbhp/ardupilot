@@ -37,12 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-
-#endif
 
 /**
  * @addtogroup topics
@@ -50,11 +46,7 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT fw_virtual_attitude_setpoint_s {
-#else
 struct fw_virtual_attitude_setpoint_s {
-#endif
 	uint64_t timestamp;
 	float roll_body;
 	float pitch_body;
@@ -73,9 +65,7 @@ struct fw_virtual_attitude_setpoint_s {
 	bool fw_control_yaw;
 	bool disable_mc_yaw_control;
 	bool apply_flaps;
-#ifdef __cplusplus
 
-#endif
 };
 
 /**

@@ -37,13 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define NUM_MOTOR_OUTPUTS 8
-
-#endif
 
 /**
  * @addtogroup topics
@@ -51,18 +46,12 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT test_motor_s {
-#else
 struct test_motor_s {
-#endif
 	uint64_t timestamp;
 	uint32_t motor_number;
 	float value;
-#ifdef __cplusplus
 	static const uint8_t NUM_MOTOR_OUTPUTS = 8;
 
-#endif
 };
 
 /**

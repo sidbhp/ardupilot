@@ -37,17 +37,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <AP_GST/AP_GST.h>
+#include <AP_GST/AP_GST_Helper.h>
 
-
-#ifndef __cplusplus
-#define GF_ACTION_NONE 0
-#define GF_ACTION_WARN 1
-#define GF_ACTION_LOITER 2
-#define GF_ACTION_RTL 3
-#define GF_ACTION_TERMINATE 4
-
-#endif
 
 /**
  * @addtogroup topics
@@ -55,21 +46,15 @@
  */
 
 
-#ifdef __cplusplus
-struct __EXPORT geofence_result_s {
-#else
 struct geofence_result_s {
-#endif
 	bool geofence_violated;
 	uint8_t geofence_action;
-#ifdef __cplusplus
 	static const uint8_t GF_ACTION_NONE = 0;
 	static const uint8_t GF_ACTION_WARN = 1;
 	static const uint8_t GF_ACTION_LOITER = 2;
 	static const uint8_t GF_ACTION_RTL = 3;
 	static const uint8_t GF_ACTION_TERMINATE = 4;
 
-#endif
 };
 
 /**
