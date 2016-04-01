@@ -775,7 +775,8 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
 #if COPTER_LEDS == ENABLED
     { update_copter_leds,   40,      5 },
 #endif
-    { update_mount,          1,     10 },
+    { update_mount,          8,     45 },
+    { update_mount_full_rate,1,     10 },
     { ten_hz_logging_loop,  40,     30 },
     { fifty_hz_logging_loop, 8,     22 },
     { full_rate_logging_loop,1,     22 },
@@ -985,6 +986,14 @@ static void update_mount()
 #endif
 }
 
+static void update_mount_full_rate()
+{
+#if MOUNT == ENABLED
+    // update camera mount's position
+    camera_mount.update_full_rate();
+
+#endif
+}
 // update_batt_compass - read battery and compass
 // should be called at 10hz
 static void update_batt_compass(void)
