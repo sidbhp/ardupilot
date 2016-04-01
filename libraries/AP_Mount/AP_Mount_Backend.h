@@ -77,6 +77,7 @@ public:
 
     virtual void update_fast() {}
 
+    virtual void update_full_rate() {}
 protected:
 
     // update_targets_from_rc - updates angle targets (i.e. _angle_ef_target_rad) using input from receiver

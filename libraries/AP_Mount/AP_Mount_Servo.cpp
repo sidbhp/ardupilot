@@ -1,7 +1,7 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #include <AP_Mount_Servo.h>
-
+#include <stdio.h>
 extern const AP_HAL::HAL& hal;
 
 // init - performs any required initialisation for this instance
@@ -19,7 +19,6 @@ void AP_Mount_Servo::init(const AP_SerialManager& serial_manager)
         _pan_idx  = RC_Channel_aux::k_mount2_pan;
         _open_idx = RC_Channel_aux::k_mount2_open;
     }
-
     // check which servos have been assigned
     check_servo_map();
 }
@@ -113,6 +112,45 @@ void AP_Mount_Servo::update()
 
 }
 
+void AP_Mount_Servo::update_full_rate()
+{
+    const AP_InertialSensor &ins = _frontend._ahrs.get_ins();
+    const Vector3f &gyro = ins.get_gyro();
+    mavlink_channel_t chan = MAVLINK_COMM_2;
+
+    static uint64_t last_time, counter;
+    uint64_t current_time = hal.scheduler->micros();
+    counter++;
+    static float rate;
+    Quaternion quat;
+    _frontend._ahrs.get_NavEKF_const().getQuaternion(quat);
+    float roll, pitch,yaw;
+    quat.to_euler(roll,pitch,yaw);
+    yaw = 0.0f;
+    quat.from_euler(roll,pitch,yaw);
+    rate += 1e6f/(current_time-last_time);
+    if(counter > 100) {
+        printf("Rate: %f %f %f\n", rate/counter, degrees(_frontend._ahrs.roll) , degrees(_frontend._ahrs.pitch) );
+        rate = 0;
+        counter = 0;
+    }
+
+    //Quaternion quat;
+    //quat.from_euler(_frontend._ahrs.roll,_frontend._ahrs.pitch,0);
+    if(degrees(_frontend._ahrs.roll) > 150 || degrees(_frontend._ahrs.roll) < -150) {
+        return;
+    }
+    mavlink_msg_attitude_send(
+        chan,
+        hal.scheduler->millis(),
+        quat.q2/quat.q1,            //these will be normalised again on gimbal
+        quat.q3/quat.q1,
+        quat.q4/quat.q1,
+        gyro.x,
+        gyro.y,
+        gyro.z);
+    last_time = current_time;
+}
 // set_mode - sets mount's mode
 void AP_Mount_Servo::set_mode(enum MAV_MOUNT_MODE mode)
 {
@@ -161,27 +199,6 @@ void AP_Mount_Servo::stabilize()
         _angle_bf_output_deg.x = degrees(_angle_ef_target_rad.x);
         _angle_bf_output_deg.y = degrees(_angle_ef_target_rad.y);
         _angle_bf_output_deg.z = degrees(_angle_ef_target_rad.z);
-        if (_state._stab_roll) {
-            _angle_bf_output_deg.x -= degrees(_frontend._ahrs.roll);
-        }
-        if (_state._stab_tilt) {
-            _angle_bf_output_deg.y -= degrees(_frontend._ahrs.pitch);
-        }
-
-        // lead filter
-        const Vector3f &gyro = _frontend._ahrs.get_gyro();
-
-        if (_state._stab_roll && _state._roll_stb_lead != 0.0f && fabsf(_frontend._ahrs.pitch) < M_PI/3.0f) {
-            // Compute rate of change of euler roll angle
-            float roll_rate = gyro.x + (_frontend._ahrs.sin_pitch() / _frontend._ahrs.cos_pitch()) * (gyro.y * _frontend._ahrs.sin_roll() + gyro.z * _frontend._ahrs.cos_roll());
-            _angle_bf_output_deg.x -= degrees(roll_rate) * _state._roll_stb_lead;
-        }
-
-        if (_state._stab_tilt && _state._pitch_stb_lead != 0.0f) {
-            // Compute rate of change of euler pitch angle
-            float pitch_rate = _frontend._ahrs.cos_pitch() * gyro.y - _frontend._ahrs.sin_roll() * gyro.z;
-            _angle_bf_output_deg.y -= degrees(pitch_rate) * _state._pitch_stb_lead;
-        }
     }
 }
 

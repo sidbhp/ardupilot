@@ -39,6 +39,8 @@ public:
     // update mount position - should be called periodically
     virtual void update();
 
+    virtual void update_full_rate();
+
     // has_pan_control - returns true if this mount can control it's pan (required for multicopters)
     virtual bool has_pan_control() const { return _flags.pan_control; }
 
