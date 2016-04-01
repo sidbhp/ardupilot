@@ -94,6 +94,8 @@ public:
 
     void update_fast();
 
+    void update_full_rate();
+
     // set_mode_to_default - restores the mode to it's default mode held in the MNT_DEFLT_MODE parameter
     //      this operation requires 230us on an APM2, 60us on a Pixhawk/PX4
     void set_mode_to_default() { set_mode_to_default(_primary); }

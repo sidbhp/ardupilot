@@ -9,7 +9,7 @@
 #include <AP_Mount_MAVLink.h>
 #include <AP_Mount_Alexmos.h>
 #include <AP_Mount_SToRM32.h>
-
+#include <stdio.h>
 const AP_Param::GroupInfo AP_Mount::var_info[] PROGMEM = {
     // @Param: _DEFLT_MODE
     // @DisplayName: Mount default operating mode
@@ -572,6 +572,15 @@ void AP_Mount::update_fast()
     for (uint8_t instance=0; instance<AP_MOUNT_MAX_INSTANCES; instance++) {
         if (_backends[instance] != NULL) {
             _backends[instance]->update_fast();
+        }
+    }
+}
+
+void AP_Mount::update_full_rate()
+{
+    for (uint8_t instance=0; instance<AP_MOUNT_MAX_INSTANCES; instance++) {
+        if (_backends[instance] != NULL) {
+            _backends[instance]->update_full_rate();
         }
     }
 }
