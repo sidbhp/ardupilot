@@ -11,7 +11,7 @@ const AP_HAL::HAL& hal = AP_HAL::get_HAL();
 #define NUM_CHANNELS 4
 #define ESC_MAGIC 0xF7
 #define RC_SPEED 490
-#define UART uartE
+#define UART uartB
 
 class RC_UART : public AP_HAL::HAL::Callbacks {
 public:
@@ -23,13 +23,14 @@ private:
     uint8_t read_wait(void);
     uint8_t enable_mask;
     const uint32_t baudrate = 115200;
-    uint32_t counter;
+    //uint32_t counter;
 
     RC_Channel rc_1{0};
     RC_Channel rc_2{1};
     RC_Channel rc_3{2};
     RC_Channel rc_4{3};
     RC_Channel *rc = &rc_1;
+    uint32_t _last_updated;
 };
 
 void RC_UART::setup()
@@ -38,6 +39,18 @@ void RC_UART::setup()
     hal.console->println("RC_UART starting");
     hal.UART->begin(baudrate, 512, 512);
     hal.rcout->set_freq(0xFF, RC_SPEED);
+    for (uint8_t i=0; i<NUM_CHANNELS; i++) {
+
+        if (!(enable_mask & 1U<<i)) {
+            if (enable_mask == 0) {
+                hal.rcout->force_safety_off();
+            }
+            rc[i].enable_out();
+            enable_mask |= 1U<<i;
+        }
+        rc[i].radio_out = 900;
+        rc[i].output();
+    }
 }
 
 uint8_t RC_UART::read_wait(void)
@@ -47,6 +60,21 @@ uint8_t RC_UART::read_wait(void)
         if (c != -1) {
             // hal.console->printf("c=0x%02x\n", (unsigned)c);
             return c;
+        }
+        if((AP_HAL::millis() - _last_updated) > 1000) {
+            //Shutdown motors if no rc received for 1s
+            for (uint8_t i=0; i<NUM_CHANNELS; i++) {
+
+                if (!(enable_mask & 1U<<i)) {
+                    if (enable_mask == 0) {
+                        hal.rcout->force_safety_off();
+                    }
+                    rc[i].enable_out();
+                    enable_mask |= 1U<<i;
+                }
+                rc[i].radio_out = 900;
+                rc[i].output();
+            }
         }
         hal.scheduler->delay_microseconds(100);
     }
@@ -71,7 +99,6 @@ void RC_UART::loop()
     while (nbytes < NUM_CHANNELS*2) {
         u.bytes[nbytes++] = read_wait();
     }
-
     // and CRC
     union {
         uint8_t crc[2];
@@ -81,7 +108,7 @@ void RC_UART::loop()
     u2.crc[1] = read_wait();
     uint16_t crc2 = crc_calculate(u.bytes, NUM_CHANNELS*2);
     if (crc2 != u2.crc16) {
-        hal.console->printf("bad CRC 0x%04x should be 0x%04x\n", (unsigned)crc2, (unsigned)u2.crc16);
+        //hal.console->printf("bad CRC 0x%04x should be 0x%04x\n", (unsigned)crc2, (unsigned)u2.crc16);
         return;
     }
 
@@ -100,19 +127,20 @@ void RC_UART::loop()
         rc[i].radio_out = u.period[i];
         rc[i].output();
     }
+    _last_updated = AP_HAL::millis();
 
     // report periods to console for debug
-    counter++;
-    if (counter % 100 == 0) {
-        hal.console->printf("%4u %4u %4u %4u\n",
-                            (unsigned)u.period[0],
-                            (unsigned)u.period[1],
-                            (unsigned)u.period[2],
-                            (unsigned)u.period[3]);
-    }
+    //counter++;
+    //if (counter % 10 == 0) {
+        //hal.console->printf("%4u %4u %4u %4u\n",
+        //                    (unsigned)u.period[0],
+        //                    (unsigned)u.period[1],
+        //                    (unsigned)u.period[2],
+        //                    (unsigned)u.period[3]);
+    //}
 
     // every 10th frame give an RCInput frame if possible
-    if (counter % 10 == 0) {
+    /*if (counter % 10 == 0) {
         struct PACKED {
             uint8_t magic = 0xf6;
             uint16_t rcin[8];
@@ -122,7 +150,7 @@ void RC_UART::loop()
             rcin.crc = crc_calculate((uint8_t*)&rcin.rcin[0], 16);
             hal.UART->write((uint8_t*)&rcin, sizeof(rcin));
         }
-    }
+    }*/
 }
 
 RC_UART rc_uart;
