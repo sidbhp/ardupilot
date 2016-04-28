@@ -124,10 +124,8 @@ void AP_Mount_Servo::update_full_rate()
     static float rate;
     Quaternion quat;
     _frontend._ahrs.get_NavEKF_const().getQuaternion(quat);
-    float roll, pitch,yaw;
-    quat.to_euler(roll,pitch,yaw);
-    yaw = 0.0f;
-    quat.from_euler(roll,pitch,yaw);
+    float roll, pitch, yaw;
+    quat.to_vector312(roll, pitch, yaw);
     rate += 1e6f/(current_time-last_time);
     if(counter > 100) {
         printf("Rate: %f %f %f\n", rate/counter, degrees(_frontend._ahrs.roll) , degrees(_frontend._ahrs.pitch) );
@@ -143,9 +141,9 @@ void AP_Mount_Servo::update_full_rate()
     mavlink_msg_attitude_send(
         chan,
         hal.scheduler->millis(),
-        quat.q2/quat.q1,            //these will be normalised again on gimbal
-        quat.q3/quat.q1,
-        quat.q4/quat.q1,
+        roll,            //these will be normalised again on gimbal
+        pitch,
+        yaw,
         gyro.x,
         gyro.y,
         gyro.z);
