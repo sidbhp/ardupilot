@@ -109,6 +109,8 @@ public:
     //  used on APM2 to switch the console between the console baud rate (115200) and the SERIAL1 baud rate (user configurable)
     void set_console_baud(enum SerialProtocol protocol, uint8_t instance) const;
 
+    void set_and_save_baud(enum SerialProtocol protocol, uint8_t instance, uint32_t baud);
+
     // parameter var table
     static const struct AP_Param::GroupInfo var_info[];
 
