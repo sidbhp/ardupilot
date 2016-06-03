@@ -10,6 +10,9 @@
 #include <AP_Mount_Alexmos.h>
 #include <AP_Mount_SToRM32.h>
 #include <stdio.h>
+
+extern const AP_HAL::HAL& hal;
+
 const AP_Param::GroupInfo AP_Mount::var_info[] PROGMEM = {
     // @Param: _DEFLT_MODE
     // @DisplayName: Mount default operating mode
@@ -392,6 +395,9 @@ AP_Mount::AP_Mount(const AP_AHRS_TYPE &ahrs, const struct Location &current_loc)
     _num_instances(0),
     _mav_gimbal_found(false),
     _primary(0),
+    _last_time(0),
+    _timeout(false),
+    _retries(0),
     primary_set(false)
 {
 	AP_Param::setup_object_defaults(this, var_info);
@@ -444,10 +450,15 @@ void AP_Mount::init(DataFlash_Class *dataflash, const AP_SerialManager& serial_m
 }
 
 // update - give mount opportunity to update servos.  should be called at 10hz or higher
-void AP_Mount::update(uint8_t mount_compid,  const AP_SerialManager& serial_manager)
+void AP_Mount::update(uint8_t mount_compid,  AP_SerialManager& serial_manager)
 {
 #if AP_AHRS_NAVEKF_AVAILABLE
     for (uint8_t instance=0; instance<AP_MOUNT_MAX_INSTANCES; instance++) {
+
+        if(_retries > MAX_RETRIES) { //no mavlink gimbal found
+            break;
+        }
+
         MountType mount_type = get_mount_type(instance);
         // check for MAVLink mounts
         if (mount_type == Mount_Type_MAVLink && !_mav_gimbal_found) {
@@ -455,19 +466,37 @@ void AP_Mount::update(uint8_t mount_compid,  const AP_SerialManager& serial_mana
                 _backends[instance] = new AP_Mount_MAVLink(*this, state[instance], instance);
                 _num_instances++;
                 _mav_gimbal_found = true;
-            } 
+            }
             if (mount_compid == MAV_COMP_ID_QX1_GIMBAL) {
                 _backends[instance] = new AP_Mount_Servo(*this, state[instance], instance);
                 _num_instances++;
                 _mav_gimbal_found = true;
             }
             // init new instance
-            if (_backends[instance] != NULL) {
+            if (_backends[instance] != NULL && _mav_gimbal_found) {
                 _backends[instance]->init(serial_manager);
                 if (!primary_set) {
                     _primary = instance;
                     primary_set = true;
                 }
+            } else if(_timeout) {
+                //change baud rate of gimbal port and retry
+                uint32_t baud = serial_manager.find_baudrate(AP_SerialManager::SerialProtocol_MAVLink,1);
+                AP_HAL::UARTDriver *uart = serial_manager.find_serial(AP_SerialManager::SerialProtocol_MAVLink,1);
+                if(baud == 921600) {
+                    serial_manager.set_and_save_baud(AP_SerialManager::SerialProtocol_MAVLink,1,38400);
+                } else if(baud == 38400) {
+                    serial_manager.set_and_save_baud(AP_SerialManager::SerialProtocol_MAVLink,1,921600);
+
+                }
+                _timeout = false;
+                _last_time = hal.scheduler->millis();
+                _retries++;
+                if(_retries == MAX_RETRIES) {
+                    printf("No MavLink Gimbal Found!\n");
+                }
+            } else {
+                _timeout = ((hal.scheduler->millis() - _last_time)>=1000) ? true : false;
             }
         }
     }
