@@ -128,7 +128,6 @@ void AP_Mount_Servo::update_full_rate()
     quat.to_vector312(roll, pitch, yaw);
     rate += 1e6f/(current_time-last_time);
     if(counter > 100) {
-        printf("Rate: %f %f %f\n", rate/counter, degrees(_frontend._ahrs.roll) , degrees(_frontend._ahrs.pitch) );
         rate = 0;
         counter = 0;
     }
