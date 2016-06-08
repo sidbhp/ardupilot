@@ -483,20 +483,25 @@ void AP_Mount::update(uint8_t mount_compid,  AP_SerialManager& serial_manager)
                 //change baud rate of gimbal port and retry
                 uint32_t baud = serial_manager.find_baudrate(AP_SerialManager::SerialProtocol_MAVLink,1);
                 AP_HAL::UARTDriver *uart = serial_manager.find_serial(AP_SerialManager::SerialProtocol_MAVLink,1);
+                hal.console->printf("Looking for Gimbal @ baud: %d!!\n", baud);
                 if(baud == 921600) {
+                    hal.console->printf("Looking for R10C Gimbal!!\n");
                     serial_manager.set_and_save_baud(AP_SerialManager::SerialProtocol_MAVLink,1,38400);
                 } else if(baud == 38400) {
+                    hal.console->printf("Looking for Solo Gimbal!!\n");
                     serial_manager.set_and_save_baud(AP_SerialManager::SerialProtocol_MAVLink,1,921600);
-
+                } else {
+                    serial_manager.set_and_save_baud(AP_SerialManager::SerialProtocol_MAVLink,1,38400);
                 }
+
                 _timeout = false;
                 _last_time = hal.scheduler->millis();
                 _retries++;
                 if(_retries == MAX_RETRIES) {
-                    printf("No MavLink Gimbal Found!\n");
+                    hal.console->printf("No MavLink Gimbal Found!!\n");
                 }
             } else {
-                _timeout = ((hal.scheduler->millis() - _last_time)>=1000) ? true : false;
+                _timeout = ((hal.scheduler->millis() - _last_time)>=5000) ? true : false;
             }
         }
     }
