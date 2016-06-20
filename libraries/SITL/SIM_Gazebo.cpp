@@ -22,6 +22,7 @@
 #include <stdio.h>
 
 #include <AP_HAL/AP_HAL.h>
+#include <errno.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -30,12 +31,15 @@ namespace SITL {
 Gazebo::Gazebo(const char *home_str, const char *frame_str) :
     Aircraft(home_str, frame_str),
     last_timestamp(0),
-    sock(true)
+    sock(false)
 {
     // try to bind to a specific port so that if we restart ArduPilot
     // Gazebo keeps sending us packets. Not strictly necessary but
     // useful for debugging
-    sock.bind("127.0.0.1", 9003);
+    if (!sock.connect("127.0.0.1", 9003)) {
+        fprintf(stdout, "SITL: socket bind failed - %s\n", strerror(errno));
+        exit(1);
+    }
 
     sock.reuseaddress();
     sock.set_blocking(false);

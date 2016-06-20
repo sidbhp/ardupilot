@@ -53,11 +53,11 @@ void AP_InertialSensor_SITL::timer_update(void)
 {
     // minimum noise levels are 2 bits, but averaged over many
     // samples, giving around 0.01 m/s/s
-    float accel_noise = 0.01f;
-    float accel2_noise = 0.01f;
+    float accel_noise = 0.0f;
+    float accel2_noise = 0.0f;
 
     // minimum gyro noise is also less than 1 bit
-    float gyro_noise = ToRad(0.04f);
+    float gyro_noise = ToRad(0.0f);
     if (sitl->motors_on) {
         // add extra noise when the motors are on
         accel_noise += sitl->accel_noise;
