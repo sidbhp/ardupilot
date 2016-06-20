@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-#include <fenv.h>
+#include "fenv.h"
 #endif
 
 #include <AP_Math/AP_Math.h>
