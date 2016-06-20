@@ -22,7 +22,11 @@
 
 #include <stdio.h>
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+#if defined(__APPLE__) && defined(__MACH__)
+#include <xmmintrin.h>
+#else
 #include <fenv.h>
+#endif
 #endif
 
 #include <AP_Math/AP_Math.h>
@@ -286,10 +290,14 @@ bool inverse4x4(float m[],float invOut[])
     uint8_t i;
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    #if defined(__APPLE__) && defined(__MACH__)
+    _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID);
+    #else
     int old = fedisableexcept(FE_OVERFLOW);
     if (old < 0) {
         hal.console->printf("inverse4x4(): warning: error on disabling FE_OVERFLOW floating point exception\n");
     }
+    #endif
 #endif
 
     inv[0] = m[5]  * m[10] * m[15] -
@@ -407,9 +415,14 @@ bool inverse4x4(float m[],float invOut[])
     det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    #if defined(__APPLE__) && defined(__MACH__)
+    _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() | _MM_MASK_INVALID);
+
+    #else
     if (old >= 0 && feenableexcept(old) < 0) {
         hal.console->printf("inverse4x4(): warning: error on restoring floating exception mask\n");
     }
+    #endif
 #endif
 
     if (is_zero(det) || isinf(det)){
