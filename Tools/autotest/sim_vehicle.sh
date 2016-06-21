@@ -31,6 +31,22 @@ DELAY_START=0
 DEFAULTS_PATH=""
 MAVLINK_PROTOCOL_VERSION="1"
 
+platform='unknown'
+unamestr=`uname`
+if [[ "$unamestr" == 'Linux' ]]; then
+   platform='linux'
+elif [[ "$unamestr" == 'Darwin' ]]; then
+   platform='macosx'
+fi
+
+if [[ "$platform" == 'macosx' ]]; then
+  READLINK="greadlink"
+  command -v $READLINK >/dev/null 2>&1 || { echo >&2 "Please Install readlink alternative. 
+Suggested command \"brew install coreutils\""; exit 1; }
+else
+  READLINK="readlink"
+fi
+
 usage()
 {
 cat <<EOF
@@ -242,7 +258,7 @@ autotest="../Tools/autotest"
 [ -d "$autotest" ] || {
     # we are not running from one of the standard vehicle directories. Use 
     # the location of the sim_vehicle.sh script to find the path
-    autotest=$(dirname $(readlink -e $0))
+    autotest=$(dirname $($READLINK -e $0))
 }
 
 # modify build target based on copter frame type
@@ -378,7 +394,7 @@ fi
 
 VEHICLEDIR="$autotest/../../$VEHICLE"
 [ -d "$VEHICLEDIR" ] || {
-    VEHICLEDIR=$(dirname $(readlink -e $VEHICLEDIR))
+    VEHICLEDIR=$(dirname $($READLINK -e $VEHICLEDIR))
 }
 pushd $VEHICLEDIR || {
     echo "Failed to change to vehicle directory for $VEHICLEDIR"
