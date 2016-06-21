@@ -148,9 +148,15 @@ class Board:
                 '-O0',
             ]
 
-        env.LINKFLAGS += [
-            '-Wl,--gc-sections',
-        ]
+        if sys.platform == 'darwin':
+            env.LINKFLAGS += [
+                '-Wl,-dead_strip',
+            ]
+        else:
+            env.LINKFLAGS += [
+                '-Wl,--gc-sections',
+            ]
+
 
     def build(self, bld):
         bld.ap_version_append_str('GIT_VERSION', bld.git_head_hash(short=True))
@@ -192,7 +198,7 @@ class sitl(Board):
             'm',
         ]
 
-        cfg.check_librt(env)
+        cfg.check_librt(env, mandatory=False)
 
         env.LINKFLAGS += ['-pthread',]
         env.AP_LIBRARIES += [
