@@ -103,7 +103,8 @@ public:
     AP_Int16 flow_rate; // optflow data rate (Hz)
     AP_Int8  flow_delay; // optflow data delay
     AP_Int8  terrain_enable; // enable using terrain for height
-
+    AP_Int8  vispos_enable;
+    AP_Int16  vispos_rate;
     // wind control
     AP_Float wind_speed;
     AP_Float wind_direction;

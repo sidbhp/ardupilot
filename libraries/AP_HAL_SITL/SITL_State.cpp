@@ -84,6 +84,7 @@ void SITL_State::_sitl_setup(const char *home_str)
     _terrain = (AP_Terrain *)AP_Param::find_object("TERRAIN_");
 #endif
     _optical_flow = (OpticalFlow *)AP_Param::find_object("FLOW");
+    _vispos = (AP_VisPos *)AP_Param::find_object("VISPOS");
 
     if (_sitl != NULL) {
         // setup some initial values
@@ -173,6 +174,7 @@ void SITL_State::_fdm_input_step(void)
         _update_barometer(_sitl->state.altitude);
         _update_compass(_sitl->state.rollDeg, _sitl->state.pitchDeg, _sitl->state.yawDeg);
         _update_flow();
+        _update_vispos();
     }
 
     // trigger all APM timers.

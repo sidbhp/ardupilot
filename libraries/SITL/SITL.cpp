@@ -81,6 +81,8 @@ const AP_Param::GroupInfo SITL::var_info[] = {
     AP_GROUPINFO("ADSB_ALT",      47, SITL,  adsb_altitude_m, 1000),
     AP_GROUPINFO("MAG_ALY",       48, SITL,  mag_anomaly_ned, 0),
     AP_GROUPINFO("MAG_ALY_HGT",   49, SITL,  mag_anomaly_hgt, 1.0f),
+    AP_GROUPINFO("VP_ENABLE", 50, SITL,  vispos_enable, 1),
+    AP_GROUPINFO("VP_RATE",   51, SITL,  vispos_rate, 50),
     AP_GROUPEND
 };
 

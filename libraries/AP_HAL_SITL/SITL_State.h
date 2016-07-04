@@ -87,6 +87,7 @@ private:
     void _update_barometer(float height);
     void _update_compass(float rollDeg, float pitchDeg, float yawDeg);
     void _update_flow(void);
+    void _update_vispos(void);
 
     struct gps_data {
         double latitude;
@@ -151,6 +152,7 @@ private:
     Scheduler *_scheduler;
     Compass *_compass;
     OpticalFlow *_optical_flow;
+    AP_VisPos *_vispos;
 #if AP_TERRAIN_AVAILABLE
     AP_Terrain *_terrain;
 #endif
