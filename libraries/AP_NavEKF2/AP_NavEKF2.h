@@ -29,6 +29,7 @@
 #include <AP_Compass/AP_Compass.h>
 #include <AP_NavEKF/AP_Nav_Common.h>
 #include <AP_RangeFinder/AP_RangeFinder.h>
+#include <AP_VisPos/AP_VisPos.h>
 
 class NavEKF2_core;
 class AP_AHRS;
@@ -39,7 +40,7 @@ public:
     friend class NavEKF2_core;
     static const struct AP_Param::GroupInfo var_info[];
 
-    NavEKF2(const AP_AHRS *ahrs, AP_Baro &baro, const RangeFinder &rng);
+    NavEKF2(const AP_AHRS *ahrs, AP_Baro &baro, const RangeFinder &rng, AP_VisPos &vispos);
 
     // allow logging to determine the number of active cores
     uint8_t activeCores(void) const {
@@ -278,6 +279,7 @@ private:
     const AP_AHRS *_ahrs;
     AP_Baro &_baro;
     const RangeFinder &_rng;
+    AP_VisPos &_vispos;
 
     // EKF Mavlink Tuneable Parameters
     AP_Int8  _enable;               // zero to disable EKF2
