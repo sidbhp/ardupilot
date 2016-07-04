@@ -88,6 +88,7 @@
 #include <AP_RPM/AP_RPM.h>
 #include <AC_InputManager/AC_InputManager.h>        // Pilot input handling library
 #include <AC_InputManager/AC_InputManager_Heli.h>   // Heli specific pilot input handling library
+#include <AP_VisPos/AP_VisPos.h>
 
 // Configuration
 #include "defines.h"
@@ -163,6 +164,8 @@ private:
 
     AP_GPS gps;
 
+    AP_VisPos vispos;
+
     // flight modes convenience array
     AP_Int8 *flight_modes;
 
@@ -183,7 +186,7 @@ private:
 
     // Inertial Navigation EKF
     NavEKF EKF{&ahrs, barometer, rangefinder};
-    NavEKF2 EKF2{&ahrs, barometer, rangefinder};
+    NavEKF2 EKF2{&ahrs, barometer, rangefinder, vispos};
     AP_AHRS_NavEKF ahrs{ins, barometer, gps, rangefinder, EKF, EKF2, AP_AHRS_NavEKF::FLAG_ALWAYS_USE_EKF};
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
@@ -974,6 +977,7 @@ private:
     bool rangefinder_alt_ok();
     void init_compass();
     void init_optflow();
+    void init_vispos();
     void update_optical_flow(void);
     void init_precland();
     void update_precland();

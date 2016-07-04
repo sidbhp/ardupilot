@@ -912,6 +912,10 @@ const AP_Param::Info Copter::var_info[] = {
     // @Path: ../libraries/AP_OpticalFlow/OpticalFlow.cpp
     GOBJECT(optflow,   "FLOW", OpticalFlow),
 #endif
+    // @Group: VISPOS
+    // @Path: ../libraries/AP_VisPos/AP_VisPos.cpp
+    GOBJECT(vispos,   "VISPOS", AP_VisPos),
+
 
 #if PRECISION_LANDING == ENABLED
     // @Group: PLND_

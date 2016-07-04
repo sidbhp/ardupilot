@@ -120,6 +120,18 @@ void Copter::init_optflow()
 #endif      // OPTFLOW == ENABLED
 }
 
+// initialise optical flow sensor
+void Copter::init_vispos()
+{
+    // exit immediately if not enabled
+    if (!vispos.enabled()) {
+        return;
+    }
+
+    // initialise visual positioning
+    vispos.init();
+}
+
 // called at 200hz
 #if OPTFLOW == ENABLED
 void Copter::update_optical_flow(void)

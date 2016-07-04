@@ -27,6 +27,7 @@ def build(bld):
             'AP_RCMapper',
             'AP_Relay',
             'AP_ServoRelayEvents',
+            'AP_VisPos'
         ],
         use='mavlink',
     )

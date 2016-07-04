@@ -205,6 +205,7 @@ void Copter::init_ardupilot()
 
     // init the optical flow sensor
     init_optflow();
+    init_vispos();
 
 #if MOUNT == ENABLED
     // initialise camera mount

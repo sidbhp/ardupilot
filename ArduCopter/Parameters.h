@@ -180,7 +180,8 @@ public:
         k_param_disarm_delay,
         k_param_fs_crash_check,
         k_param_throw_motor_start,
-        k_param_terrain_follow,    // 94
+        k_param_terrain_follow,
+        k_param_vispos,    // 95
 
         // 97: RSSI
         k_param_rssi = 97,
