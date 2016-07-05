@@ -1833,7 +1833,11 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
 
         break;
     }
-
+    case MAVLINK_MSG_ID_RAW_POS_ATT:
+    {
+        copter.vispos.handle_raw_vispos_report(chan, msg);
+        break;
+    }
     case MAVLINK_MSG_ID_DISTANCE_SENSOR:
     {
         result = MAV_RESULT_ACCEPTED;
