@@ -164,7 +164,7 @@ private:
 
     AP_GPS gps;
 
-    AP_VisPos vispos;
+    AP_VisPos vispos{DataFlash};
 
     // flight modes convenience array
     AP_Int8 *flight_modes;
