@@ -78,6 +78,9 @@ public:
     /* parse a home location string */
     static bool parse_home(const char *home_str, Location &loc, float &yaw_degrees);
 
+    /*get home location*/
+    Location get_home() { return home; }
+
     // get frame rate of model in Hz
     float get_rate_hz(void) const { return rate_hz; }       
 
