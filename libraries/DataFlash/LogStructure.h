@@ -213,6 +213,19 @@ struct PACKED log_POS {
     float rel_alt;
 };
 
+struct PACKED log_VPOS {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint64_t sample_time_us;
+    float x;
+    float y;
+    float z;
+    float q0;
+    float q1;
+    float q2;
+    float q3;
+};
+
 struct PACKED log_POWR {
     LOG_PACKET_HEADER;
     uint64_t time_us;
@@ -887,7 +900,9 @@ Format characters in the format string for binary log messages
     { LOG_GIMBAL3_MSG, sizeof(log_Gimbal3), \
       "GMB3", "Ihhh", "TimeMS,rl_torque_cmd,el_torque_cmd,az_torque_cmd" }, \
     { LOG_RATE_MSG, sizeof(log_Rate), \
-      "RATE", "Qffffffffffff",  "TimeUS,RDes,R,ROut,PDes,P,POut,YDes,Y,YOut,ADes,A,AOut" }
+      "RATE", "Qffffffffffff",  "TimeUS,RDes,R,ROut,PDes,P,POut,YDes,Y,YOut,ADes,A,AOut" }, \
+    { LOG_VPOS_MSG, sizeof(log_VPOS), \
+      "VPOS", "QQfffffff", "TimeUS,SampleUS,x,y,z,q0,q1,q2,q3" }
 
 // #if SBP_HW_LOGGING
 #define LOG_SBP_STRUCTURES \
@@ -1002,6 +1017,7 @@ enum LogMessages {
     LOG_GIMBAL2_MSG,
     LOG_GIMBAL3_MSG,
     LOG_RATE_MSG,
+    LOG_VPOS_MSG,
 };
 
 enum LogOriginType {
