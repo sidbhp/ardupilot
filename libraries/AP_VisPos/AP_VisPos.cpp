@@ -16,6 +16,7 @@
 
 #include <AP_VisPos/AP_VisPos.h>
 #include "AP_VisPos_HIL.h"
+#include "AP_VisPos_MAVLink.h"
 #include "AP_VisPos_Backend.h"
 #include <stdio.h>
 extern const AP_HAL::HAL& hal;
@@ -37,7 +38,8 @@ const AP_Param::GroupInfo AP_VisPos::var_info[] = {
 
    AP_GROUPEND
 };
-AP_VisPos::AP_VisPos()
+AP_VisPos::AP_VisPos(DataFlash_Class &dataflash) :
+_dataflash(dataflash)
 {
     _backend = NULL;
 }

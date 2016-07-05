@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <AP_VisPos/AP_VisPos_Backend.h>
+#include "AP_VisPos_Backend.h"
 
 class AP_VisPos_HIL : public AP_VisPos_Backend
 {

@@ -21,7 +21,7 @@
 #include <AP_Param/AP_Param.h>
 #include <AP_Math/AP_Math.h>
 #include <GCS_MAVLink/GCS_MAVLink.h>
-
+#include <DataFlash/DataFlash.h>
 
 #define VISPOS_TYPE_HIL    0
 #define VISPOS_TYPE_MAV    1
@@ -34,8 +34,9 @@ class AP_VisPos
 public:
    friend class AP_VisPos_Backend;
    friend class AP_VisPos_HIL;
+   friend class AP_VisPos_MAVLink;
 
-   AP_VisPos();
+   AP_VisPos(DataFlash_Class &dataflash);
 
    //Initialise user selected visual position
    void init(void);
@@ -55,4 +56,5 @@ private:
    AP_Int8 _vispos_type;
    AP_Int8 _enable;
    AP_VisPos_Backend* _backend;
+   DataFlash_Class &_dataflash;
 };

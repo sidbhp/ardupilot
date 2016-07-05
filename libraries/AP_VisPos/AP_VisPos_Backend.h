@@ -21,7 +21,7 @@
 #include <AP_Param/AP_Param.h>
 #include <AP_Math/AP_Math.h>
 #include <GCS_MAVLink/GCS_MAVLink.h>
-#include <AP_VisPos/AP_VisPos.h>
+#include "AP_VisPos.h"
 
 class AP_VisPos_Backend
 {
@@ -45,7 +45,7 @@ public:
 
    virtual void set_last_pos_msg_time_ms(uint32_t ts_ms) { _last_pos_msg_time_ms = ts_ms; }
 
-private:
+protected:
 
    AP_VisPos* _frontend;
 
