@@ -29,8 +29,8 @@
 #include <AP_Compass/AP_Compass.h>
 #include <AP_NavEKF/AP_Nav_Common.h>
 #include <AP_RangeFinder/AP_RangeFinder.h>
-#include <AP_VisPos/AP_VisPos.h>
 
+class AP_VisPos;
 class NavEKF2_core;
 class AP_AHRS;
 

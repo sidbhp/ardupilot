@@ -7,6 +7,7 @@
 #include <AP_Vehicle/AP_Vehicle.h>
 #include <GCS_MAVLink/GCS.h>
 #include <DataFlash/DataFlash.h>
+#include <AP_VisPos/AP_VisPos.h>
 
 /*
   parameter defaults for different types of vehicle. The
