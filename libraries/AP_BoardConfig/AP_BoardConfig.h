@@ -142,6 +142,7 @@ private:
     void px4_tone_alarm(const char *tone_string);
     bool spi_check_register(const char *devname, uint8_t regnum, uint8_t value, uint8_t read_flag = 0x80);
 
+
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
     void px4_autodetect(void);
 #endif

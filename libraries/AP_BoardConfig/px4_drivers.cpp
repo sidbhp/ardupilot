@@ -501,6 +501,12 @@ void AP_BoardConfig::px4_autodetect(void)
 #elif defined(CONFIG_ARCH_BOARD_AEROFC_V1)
     px4.board_type.set_and_notify(PX4_BOARD_AEROFC);
     hal.console->printf("Detected Aero FC\n");
+#elif defined(CONFIG_ARCH_BOARD_PX4SPARROW_V10)
+    px4.board_type.set_and_notify(PX4_BOARD_SPV10);
+    hal.console->printf("Detected Aero FC\n");
+#elif defined(CONFIG_ARCH_BOARD_SP_V3)
+    px4.board_type.set_and_notify(PX4_BOARD_SPV3);
+    hal.console->printf("Detected Aero FC\n");
 #endif
 
 }

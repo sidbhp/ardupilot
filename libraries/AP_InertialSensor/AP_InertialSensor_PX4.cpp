@@ -155,7 +155,6 @@ bool AP_InertialSensor_PX4::_init_sensor(void)
         _accel_instance[i] = _imu.register_accel(samplerate, ioctl(fd, DEVIOCGDEVICEID, 0));
         _accel_sample_time[i] = 1.0f / samplerate;
     }
-
     return true;
 }
 
