@@ -41,8 +41,8 @@ extern "C" {
     int mpu6000_main(int , char **);
     int mpu9250_main(int , char **);
     int ms5611_main(int , char **);
-    int l3gd20_main(int , char **);
-    int lsm303d_main(int , char **);
+//    int l3gd20_main(int , char **);
+//    int lsm303d_main(int , char **);
     int hmc5883_main(int , char **);
     int ets_airspeed_main(int, char **);
     int meas_airspeed_main(int, char **);
@@ -388,17 +388,17 @@ void AP_BoardConfig::px4_start_fmuv5_sensors(void)
     }
     if (have_FMUV3) {
         // external L3GD20 is rotated YAW_180 from standard
-        if (px4_start_driver(l3gd20_main, "l3gd20", "-X -R 4 start")) {
-            printf("l3gd20 external started OK\n");
-        } else {
-            px4_sensor_error("No l3gd20");
-        }
-        // external LSM303D is rotated YAW_270 from standard
-        if (px4_start_driver(lsm303d_main, "lsm303d", "-a 16 -X -R 6 start")) {
-            printf("lsm303d external started OK\n");
-        } else {
-            px4_sensor_error("No lsm303d");
-        }
+//        if (px4_start_driver(l3gd20_main, "l3gd20", "-X -R 4 start")) {
+//            printf("l3gd20 external started OK\n");
+//        } else {
+//            px4_sensor_error("No l3gd20");
+//        }
+//        // external LSM303D is rotated YAW_270 from standard
+//        if (px4_start_driver(lsm303d_main, "lsm303d", "-a 16 -X -R 6 start")) {
+//            printf("lsm303d external started OK\n");
+//        } else {
+//            px4_sensor_error("No lsm303d");
+//        }
         // internal MPU6000 is rotated ROLL_180_YAW_270 from standard
         if (px4_start_driver(mpu6000_main, "mpu6000", "-R 14 start")) {
             printf("Found MPU6000 internal\n");
@@ -423,16 +423,16 @@ void AP_BoardConfig::px4_start_fmuv5_sensors(void)
                 printf("No MPU6000 or MPU9250\n");
             }
         }
-        if (px4_start_driver(l3gd20_main, "l3gd20", "start")) {
-            printf("l3gd20 started OK\n");
-        } else {
-            px4_sensor_error("no l3gd20 found");
-        }
-        if (px4_start_driver(lsm303d_main, "lsm303d", "-a 16 start")) {
-            printf("lsm303d started OK\n");
-        } else {
-            px4_sensor_error("no lsm303d found");
-        }
+//        if (px4_start_driver(l3gd20_main, "l3gd20", "start")) {
+//            printf("l3gd20 started OK\n");
+//        } else {
+//            px4_sensor_error("no l3gd20 found");
+//        }
+//        if (px4_start_driver(lsm303d_main, "lsm303d", "-a 16 start")) {
+//            printf("lsm303d started OK\n");
+//        } else {
+//            px4_sensor_error("no lsm303d found");
+//        }
     }
 
     if (have_FMUV3) {
