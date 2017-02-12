@@ -67,8 +67,8 @@ then
         set BOARD FMUv1
     fi
 else
-    echo "Detected FMUv4 board"
-    set BOARD FMUv4
+    echo "Detected FMUv5 board"
+    set BOARD FMUv5
 fi
 
 if [ $BOARD == FMUv1 ]
@@ -82,7 +82,7 @@ then
     fi
 else
     set deviceC /dev/ttyS1
-    set deviceD /dev/ttyS2
+    set deviceD /dev/null
 fi
 
 if uorb start
