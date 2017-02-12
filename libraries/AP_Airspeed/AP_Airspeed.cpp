@@ -61,7 +61,7 @@ const AP_Param::GroupInfo AP_Airspeed::var_info[] = {
     // @Description: use airspeed for flight control
     // @Values: 1:Use,0:Don't Use
     // @User: Standard
-    AP_GROUPINFO("USE",    1, AP_Airspeed, _use, 0),
+    AP_GROUPINFO("USE",    1, AP_Airspeed, _use, 1),
 
     // @Param: OFFSET
     // @DisplayName: Airspeed offset
