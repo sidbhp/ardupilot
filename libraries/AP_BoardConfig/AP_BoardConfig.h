@@ -92,6 +92,7 @@ private:
     void px4_start_fmuv1_sensors(void);
     void px4_start_fmuv2_sensors(void);
     void px4_start_fmuv5_sensors(void);
+    void px4_start_fmuv6_sensors(void);
     void px4_start_fmuv4_sensors(void);
     void px4_start_pixhawk2slim_sensors(void);
     void px4_start_phmini_sensors(void);
