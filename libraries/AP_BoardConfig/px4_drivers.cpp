@@ -294,71 +294,8 @@ void AP_BoardConfig::px4_setup_drivers(void)
         px4.board_type = PX4_BOARD_AUTO;
     }
 
-<<<<<<< HEAD
     // run board auto-detection
     px4_autodetect();
-=======
-    // external MPU6000 is rotated YAW_180 from standard
-    if (px4_start_driver(mpu6000_main, "mpu6000", "-X -R 4 start")) {
-        printf("Found MPU6000 external\n");
-        have_FMUV3 = true;
-    } else {
-        if (px4_start_driver(mpu9250_main, "mpu9250", "-X -R 4 start")) {
-            printf("Found MPU9250 external\n");
-            have_FMUV3 = true;
-        } else {
-            printf("No MPU6000 or MPU9250 external\n");
-        }
-    }
-    if (have_FMUV3) {
-        // external L3GD20 is rotated YAW_180 from standard
-//        if (px4_start_driver(l3gd20_main, "l3gd20", "-X -R 4 start")) {
-//            printf("l3gd20 external started OK\n");
-//        } else {
-//            px4_sensor_error("No l3gd20");
-//        }
-//        // external LSM303D is rotated YAW_270 from standard
-//        if (px4_start_driver(lsm303d_main, "lsm303d", "-a 16 -X -R 6 start")) {
-//            printf("lsm303d external started OK\n");
-//        } else {
-//            px4_sensor_error("No lsm303d");
-//        }
-        // internal MPU6000 is rotated ROLL_180_YAW_270 from standard
-        if (px4_start_driver(mpu6000_main, "mpu6000", "-R 14 start")) {
-            printf("Found MPU6000 internal\n");
-        } else {
-            if (px4_start_driver(mpu9250_main, "mpu9250", "-R 14 start")) {
-                printf("Found MPU9250 internal\n");
-            } else {
-                px4_sensor_error("No MPU6000 or MPU9250");
-            }
-        }
-        if (px4_start_driver(hmc5883_main, "hmc5883", "-C -T -S -R 8 start")) {
-            printf("Found SPI hmc5883\n");
-        }
-    } else {
-        // not FMUV3 (ie. not a pixhawk2)
-        if (px4_start_driver(mpu6000_main, "mpu6000", "start")) {
-            printf("Found MPU6000\n");
-        } else {
-            if (px4_start_driver(mpu9250_main, "mpu9250", "start")) {
-                printf("Found MPU9250\n");
-            } else {
-                printf("No MPU6000 or MPU9250\n");
-            }
-        }
-//        if (px4_start_driver(l3gd20_main, "l3gd20", "start")) {
-//            printf("l3gd20 started OK\n");
-//        } else {
-//            px4_sensor_error("no l3gd20 found");
-//        }
-//        if (px4_start_driver(lsm303d_main, "lsm303d", "-a 16 start")) {
-//            printf("lsm303d started OK\n");
-//        } else {
-//            px4_sensor_error("no lsm303d found");
-//        }
-    }
->>>>>>> dfcffed... v10 mpu baro
 
     if (px4.board_type == PX4_BOARD_PH2SLIM ||
         px4.board_type == PX4_BOARD_PIXHAWK2) {
