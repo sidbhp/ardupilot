@@ -70,7 +70,7 @@ void PX4GPIO::init()
 void PX4GPIO::pinMode(uint8_t pin, uint8_t output)
 {
     switch (pin) {
-    case PX4_GPIO_FMU_SERVO_PIN(0) ... PX4_GPIO_FMU_SERVO_PIN(5):
+    case PX4_GPIO_FMU_SERVO_PIN(0) ... PX4_GPIO_FMU_SERVO_PIN(6):
         uint32_t pinmask = 1U<<(pin-PX4_GPIO_FMU_SERVO_PIN(0));
         if (output) {
             uint8_t old_value = read(pin);
@@ -89,7 +89,7 @@ void PX4GPIO::pinMode(uint8_t pin, uint8_t output)
 int8_t PX4GPIO::analogPinToDigitalPin(uint8_t pin)
 {
     switch (pin) {
-    case PX4_GPIO_FMU_SERVO_PIN(0) ... PX4_GPIO_FMU_SERVO_PIN(5):
+    case PX4_GPIO_FMU_SERVO_PIN(0) ... PX4_GPIO_FMU_SERVO_PIN(6):
         // the only pins that can be mapped are the FMU servo rail pins */
         return pin;
     }
@@ -160,7 +160,7 @@ uint8_t PX4GPIO::read(uint8_t pin) {
         }
 #endif
 
-    case PX4_GPIO_FMU_SERVO_PIN(0) ... PX4_GPIO_FMU_SERVO_PIN(5): {
+    case PX4_GPIO_FMU_SERVO_PIN(0) ... PX4_GPIO_FMU_SERVO_PIN(6): {
             uint32_t relays = 0;
             if (_gpio_io_fd == -1) {
                 return LOW;
@@ -250,7 +250,7 @@ void PX4GPIO::write(uint8_t pin, uint8_t value)
             break;
 #endif
 
-    case PX4_GPIO_FMU_SERVO_PIN(0) ... PX4_GPIO_FMU_SERVO_PIN(5):
+    case PX4_GPIO_FMU_SERVO_PIN(0) ... PX4_GPIO_FMU_SERVO_PIN(6):
         ioctl(_gpio_fmu_fd, value==LOW?GPIO_CLEAR:GPIO_SET, 1U<<(pin-PX4_GPIO_FMU_SERVO_PIN(0)));
         break;
     }
