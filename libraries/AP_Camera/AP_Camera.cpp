@@ -398,3 +398,41 @@ failed:
     }
     _timer_installed = true;
 }
+
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V6)
+void AP_Camera::switch_on(void){
+	if(_camera_switched_on){
+		return;
+	}
+    switch (_trigger_type)
+    {
+    case AP_CAMERA_TRIGGER_TYPE_SERVO:
+        return;                   // Servo operated camera --> do nothing
+        break;
+    case AP_CAMERA_TRIGGER_TYPE_RELAY:
+        _apm_relay->on(1);                  //replay high to switch on camera;
+        GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Camera: Swiched ON \n");
+        break;
+    }
+    _camera_switched_on = true;
+}
+
+void AP_Camera::switch_off(void){
+
+	if(!_camera_switched_on){
+		return;
+	}
+
+    switch (_trigger_type)
+    {
+    case AP_CAMERA_TRIGGER_TYPE_SERVO:
+        return;                   // Servo operated camera --> do nothing
+        break;
+    case AP_CAMERA_TRIGGER_TYPE_RELAY:
+        _apm_relay->off(1);                  //replay low to switch on camera;
+        GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Camera: Swiched OFF \n");
+        break;
+    }
+    _camera_switched_on = false;
+}
+#endif //defined(CONFIG_ARCH_BOARD_PX4FMU_V6)
