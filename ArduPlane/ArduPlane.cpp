@@ -101,6 +101,10 @@ void Plane::setup()
 
     init_ardupilot();
 
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V6)
+    	camera.switch_off();
+#endif
+
     // initialise the main loop scheduler
     scheduler.init(&scheduler_tasks[0], ARRAY_SIZE(scheduler_tasks));
 }
@@ -529,7 +533,9 @@ void Plane::handle_auto_mode(void)
     } else if (nav_cmd_id == MAV_CMD_NAV_LAND) {
         calc_nav_roll();
         calc_nav_pitch();
-        
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V6)
+        camera.switch_off();
+#endif
         if (auto_state.land_complete) {
             // during final approach constrain roll to the range
             // allowed for level flight
@@ -554,6 +560,11 @@ void Plane::handle_auto_mode(void)
         calc_nav_pitch();
         calc_throttle();
     }
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V6)
+    if(nav_cmd_id == MAV_CMD_NAV_TAKEOFF){
+    	camera.switch_on();
+    }
+#endif
 }
 
 /*
@@ -594,6 +605,9 @@ void Plane::update_flight_mode(void)
 
     case RTL:
     case LOITER:
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V6)
+    	camera.switch_off();
+#endif
         calc_nav_roll();
         calc_nav_pitch();
         calc_throttle();
@@ -683,6 +697,7 @@ void Plane::update_flight_mode(void)
     }
 
     case FLY_BY_WIRE_B:
+
         // Thanks to Yury MonZon for the altitude limit code!
         nav_roll_cd = channel_roll->norm_input() * roll_limit_cd;
         nav_roll_cd = constrain_int32(nav_roll_cd, -roll_limit_cd, roll_limit_cd);
@@ -713,12 +728,14 @@ void Plane::update_flight_mode(void)
         break;
         
     case STABILIZE:
+
         nav_roll_cd        = 0;
         nav_pitch_cd       = 0;
         // throttle is passthrough
         break;
         
     case CIRCLE:
+
         // we have no GPS installed and have lost radio contact
         // or we just want to fly around in a gentle circle w/o GPS,
         // holding altitude at the altitude we set when we
@@ -730,6 +747,7 @@ void Plane::update_flight_mode(void)
         break;
 
     case MANUAL:
+
         // servo_out is for Sim control only
         // ---------------------------------
         channel_roll->set_servo_out(channel_roll->pwm_to_angle());
