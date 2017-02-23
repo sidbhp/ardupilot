@@ -45,8 +45,8 @@ PX4_V1_CONFIG_FILE=$(MK_DIR)/PX4/config_px4fmu-v1_APM.mk
 PX4_V2_CONFIG_FILE=$(MK_DIR)/PX4/config_px4fmu-v2_APM.mk
 PX4_V3_CONFIG_FILE=$(MK_DIR)/PX4/config_px4fmu-v3_APM.mk
 PX4_V4_CONFIG_FILE=$(MK_DIR)/PX4/config_px4fmu-v4_APM.mk
-PX4_V5_CONFIG_FILE=$(MK_DIR)/PX4/config_px4fmu-v5_APM.mk
-PX4_V6_CONFIG_FILE=$(MK_DIR)/PX4/config_px4fmu-v6_APM.mk
+SPARROW_V10_CONFIG_FILE=$(MK_DIR)/PX4/config_sparrow-v10_APM.mk
+SPARROW_V11_CONFIG_FILE=$(MK_DIR)/PX4/config_sparrow-v11_APM.mk
 
 # Since actual compiler mode is C++11, the library will default to UAVCAN_CPP11, but it will fail to compile
 # because this platform lacks most of the standard library and STL. Hence we need to force C++03 mode.
@@ -106,25 +106,25 @@ px4-v2: $(BUILDROOT)/make.flags CHECK_MODULES $(MAVLINK_HEADERS) $(UAVCAN_HEADER
 	$(v) $(SKETCHBOOK)/Tools/scripts/add_git_hashes.py $(HASHADDER_FLAGS) "$(SKETCH)-v2.px4" "$(SKETCH)-v2.px4"
 	$(v) echo "PX4 $(SKETCH) Firmware is in $(SKETCH)-v2.px4"
 	
-px4-v5: $(BUILDROOT)/make.flags CHECK_MODULES $(MAVLINK_HEADERS) $(PX4_ROOT)/Archives/px4fmu-v5.export $(SKETCHCPP) module_mk px4-io-v2
-	$(v) echo Building px4-v5
+sparrow-v10: $(BUILDROOT)/make.flags CHECK_MODULES $(MAVLINK_HEADERS) $(PX4_ROOT)/Archives/sparrow-v10.export $(SKETCHCPP) module_mk px4-io-v2
+	$(v) echo Building sparrow-v10
 	$(RULEHDR)
-	$(v) cp $(PX4_V5_CONFIG_FILE) $(PX4_ROOT)/makefiles/nuttx/
-	$(PX4_MAKE) px4fmu-v5_APM
-	$(v) arm-none-eabi-size $(PX4_ROOT)/Build/px4fmu-v5_APM.build/firmware.elf
-	$(v) cp $(PX4_ROOT)/Images/px4fmu-v5_APM.px4 $(SKETCH)-v5.px4
-	$(v) $(SKETCHBOOK)/Tools/scripts/add_git_hashes.py $(HASHADDER_FLAGS) "$(SKETCH)-v5.px4" "$(SKETCH)-v5.px4"
-	$(v) echo "PX4 $(SKETCH) Firmware is in $(SKETCH)-v5.px4"
+	$(v) cp $(SPARROW_V10_CONFIG_FILE) $(PX4_ROOT)/makefiles/nuttx/
+	$(PX4_MAKE) sparrow-v10_APM
+	$(v) arm-none-eabi-size $(PX4_ROOT)/Build/sparrow-v10_APM.build/firmware.elf
+	$(v) cp $(PX4_ROOT)/Images/sparrow-v10_APM.px4 $(SKETCH)-sparrow-v10.px4
+	$(v) $(SKETCHBOOK)/Tools/scripts/add_git_hashes.py $(HASHADDER_FLAGS) "$(SKETCH)-sparrow-v10.px4" "$(SKETCH)-sparrow-v10.px4"
+	$(v) echo "PX4 $(SKETCH) Firmware is in $(SKETCH)-sparrow-v10.px4"
 	
-px4-v6: $(BUILDROOT)/make.flags CHECK_MODULES $(MAVLINK_HEADERS) $(PX4_ROOT)/Archives/px4fmu-v6.export $(SKETCHCPP) module_mk px4-io-v2
-	$(v) echo Building px4-v6
+sparrow-v11: $(BUILDROOT)/make.flags CHECK_MODULES $(MAVLINK_HEADERS) $(PX4_ROOT)/Archives/sparrow-v11.export $(SKETCHCPP) module_mk px4-io-v2
+	$(v) echo Building sparrow-v11
 	$(RULEHDR)
-	$(v) cp $(PX4_V6_CONFIG_FILE) $(PX4_ROOT)/makefiles/nuttx/
-	$(PX4_MAKE) px4fmu-v6_APM
-	$(v) arm-none-eabi-size $(PX4_ROOT)/Build/px4fmu-v6_APM.build/firmware.elf
-	$(v) cp $(PX4_ROOT)/Images/px4fmu-v6_APM.px4 $(SKETCH)-v6.px4
-	$(v) $(SKETCHBOOK)/Tools/scripts/add_git_hashes.py $(HASHADDER_FLAGS) "$(SKETCH)-v6.px4" "$(SKETCH)-v6.px4"
-	$(v) echo "PX4 $(SKETCH) Firmware is in $(SKETCH)-v6.px4"	
+	$(v) cp $(SPARROW_V11_CONFIG_FILE) $(PX4_ROOT)/makefiles/nuttx/
+	$(PX4_MAKE) sparrow-v11_APM
+	$(v) arm-none-eabi-size $(PX4_ROOT)/Build/sparrow-v11_APM.build/firmware.elf
+	$(v) cp $(PX4_ROOT)/Images/sparrow-v11_APM.px4 $(SKETCH)-sparrow-v11.px4
+	$(v) $(SKETCHBOOK)/Tools/scripts/add_git_hashes.py $(HASHADDER_FLAGS) "$(SKETCH)-sparrow-v11.px4" "$(SKETCH)-sparrow-v11.px4"
+	$(v) echo "PX4 $(SKETCH) Firmware is in $(SKETCH)-sparrow-v11.px4"	
 
 px4-v3: $(BUILDROOT)/make.flags CHECK_MODULES $(MAVLINK_HEADERS) $(UAVCAN_HEADERS) $(PX4_ROOT)/Archives/px4fmu-v3.export $(SKETCHCPP) module_mk px4-io-v2
 	$(v) echo Building px4-v3
@@ -155,8 +155,8 @@ px4:
 	$(MAKE) px4-v2
 	$(MAKE) px4-v3
 	$(MAKE) px4-v4
-	$(MAKE) px4-v5
-	$(MAKE) px4-v6
+	$(MAKE) sparrow-v10
+	$(MAKE) sparrow-v11
 
 px4-clean: clean CHECK_MODULES px4-archives-clean px4-cleandep
 	$(v) /bin/rm -rf $(PX4_ROOT)/makefiles/build $(PX4_ROOT)/Build $(PX4_ROOT)/Images/*.px4 $(PX4_ROOT)/Images/*.bin
@@ -182,13 +182,13 @@ px4-v2-upload: px4-v2
 	$(RULEHDR)
 	$(v) $(PX4_MAKE) px4fmu-v2_APM upload
 	
-px4-v5-upload: px4-v5
+sparrow-v10-upload: px4-v5
 	$(RULEHDR)
-	$(v) $(PX4_MAKE) px4fmu-v5_APM upload
+	$(v) $(PX4_MAKE) sparrow-v10_APM upload
 	
-px4-v6-upload: px4-v6
+sparrow-v11-upload: px4-v6
 	$(RULEHDR)
-	$(v) $(PX4_MAKE) px4fmu-v6_APM upload
+	$(v) $(PX4_MAKE) sparrow-v11_APM upload
 
 px4-v3-upload: px4-v3
 	$(RULEHDR)
@@ -239,8 +239,8 @@ px4-io: px4-io-v1 px4-io-v2
 	$(PX4_ROOT)/Archives/px4fmu-v2.export \
 	$(PX4_ROOT)/Archives/px4fmu-v3.export \
 	$(PX4_ROOT)/Archives/px4fmu-v4.export \
-	$(PX4_ROOT)/Archives/px4fmu-v5.export \
-	$(PX4_ROOT)/Archives/px4fmu-v6.export \
+	$(PX4_ROOT)/Archives/sparrow-v10.export \
+	$(PX4_ROOT)/Archives/sparrow-v11.export \
 	$(PX4_ROOT)/Archives/px4io-v1.export \
 	$(PX4_ROOT)/Archives/px4io-v2.export
 
@@ -256,11 +256,11 @@ $(PX4_ROOT)/Archives/px4fmu-v3.export:
 $(PX4_ROOT)/Archives/px4fmu-v4.export:
 	$(v) $(PX4_MAKE_ARCHIVES) BOARDS="px4fmu-v4"
 	
-$(PX4_ROOT)/Archives/px4fmu-v5.export:
-	$(v) $(PX4_MAKE_ARCHIVES) BOARDS="px4fmu-v5"
+$(PX4_ROOT)/Archives/sparrow-v10.export:
+	$(v) $(PX4_MAKE_ARCHIVES) BOARDS="sparrow-v10"
 	
-$(PX4_ROOT)/Archives/px4fmu-v6.export:
-	$(v) $(PX4_MAKE_ARCHIVES) BOARDS="px4fmu-v6"
+$(PX4_ROOT)/Archives/sparrow-v11.export:
+	$(v) $(PX4_MAKE_ARCHIVES) BOARDS="sparrow-v11"
 
 $(PX4_ROOT)/Archives/px4io-v1.export:
 	$(v) $(PX4_MAKE_ARCHIVES) BOARDS="px4io-v1"
@@ -269,5 +269,5 @@ $(PX4_ROOT)/Archives/px4io-v2.export:
 	$(v) $(PX4_MAKE_ARCHIVES) BOARDS="px4io-v2"
 
 px4-archives:
-	$(v) $(PX4_MAKE_ARCHIVES) BOARDS="px4io-v1 px4io-v2 px4fmu-v1 px4fmu-v2 px4fmu-v3 px4fmu-v4 px4fmu-v5 px4fmu-v6""
+	$(v) $(PX4_MAKE_ARCHIVES) BOARDS="px4io-v1 px4io-v2 px4fmu-v1 px4fmu-v2 px4fmu-v3 px4fmu-v4 sparrow-v10 sparrow-v11""
 
