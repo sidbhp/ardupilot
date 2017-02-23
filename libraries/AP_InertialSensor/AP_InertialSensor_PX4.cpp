@@ -163,9 +163,9 @@ bool AP_InertialSensor_PX4::_init_sensor(void)
 #else
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
     _product_id = AP_PRODUCT_ID_PX4_V2;
-#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V5)
+#elif defined(CONFIG_ARCH_BOARD_PX4SPARROW_V10)
     _product_id = AP_PRODUCT_ID_PX4_V2;
-#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V6)
+#elif defined(CONFIG_ARCH_BOARD_PX4SPARROW_V11)
     _product_id = AP_PRODUCT_ID_PX4_V2;
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
     _product_id = AP_PRODUCT_ID_PX4_V4;

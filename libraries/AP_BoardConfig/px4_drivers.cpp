@@ -362,9 +362,9 @@ void AP_BoardConfig::px4_start_fmuv2_sensors(void)
 #endif // CONFIG_ARCH_BOARD_PX4FMU_V2
 }
 
-void AP_BoardConfig::px4_start_fmuv5_sensors(void)
+void AP_BoardConfig::px4_start_sparrow_v10_sensors(void)
 {
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V5)
+#if defined(CONFIG_ARCH_BOARD_PX4SPARROW_V10)
     bool have_FMUV3 = false;
 
     printf("Starting FMUv2 sensors\n");
@@ -444,12 +444,12 @@ void AP_BoardConfig::px4_start_fmuv5_sensors(void)
     }
 
     printf("FMUv5 sensors started\n");
-#endif // CONFIG_ARCH_BOARD_PX4FMU_V5
+#endif // CONFIG_ARCH_BOARD_PX4SPARROW_V10
 }
 
-void AP_BoardConfig::px4_start_fmuv6_sensors(void)
+void AP_BoardConfig::px4_start_sparrow_v11_sensors(void)
 {
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V6)
+#if defined(CONFIG_ARCH_BOARD_PX4SPARROW_V11)
     bool have_FMUV3 = false;
 
     printf("Starting FMUv2 sensors\n");
@@ -529,7 +529,7 @@ void AP_BoardConfig::px4_start_fmuv6_sensors(void)
     }
 
     printf("FMUv6 sensors started\n");
-#endif // CONFIG_ARCH_BOARD_PX4FMU_V6
+#endif // CONFIG_ARCH_BOARD_PX4SPARROW_V11
 }
 
 
@@ -857,8 +857,8 @@ void AP_BoardConfig::px4_setup_drivers(void)
     default:
         px4_start_fmuv1_sensors();
         px4_start_fmuv2_sensors();
-        px4_start_fmuv5_sensors();
-        px4_start_fmuv6_sensors();
+        px4_start_sparrow_v10_sensors();
+        px4_start_sparrow_v11_sensors();
         px4_start_fmuv4_sensors();
         break;
     }

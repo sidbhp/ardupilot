@@ -101,7 +101,7 @@ void Plane::setup()
 
     init_ardupilot();
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V6)
+#if defined(CONFIG_ARCH_BOARD_PX4SPARROW_V11)
     	camera.switch_off();
 #endif
 
@@ -533,7 +533,7 @@ void Plane::handle_auto_mode(void)
     } else if (nav_cmd_id == MAV_CMD_NAV_LAND) {
         calc_nav_roll();
         calc_nav_pitch();
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V6)
+#if defined(CONFIG_ARCH_BOARD_PX4SPARROW_V11)
         camera.switch_off();
 #endif
         if (auto_state.land_complete) {
@@ -560,7 +560,7 @@ void Plane::handle_auto_mode(void)
         calc_nav_pitch();
         calc_throttle();
     }
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V6)
+#if defined(CONFIG_ARCH_BOARD_PX4SPARROW_V11)
     if(nav_cmd_id == MAV_CMD_NAV_TAKEOFF){
     	camera.switch_on();
     }
@@ -605,7 +605,7 @@ void Plane::update_flight_mode(void)
 
     case RTL:
     case LOITER:
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V6)
+#if defined(CONFIG_ARCH_BOARD_PX4SPARROW_V11)
     	camera.switch_off();
 #endif
         calc_nav_roll();
