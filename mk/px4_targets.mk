@@ -182,11 +182,11 @@ px4-v2-upload: px4-v2
 	$(RULEHDR)
 	$(v) $(PX4_MAKE) px4fmu-v2_APM upload
 	
-sparrow-v10-upload: px4-v5
+sparrow-v10-upload: sparrow-v10
 	$(RULEHDR)
 	$(v) $(PX4_MAKE) sparrow-v10_APM upload
 	
-sparrow-v11-upload: px4-v6
+sparrow-v11-upload: sparrow-v11
 	$(RULEHDR)
 	$(v) $(PX4_MAKE) sparrow-v11_APM upload
 
