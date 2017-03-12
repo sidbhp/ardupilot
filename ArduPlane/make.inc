@@ -9,6 +9,7 @@ LIBRARIES += AP_Math
 LIBRARIES += AP_InertialSensor
 LIBRARIES += AP_AccelCal
 LIBRARIES += AP_AHRS
+LIBRARIES += AP_MicroStrain
 LIBRARIES += RC_Channel
 LIBRARIES += AP_RangeFinder
 LIBRARIES += Filter

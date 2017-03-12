@@ -120,7 +120,11 @@ void Plane::loop()
     uint32_t loop_us = 1000000UL / scheduler.get_loop_rate_hz();
 
     // wait for an INS sample
-    ins.wait_for_sample();
+    if(ahrs.use_ms()) {
+        ms.wait_for_sample();
+    } else {
+        ins.wait_for_sample();
+    }
 
     uint32_t timer = micros();
 

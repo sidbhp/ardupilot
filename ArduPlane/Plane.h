@@ -39,6 +39,7 @@
 #include <AP_Compass/AP_Compass.h>     // ArduPilot Mega Magnetometer Library
 #include <AP_Math/AP_Math.h>        // ArduPilot Mega Vector/Matrix math Library
 #include <AP_ADC/AP_ADC.h>         // ArduPilot Mega Analog to Digital Converter Library
+#include <AP_MicroStrain/AP_MicroStrain.h>
 #include <AP_InertialSensor/AP_InertialSensor.h> // Inertial Sensor Library
 #include <AP_AccelCal/AP_AccelCal.h>                // interface and maths for accelerometer calibration
 #include <AP_AHRS/AP_AHRS.h>         // ArduPilot Mega DCM Library
@@ -203,6 +204,8 @@ private:
 
     RangeFinder rangefinder {serial_manager, ROTATION_PITCH_270};
 
+    AP_MicroStrain ms {serial_manager};
+
     AP_Vehicle::FixedWing::Rangefinder_State rangefinder_state;
 
     AP_RPM rpm_sensor;
@@ -211,9 +214,9 @@ private:
 #if AP_AHRS_NAVEKF_AVAILABLE
     NavEKF2 EKF2{&ahrs, barometer, rangefinder};
     NavEKF3 EKF3{&ahrs, barometer, rangefinder};
-    AP_AHRS_NavEKF ahrs {ins, barometer, gps, rangefinder, EKF2, EKF3};
+    AP_AHRS_NavEKF ahrs {ins, barometer, gps, rangefinder, ms, EKF, EKF2};
 #else
-    AP_AHRS_DCM ahrs {ins, barometer, gps};
+    AP_AHRS_DCM ahrs {ins, barometer, gps, ms};
 #endif
 
     AP_TECS TECS_controller {ahrs, aparm, landing, g2.soaring_controller};
