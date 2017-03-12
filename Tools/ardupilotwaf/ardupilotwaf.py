@@ -32,6 +32,7 @@ COMMON_VEHICLE_DEPENDENT_LIBRARIES = [
     'AP_HAL',
     'AP_HAL_Empty',
     'AP_InertialSensor',
+    'AP_MicroStrain',
     'AP_Math',
     'AP_Mission',
     'AP_NavEKF2',
