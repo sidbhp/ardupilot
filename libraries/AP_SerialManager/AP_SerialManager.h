@@ -90,6 +90,7 @@ public:
         SerialProtocol_Lidar360 = 11,                // Lightware SF40C or TeraRanger Tower
         SerialProtocol_Aerotenna_uLanding      = 12, // Ulanding support
         SerialProtocol_Beacon = 13
+        SerialProtocol_MicroStrain = 14,
     };
 
     // Constructor
