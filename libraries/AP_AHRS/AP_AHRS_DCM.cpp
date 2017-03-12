@@ -57,11 +57,20 @@ AP_AHRS_DCM::update(bool skip_ins_update)
 
     if (!skip_ins_update) {
         // tell the IMU to grab some data
-        _ins.update();
+        if(_ms_use) {
+            _ms.update();
+        } else {
+            _ins.update();
+        }    
     }
+        
 
     // ask the IMU how much time this sensor reading represents
-    delta_t = _ins.get_delta_time();
+    if(_ms_use) {
+        delta_t = _ms.get_delta_time();
+    }else {
+        delta_t = _ins.get_delta_time();
+    }
 
     // if the update call took more than 0.2 seconds then discard it,
     // otherwise we may move too far. This happens when arming motors
@@ -111,15 +120,24 @@ AP_AHRS_DCM::matrix_update(float _G_Dt)
     // noise
     uint8_t healthy_count = 0;
     Vector3f delta_angle;
-    for (uint8_t i=0; i<_ins.get_gyro_count(); i++) {
-        if (_ins.get_gyro_health(i) && healthy_count < 2) {
-            Vector3f dangle;
-            if (_ins.get_delta_angle(i, dangle)) {
-                healthy_count++;
-                delta_angle += dangle;
+    if(_ms_use) {
+        Vector3f dangle;
+        if (_ins.get_delta_angle(dangle)) {
+            healthy_count++;
+            delta_angle += dangle;
+        }
+    } else {
+        for (uint8_t i=0; i<_ins.get_gyro_count(); i++) {
+            if (_ins.get_gyro_health(i) && healthy_count < 2) {
+                Vector3f dangle;
+                if (_ins.get_delta_angle(i, dangle)) {
+                    healthy_count++;
+                    delta_angle += dangle;
+                }
             }
         }
     }
+
     if (healthy_count > 1) {
         delta_angle /= healthy_count;
     }
@@ -157,10 +175,13 @@ AP_AHRS_DCM::reset(bool recover_eulers)
         // Get body frame accel vector
         Vector3f initAccVec;
         uint8_t counter = 0;
-        initAccVec = _ins.get_accel();
-
+        if(_ms_use) {
+            initAccVec = _ms.get_accel();
+        } else {
+            initAccVec = _ins.get_accel();
+        }
         // the first vector may be invalid as the filter starts up
-        while (initAccVec.length() <= 5.0f && counter++ < 10) {
+        while (initAccVec.length() <= 5.0f && counter++ < 10 && !_ms_use) {
             _ins.wait_for_sample();
             _ins.update();
             initAccVec = _ins.get_accel();
@@ -581,8 +602,8 @@ AP_AHRS_DCM::drift_correction(float deltat)
     drift_correction_yaw();
 
     // rotate accelerometer values into the earth frame
-    for (uint8_t i=0; i<_ins.get_accel_count(); i++) {
-        if (_ins.get_accel_health(i)) {
+    if(_ms_use) {
+        if (_ms.get_accel_health()) {
             /*
               by using get_delta_velocity() instead of get_accel() the
               accel value is sampled over the right time delta for
@@ -590,24 +611,47 @@ AP_AHRS_DCM::drift_correction(float deltat)
              */
             Vector3f delta_velocity;
             float delta_velocity_dt;
-            _ins.get_delta_velocity(i, delta_velocity);
-            delta_velocity_dt = _ins.get_delta_velocity_dt(i);
+            _ms.get_delta_velocity(delta_velocity);
+            delta_velocity_dt = _ms.get_delta_velocity_dt();
             if (delta_velocity_dt > 0) {
-                _accel_ef[i] = _dcm_matrix * (delta_velocity / delta_velocity_dt);
+                _accel_ef[0] = _dcm_matrix * (delta_velocity / delta_velocity_dt);
                 // integrate the accel vector in the earth frame between GPS readings
-                _ra_sum[i] += _accel_ef[i] * deltat;
+                _ra_sum[0] += _accel_ef[0] * deltat;
+            }
+        }
+    } else {
+        for (uint8_t i=0; i<_ins.get_accel_count(); i++) {
+            if (_ins.get_accel_health(i)) {
+                /*
+                  by using get_delta_velocity() instead of get_accel() the
+                  accel value is sampled over the right time delta for
+                  each sensor, which prevents an aliasing effect
+                 */
+                Vector3f delta_velocity;
+                float delta_velocity_dt;
+                _ins.get_delta_velocity(i, delta_velocity);
+                delta_velocity_dt = _ins.get_delta_velocity_dt(i);
+                if (delta_velocity_dt > 0) {
+                    _accel_ef[i] = _dcm_matrix * (delta_velocity / delta_velocity_dt);
+                    // integrate the accel vector in the earth frame between GPS readings
+                    _ra_sum[i] += _accel_ef[i] * deltat;
+                }
             }
         }
     }
 
     //update _accel_ef_blended
-    if (_ins.get_accel_count() == 2 && _ins.use_accel(0) && _ins.use_accel(1)) {
-        float imu1_weight_target = _active_accel_instance == 0 ? 1.0f : 0.0f;
-        // slew _imu1_weight over one second
-        _imu1_weight += constrain_float(imu1_weight_target-_imu1_weight, -deltat, deltat);
-        _accel_ef_blended = _accel_ef[0] * _imu1_weight + _accel_ef[1] * (1.0f - _imu1_weight);
+    if(_ms_use) {
+        _accel_ef_blended = _accel_ef[0];
     } else {
-        _accel_ef_blended = _accel_ef[_ins.get_primary_accel()];
+        if (_ins.get_accel_count() == 2 && _ins.use_accel(0) && _ins.use_accel(1)) {
+            float imu1_weight_target = _active_accel_instance == 0 ? 1.0f : 0.0f;
+            // slew _imu1_weight over one second
+            _imu1_weight += constrain_float(imu1_weight_target-_imu1_weight, -deltat, deltat);
+            _accel_ef_blended = _accel_ef[0] * _imu1_weight + _accel_ef[1] * (1.0f - _imu1_weight);
+        } else {
+            _accel_ef_blended = _accel_ef[_ins.get_primary_accel()];
+        }
     }
 
     // keep a sum of the deltat values, so we know how much time
@@ -727,10 +771,18 @@ AP_AHRS_DCM::drift_correction(float deltat)
     Vector3f GA_b[INS_MAX_INSTANCES];
     int8_t besti = -1;
     float best_error = 0;
-    for (uint8_t i=0; i<_ins.get_accel_count(); i++) {
-        if (!_ins.get_accel_health(i)) {
+    uint8_t num_accel = _ms_use?1:_ins.get_accel_count();
+    for (uint8_t i=0; i<num_accel; i++) {
+        if (!_ins.get_accel_health(i) && !_ms_use) {
             // only use healthy sensors
             continue;
+        }
+
+        if (_ms_use) {
+            if(!_ms.get_accel_health()) {
+                // only use healthy sensors
+                continue;
+            }
         }
         _ra_sum[i] *= ra_scale;
 
@@ -806,11 +858,20 @@ AP_AHRS_DCM::drift_correction(float deltat)
     // if ins is unhealthy then stop attitude drift correction and
     // hope the gyros are OK for a while. Just slowly reduce _omega_P
     // to prevent previous bad accels from throwing us off
-    if (!_ins.healthy()) {
-        error[besti].zero();
+    if(_ms_use) {
+        if (!_ms.healthy()) {
+            error[besti].zero();
+        } else {
+            // convert the error term to body frame
+            error[besti] = _dcm_matrix.mul_transpose(error[besti]);
+        }
     } else {
-        // convert the error term to body frame
-        error[besti] = _dcm_matrix.mul_transpose(error[besti]);
+        if (!_ins.healthy()) {
+            error[besti].zero();
+        } else {
+            // convert the error term to body frame
+            error[besti] = _dcm_matrix.mul_transpose(error[besti]);
+        }
     }
 
     if (error[besti].is_nan() || error[besti].is_inf()) {
@@ -838,14 +899,26 @@ AP_AHRS_DCM::drift_correction(float deltat)
         _omega_P *= 8;
     }
 
-    if (_flags.fly_forward && _gps.status() >= AP_GPS::GPS_OK_FIX_2D &&
-            _gps.ground_speed() < GPS_SPEED_MIN &&
-            _ins.get_accel().x >= 7 &&
-            pitch_sensor > -3000 && pitch_sensor < 3000) {
-        // assume we are in a launch acceleration, and reduce the
-        // rp gain by 50% to reduce the impact of GPS lag on
-        // takeoff attitude when using a catapult
-        _omega_P *= 0.5f;
+    if(_ms_use){
+        if (_flags.fly_forward && _gps.status() >= AP_GPS::GPS_OK_FIX_2D &&
+                _gps.ground_speed() < GPS_SPEED_MIN &&
+                _ms.get_accel().x >= 7 &&
+                pitch_sensor > -3000 && pitch_sensor < 3000) {
+            // assume we are in a launch acceleration, and reduce the
+            // rp gain by 50% to reduce the impact of GPS lag on
+            // takeoff attitude when using a catapult
+            _omega_P *= 0.5f;
+        }
+    } else {
+        if (_flags.fly_forward && _gps.status() >= AP_GPS::GPS_OK_FIX_2D &&
+                _gps.ground_speed() < GPS_SPEED_MIN &&
+                _ins.get_accel().x >= 7 &&
+                pitch_sensor > -3000 && pitch_sensor < 3000) {
+            // assume we are in a launch acceleration, and reduce the
+            // rp gain by 50% to reduce the impact of GPS lag on
+            // takeoff attitude when using a catapult
+            _omega_P *= 0.5f;
+        }
     }
 
     // accumulate some integrator error

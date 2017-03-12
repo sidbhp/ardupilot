@@ -128,6 +128,12 @@ const AP_Param::GroupInfo AP_AHRS::var_info[] = {
     AP_GROUPINFO("EKF_TYPE",  14, AP_AHRS, _ekf_type, 0),
 #endif
 
+    // @Param: USE_MS
+    // @DisplayName: Flag to set if microstrain IMU to be used
+    // @Values: 0:Disabled,1:Enabled
+    // @User: Advanced
+    AP_GROUPINFO("MS_USE",  15, AP_AHRS, _ms_use, 0),
+
     AP_GROUPEND
 };
 
