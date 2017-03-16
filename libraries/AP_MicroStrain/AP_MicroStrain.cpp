@@ -31,7 +31,9 @@ AP_MicroStrain::AP_MicroStrain(AP_SerialManager &_serial_manager) :
 {
     // init state and drivers
     memset(state,0,sizeof(state));
-    memset(drivers,0,sizeof(drivers));
+    for (uint8_t i=0; i<MICROSTRAIN_MAX_INSTANCES; i++) {
+        drivers[i] = nullptr;
+    }
 }
 
 
@@ -44,25 +46,37 @@ void AP_MicroStrain::init(void)
 
     for (uint8_t i=0; i < MICROSTRAIN_MAX_INSTANCES; i++) {
         detect_instance(i);
-        if (drivers[i] != NULL) {
+        if (drivers[i] != nullptr) {
+            hal.console->printf("MicroStrain initialised\n");
             // we loaded a driver for this instance, so it must be
             // present (although it may not be healthy)
             num_instances = i+1;
+        } else {
+            hal.console->printf("AP_MicroStrain: Failed to Initialize MicroStrain...");
         }
     }
+
+    _delta_time = 0;
+    _next_sample_usec = 0;
+    _last_sample_usec = 0;
+    _have_sample = false;
 }
 
 
 void AP_MicroStrain::wait_for_sample(void)
 {
+    if (drivers[0] == nullptr) {
+        return;
+    }
+
     if (_have_sample) {
         // the user has called wait_for_sample() again without
         // consuming the sample with update()
         return;
     }
 
-    uint32_t now = AP_HAL::micros();
-    const uint32_t _sample_period_usec = 20000;
+    uint64_t now = AP_HAL::micros();
+    const uint64_t _sample_period_usec = 20000;
     if (_next_sample_usec == 0 && _delta_time <= 0) {
         // this is the first call to wait_for_sample()
         _last_sample_usec = now - _sample_period_usec;
@@ -104,13 +118,11 @@ check_sample:
     bool accel_available = false;
     while (true) {
         drivers[0]->read_data();
-
-
         if (drivers[0]->new_data()) {
             break;
         }
 
-        hal.scheduler->delay_microseconds(100);
+        hal.scheduler->delay_microseconds(500);
     }
 
     now = AP_HAL::micros();
@@ -145,26 +157,18 @@ check_sample:
  */
 void AP_MicroStrain::update(void)
 {
-    for (uint8_t i=0; i<num_instances; i++) {
-        if (drivers[i] != NULL) {
+    if(drivers[0] == nullptr) {
+        AP_HAL::panic("No MicroStrain instance!");
+    }
+    wait_for_sample();
+    for (uint8_t i=0; i < num_instances; i++) {
+        if (drivers[i] != nullptr) {
             drivers[i]->update();
             _have_sample = false;
         }
     }
 }
 
-void AP_MicroStrain::_add_backend(AP_MicroStrain_Backend *backend)
-{
-    if (!backend) {
-        return;
-    }
-    if (num_instances == MICROSTRAIN_MAX_INSTANCES) {
-        AP_HAL::panic("Too many MicroStrain backends");
-    }
-
-    drivers[num_instances++] = backend;
-}
-    
 /*
   detect if an instance of a microstrain is connected. 
  */
@@ -173,13 +177,18 @@ void AP_MicroStrain::detect_instance(uint8_t instance)
     if(AP_MicroStrain_3DMGX4::detect(*this, instance, state[instance], serial_manager)){
         state[instance].instance = instance;
         drivers[instance] = new AP_MicroStrain_3DMGX4(*this, instance, state[instance], serial_manager);
+        if(drivers[instance] == nullptr) {
+            AP_HAL::panic("Failed to allocate space to MicroStrain instance!");
+        } else {
+            printf("AP_MicroStrain: allocated space for instance %d\n", instance);
+        }
         return;
     }
 }
 
 bool AP_MicroStrain::get_accel_health() 
 { 
-    if (drivers[0] != NULL) {
+    if (drivers[0] != nullptr) {
         return drivers[0]->get_accel_health();
     } else {
         return false;
@@ -188,7 +197,7 @@ bool AP_MicroStrain::get_accel_health()
 
 bool AP_MicroStrain::healthy()
 { 
-    if (drivers[0] != NULL) {
+    if (drivers[0] != nullptr) {
         return drivers[0]->healthy();
     } else {
         return false;
@@ -197,7 +206,7 @@ bool AP_MicroStrain::healthy()
 
 float AP_MicroStrain::get_delta_time()
 { 
-    if (drivers[0] != NULL) {
+    if (drivers[0] != nullptr) {
         return drivers[0]->get_delta_time();
     } else {
         return 0.0f;
@@ -206,7 +215,7 @@ float AP_MicroStrain::get_delta_time()
 
 float AP_MicroStrain::get_delta_velocity_dt()
 { 
-    if (drivers[0] != NULL) {
+    if (drivers[0] != nullptr) {
         return drivers[0]->get_delta_velocity_dt();
     } else {
         return 0.0f;
@@ -215,7 +224,7 @@ float AP_MicroStrain::get_delta_velocity_dt()
 
 bool  AP_MicroStrain::get_delta_angle(Vector3f &dangle)
 { 
-    if (drivers[0] != NULL) {
+    if (drivers[0] != nullptr) {
         return drivers[0]->get_delta_angle(dangle);
     } else {
         return false;
@@ -224,7 +233,7 @@ bool  AP_MicroStrain::get_delta_angle(Vector3f &dangle)
 
 bool AP_MicroStrain::get_delta_velocity(Vector3f &dvel)
 { 
-    if (drivers[0] != NULL) {
+    if (drivers[0] != nullptr) {
         return drivers[0]->get_delta_velocity(dvel);
     } else {
         return false;
@@ -233,7 +242,7 @@ bool AP_MicroStrain::get_delta_velocity(Vector3f &dvel)
 
 Vector3f AP_MicroStrain::get_accel()
 { 
-    if (drivers[0] != NULL) {
+    if (drivers[0] != nullptr) {
         return drivers[0]->get_accel();
     } else {
         return Vector3f(0.0f,0.0f,0.0f);
@@ -242,7 +251,7 @@ Vector3f AP_MicroStrain::get_accel()
 
 Vector3f AP_MicroStrain::get_gyro()
 { 
-    if (drivers[0] != NULL) {
+    if (drivers[0] != nullptr) {
         return drivers[0]->get_gyro();
     } else {
         return Vector3f(0.0f,0.0f,0.0f);

@@ -39,6 +39,8 @@ AP_MicroStrain_3DMGX4::AP_MicroStrain_3DMGX4(AP_MicroStrain &_ms, uint8_t instan
     uart = serial_manager.find_serial(AP_SerialManager::SerialProtocol_MicroStrain, 0);
     if (uart != nullptr) {
         uart->begin(serial_manager.find_baudrate(AP_SerialManager::SerialProtocol_MicroStrain, 0));
+    } else {
+        AP_HAL::panic("Failed to Initialize MicroStrain MicroStrain_3DMGX4");
     }
 }
 
@@ -49,7 +51,7 @@ AP_MicroStrain_3DMGX4::AP_MicroStrain_3DMGX4(AP_MicroStrain &_ms, uint8_t instan
 */
 bool AP_MicroStrain_3DMGX4::detect(AP_MicroStrain &_ms, uint8_t instance, AP_MicroStrain::MicroStrain_State &state, AP_SerialManager &serial_manager)
 {
-    return serial_manager.find_serial(AP_SerialManager::SerialProtocol_MicroStrain, 0) != nullptr;
+    return (serial_manager.find_serial(AP_SerialManager::SerialProtocol_MicroStrain, 0) != nullptr);
 }
 
 void AP_MicroStrain_3DMGX4::calc_checksum() {
@@ -208,7 +210,7 @@ void AP_MicroStrain_3DMGX4::handle_imu_packet(parse_state &imu_parse_state)
                 break; // ignore first sample
             }
             extract_floats(processed_data.accel, imu_parse_state.dat, 3);
-            processed_data.delta_accel_time = 0.02f;//float(AP_HAL::micros() - last_accel_time)/1000000.0f;
+            processed_data.delta_accel_time = float(AP_HAL::micros() - last_accel_time)/1000000.0f;
             processed_data.delta_velocity[0] = processed_data.accel[0]*processed_data.delta_accel_time;
             processed_data.delta_velocity[1] = processed_data.accel[1]*processed_data.delta_accel_time;
             processed_data.delta_velocity[2] = processed_data.accel[2]*processed_data.delta_accel_time;
@@ -222,7 +224,7 @@ void AP_MicroStrain_3DMGX4::handle_imu_packet(parse_state &imu_parse_state)
                 break;  //ignore first sample
             }
             extract_floats(processed_data.gyro, imu_parse_state.dat, 3);
-            processed_data.delta_gyro_time = 0.02f;//float(AP_HAL::micros() - last_gyro_time)/1000000.0f;
+            processed_data.delta_gyro_time = float(AP_HAL::micros() - last_gyro_time)/1000000.0f;
             processed_data.delta_angle[0] = processed_data.gyro[0]*processed_data.delta_gyro_time;
             processed_data.delta_angle[1] = processed_data.gyro[1]*processed_data.delta_gyro_time;
             processed_data.delta_angle[2] = processed_data.gyro[2]*processed_data.delta_gyro_time;

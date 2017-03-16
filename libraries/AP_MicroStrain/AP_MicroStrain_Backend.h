@@ -27,7 +27,7 @@ public:
     AP_MicroStrain_Backend(AP_MicroStrain &_ms, uint8_t instance, AP_MicroStrain::MicroStrain_State &_state) :
     ms(_ms),
     state(_state) {}
-    // we declare a virtual destructor so that RangeFinder drivers can
+    // we declare a virtual destructor so that MicroStrain drivers can
     // override with a custom destructor if need be
     virtual ~AP_MicroStrain_Backend(void) {}
 

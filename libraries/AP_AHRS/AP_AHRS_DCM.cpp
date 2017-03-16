@@ -70,17 +70,15 @@ AP_AHRS_DCM::update(bool skip_ins_update)
         delta_t = _ms.get_delta_time();
     }else {
         delta_t = _ins.get_delta_time();
+        // if the update call took more than 0.2 seconds then discard it,
+        // otherwise we may move too far. This happens when arming motors
+        // in ArduCopter
+        if (delta_t > 0.2f) {
+            memset(&_ra_sum[0], 0, sizeof(_ra_sum));
+            _ra_deltat = 0;
+            return;
+        }
     }
-
-    // if the update call took more than 0.2 seconds then discard it,
-    // otherwise we may move too far. This happens when arming motors
-    // in ArduCopter
-    if (delta_t > 0.2f) {
-        memset(&_ra_sum[0], 0, sizeof(_ra_sum));
-        _ra_deltat = 0;
-        return;
-    }
-
     // Integrate the DCM matrix using gyro inputs
     matrix_update(delta_t);
 
@@ -122,7 +120,7 @@ AP_AHRS_DCM::matrix_update(float _G_Dt)
     Vector3f delta_angle;
     if(_ms_use) {
         Vector3f dangle;
-        if (_ins.get_delta_angle(dangle)) {
+        if (_ms.get_delta_angle(dangle)) {
             healthy_count++;
             delta_angle += dangle;
         }

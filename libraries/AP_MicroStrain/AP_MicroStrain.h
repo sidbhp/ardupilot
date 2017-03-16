@@ -58,11 +58,9 @@ private:
     AP_SerialManager &serial_manager;
 
     bool _have_sample;
-    uint64_t _last_sample_usec, _next_sample_usec, _delta_time = 0;
-    uint8_t num_instances;
+    uint64_t _last_sample_usec, _next_sample_usec, _delta_time;
+    uint8_t num_instances = 0;
 
     void detect_instance(uint8_t instance);
     void update_instance(uint8_t instance);
-
-    void _add_backend(AP_MicroStrain_Backend *driver);
 };

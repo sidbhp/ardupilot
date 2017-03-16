@@ -204,12 +204,11 @@ private:
 
     RangeFinder rangefinder {serial_manager, ROTATION_PITCH_270};
 
-    AP_MicroStrain ms {serial_manager};
-
     AP_Vehicle::FixedWing::Rangefinder_State rangefinder_state;
 
     AP_RPM rpm_sensor;
     
+    AP_MicroStrain ms {serial_manager};
 // Inertial Navigation EKF
 #if AP_AHRS_NAVEKF_AVAILABLE
     NavEKF2 EKF2{&ahrs, barometer, rangefinder};
