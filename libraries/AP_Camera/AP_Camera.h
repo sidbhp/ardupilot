@@ -73,11 +73,11 @@ public:
     // return true if we are using a feedback pin
     bool using_feedback_pin(void) const { return _feedback_pin > 0; }
     
-#if defined(CONFIG_ARCH_BOARD_PX4SPARROW_V11)
+//#if defined(CONFIG_ARCH_BOARD_PX4SPARROW_V11)
     void switch_on(void);
 
     void switch_off(void);
-#endif //defined(CONFIG_ARCH_BOARD_PX4SPARROW_V11)
+//#endif //defined(CONFIG_ARCH_BOARD_PX4SPARROW_V11)
     static const struct AP_Param::GroupInfo        var_info[];
 
 private:
@@ -111,9 +111,9 @@ private:
 
     // this is set to 1 when camera trigger pin has fired
     static volatile bool   _camera_triggered;
-#if defined(CONFIG_ARCH_BOARD_PX4SPARROW_V11)
+//#if defined(CONFIG_ARCH_BOARD_PX4SPARROW_V11)
     bool   _camera_switched_on;
-#endif
+//#endif
     bool            _timer_installed:1;
     uint8_t         _last_pin_state;
 
