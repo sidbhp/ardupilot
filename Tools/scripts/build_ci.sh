@@ -25,10 +25,10 @@ fi
 
 # If CI_BUILD_TARGET is not set, build 3 different ones
 if [ -z "$CI_BUILD_TARGET" ]; then
-    CI_BUILD_TARGET="sitl linux sparrow-v10 sparrow-v11"
+    CI_BUILD_TARGET="sitl linux sparrow-v10 sp-v3"
 fi
 
-if [[ "$CI_BUILD_TARGET" == *"sparrow"* ]]; then
+if [[ "$CI_BUILD_TARGET" == *"sp"* ]]; then
     export CCACHE_MAXSIZE="1500M"
 elif [[ "$CI_BUILD_TARGET" == "sitltest" ]]; then
     export CCACHE_MAXSIZE="300M"
@@ -62,14 +62,14 @@ function get_time {
 echo "Targets: $CI_BUILD_TARGET"
 for t in $CI_BUILD_TARGET; do
     # only do make-based builds for GCC when target is Sparrow or when launched by a scheduled job
-    if [[ "$cxx_compiler" != "clang++" && ( $t == "sparrow"* || -n ${CI_CRON_JOB+1} ) ]]; then
+    if [[ "$cxx_compiler" != "clang++" && ( $t == "sp"* || -n ${CI_CRON_JOB+1} ) ]]; then
         echo "Starting make based build for target ${t}..."
         for v in "ArduPlane"; do
             echo "Building $v for ${t}..."
 
             pushd $v
             make clean
-            if [[ $t == "sparrow"* ]]; then
+            if [[ $t == "sp"* ]]; then
                 make px4-cleandep
             fi
 

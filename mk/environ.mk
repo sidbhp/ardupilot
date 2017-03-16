@@ -130,7 +130,7 @@ endif
 ifneq ($(findstring px4, $(MAKECMDGOALS)),)
 HAL_BOARD = HAL_BOARD_PX4
 endif
-ifneq ($(findstring sparrow, $(MAKECMDGOALS)),)
+ifneq ($(findstring sp, $(MAKECMDGOALS)),)
 HAL_BOARD = HAL_BOARD_PX4
 endif
 

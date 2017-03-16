@@ -107,7 +107,7 @@ void Plane::setup()
 
     init_ardupilot();
 
-#if defined(CONFIG_ARCH_BOARD_PX4SPARROW_V11)
+#if defined(CONFIG_ARCH_BOARD_SP_V3)
     	camera.switch_off();
 #endif
 
@@ -641,7 +641,7 @@ void Plane::update_flight_mode(void)
 
     case RTL:
     case LOITER:
-#if defined(CONFIG_ARCH_BOARD_PX4SPARROW_V11)
+#if defined(CONFIG_ARCH_BOARD_SP_V3)
     	camera.switch_off();
 #endif
         calc_nav_roll();

@@ -399,7 +399,7 @@ failed:
     _timer_installed = true;
 }
 
-//#if defined(CONFIG_ARCH_BOARD_PX4SPARROW_V11)
+//#if defined(CONFIG_ARCH_BOARD_SP_V3)
 void AP_Camera::switch_on(void){
 	if(_camera_switched_on){
 		return;
@@ -435,4 +435,4 @@ void AP_Camera::switch_off(void){
     }
     _camera_switched_on = false;
 }
-//#endif //defined(CONFIG_ARCH_BOARD_PX4SPARROW_V11)
+//#endif //defined(CONFIG_ARCH_BOARD_SP_V3)

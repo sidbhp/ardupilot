@@ -6,7 +6,7 @@ include $(SKETCHBOOK)/mk/PX4/px4_common.mk
 #MODULES		+= drivers/lsm303d
 #MODULES		+= drivers/l3gd20
 MODULES		+= drivers/mpu9250
-MODULES		+= drivers/boards/sparrow-v11
+MODULES		+= drivers/boards/sp-v3
 MODULES		+= drivers/pwm_input
 MODULES         += modules/uavcan
 MODULES         += lib/mathlib

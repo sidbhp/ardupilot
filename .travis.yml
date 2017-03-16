@@ -54,14 +54,14 @@ matrix:
   fast_finish: true
   include:
   - compiler: gcc
-    env: CI_BUILD_TARGET="sparrow-v10 sparrow-v11"
+    env: CI_BUILD_TARGET="sparrow-v10 sp-v3"
   - compiler: gcc
     env: CI_BUILD_TARGET="sitltest"
 deploy:
   provider: releases
   api_key:
     secure: cAZVgiEI9tBwFW98Zvz/bW47XiI8K39Mzv9Xx6ChGRJLBrwUdSM34tSlLu50Rw4m34FeddaQDeNlncOtoR3+vjvk4NPIQw6ktUGQxMN4gbM8wO/td7yt2zDvekRsG7F1LAps9DfvKGtC1Ylba4oDlll/UX44L4C6HnbBnxulQNVEe7xsoHntG7qSN7rB6mDC4LjSPtrYl+vHNwhIaSIdDZ2e1VuPl4pbmBmUGgRi1rf6LnQH67gh7PB9sGVWqcWRvIzpAfODMbn2aHn/1hvc1R+Begv6qBK/87nUQoMDe8hd8E6aWagptNrXw1IlK2ZbOYajHbUjGH4FEcQ/wIXsLf0TR1DIMtoigOKRd0imZq2Ts4bc6POoMkx14jVBY7rra0gZgghMmKJRjAUyvYI2tACn+6dAdM5FL7qK+VGE2apZ4DUx+lwmHvypO4WyUbiyl5sF7gpgr2aM+QCjz77V0qTJ2HQuwnpHnyEoSSgyqvX5ty2fLa5/Rae7w3YxcVV8xiWTb5ulc+17ftxNf3WqFca6y69CUqKeIl8/f+P2TN8GaifxwKTf+26N6HT0EVh7CZSo1cXT23jFqUm8wjk4y8YEhD4irR9ySOuJVFRbf8/7B82pcaFB3bwI8mMlrOvN8Ou/zCxJJn6HceRLi2Ld0NXTTd9GQNw7KZwgalvh2bM=
-  file: ArduPlane/ArduPlane-sparrow-v10.px4
+  file: ArduPlane/ArduPlane-sp-v3.px4
   on:
     repo: nayan-dev/ardupilot
     tags: true
