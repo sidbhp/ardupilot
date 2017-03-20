@@ -54,7 +54,7 @@ const ToneAlarm_PX4::Tone ToneAlarm_PX4::_tones[] {
     #define AP_NOTIFY_PX4_TONE_LOUD_ATTENTION_NEEDED 8
     { "MFT100L4>A#A#A#A#", false },
     #define AP_NOTIFY_PX4_TONE_QUIET_ARMING_WARNING 9
-    { "MNT75L1O2G", false },
+    { "MFT150L64O5cO4dO5cO4dP32O5eO4f#O5eO4f#", false },
     #define AP_NOTIFY_PX4_TONE_LOUD_WP_COMPLETE 10
     { "MFT200L8G>C3", false },
     #define AP_NOTIFY_PX4_TONE_LOUD_LAND_WARNING_CTS 11
