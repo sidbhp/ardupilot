@@ -274,16 +274,11 @@ void AP_MicroStrain_3DMGX4::update(void)
 void AP_MicroStrain_3DMGX4::read_data(void)
 {
     int16_t nbytes = uart->available();
-//    static uint32_t last_print_time, last_time;
-//    if(AP_HAL::millis() - last_print_time  > 1000) {
-//        last_print_time = AP_HAL::millis();
-//        hal.console->printf("MicroStrain Rate: %f\n", 1000.0f/float(AP_HAL::millis() - last_time));
-//    }
-//    last_time = AP_HAL::millis();
 
     while (nbytes-- > 0) {
         char c = uart->read();
         _parse_char(c);
     }
+
     return;
 }

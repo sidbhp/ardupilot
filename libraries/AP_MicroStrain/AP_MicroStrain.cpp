@@ -140,7 +140,7 @@ check_sample:
         delta_time_sum += _delta_time * 1.0e6f;
         if (counter++ == 400) {
             counter = 0;
-            hal.console->printf("now=%lu _delta_time_sum=%lu diff=%ld\n",
+            timing_printf("now=%lu _delta_time_sum=%lu diff=%ld\n",
                                 (unsigned long)now,
                                 (unsigned long)delta_time_sum,
                                 (long)(now - delta_time_sum));

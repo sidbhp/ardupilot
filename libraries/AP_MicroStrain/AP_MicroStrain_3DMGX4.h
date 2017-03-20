@@ -30,7 +30,7 @@ public:
     void init(void);
 
     void update(void);
-    bool get_accel_health() { return processed_data.fields & 0x1U; }
+    bool get_accel_health() { return true; }
 
     bool healthy() { return true; }
     bool new_data() { return ((processed_data.fields & 0x3U) == 0x3U); }
