@@ -556,11 +556,9 @@ void Plane::handle_auto_mode(void)
 
     nav_cmd_id = mission.get_current_nav_cmd().id;
     if(nav_cmd_id == MAV_CMD_NAV_WAYPOINT) {
-        hal.console->printf("Doing Waypoint NAV CAMERA ON\n");
         camera.switch_on();
     } else {
         camera.switch_off();
-        hal.console->printf("Not doing Waypoint NAV CAMERA OFF\n");
     }
 
     if (quadplane.in_vtol_auto()) {
