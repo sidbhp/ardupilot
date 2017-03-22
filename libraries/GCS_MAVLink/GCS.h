@@ -210,6 +210,7 @@ public:
     bool telemetry_delayed(mavlink_channel_t chan);
     virtual uint32_t telem_delay() const = 0;
 
+    mavlink_channel_t get_chan() { return chan; }
 protected:
 
     // overridable method to check for packet acceptance. Allows for

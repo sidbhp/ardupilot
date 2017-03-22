@@ -40,6 +40,7 @@ const AP_Scheduler::Task Plane::scheduler_tasks[] = {
     SCHED_TASK(stabilize,             400,    100),
     SCHED_TASK(set_servos,            400,    100),
     SCHED_TASK(read_control_switch,     7,    100),
+    SCHED_TASK(update_rssi,             1,    100),
     SCHED_TASK(gcs_retry_deferred,     50,    500),
     SCHED_TASK(update_GPS_50Hz,        50,    300),
     SCHED_TASK(update_GPS_10Hz,        10,    400),
@@ -1078,5 +1079,49 @@ float Plane::tecs_hgt_afe(void)
     }
     return hgt_afe;
 }
+
+int8_t get_state(uint8_t cur_pin_val, uint8_t last_pin_val)
+{
+    switch(last_pin_val)
+    {
+        case 0:
+                if(cur_pin_val == 0) {
+                    return 0;
+                } else {
+                    return 1;
+                }
+        case 1:
+                if(cur_pin_val == 0) {
+                    return 1;
+                } else {
+                    return 2;
+                }
+    }
+    return 0;
+}
+
+void Plane::update_rssi(void)
+{
+    static int8_t last_val_pin1, last_val_pin2, last_val_pin3;
+    hal.gpio->pinMode(50, HAL_GPIO_INPUT);
+    hal.gpio->pinMode(51, HAL_GPIO_INPUT);
+    hal.gpio->pinMode(52, HAL_GPIO_INPUT);
+    // ensure we are in input mode
+    // enable pullup
+    hal.gpio->write(50, 1);
+    hal.gpio->write(51, 1);
+    hal.gpio->write(52, 1);
+    uint8_t telem_rssi = get_state(hal.gpio->read(50), last_val_pin1)+get_state(hal.gpio->read(51), last_val_pin2)+get_state(hal.gpio->read(52), last_val_pin3);
+    for (uint8_t i=0; i<num_gcs; i++) {
+        if (gcs[i].initialised) {
+            mavlink_msg_telem_status_send(gcs[i].get_chan(), telem_rssi);
+        }
+    }
+
+    last_val_pin1 = hal.gpio->read(50);
+    last_val_pin2 = hal.gpio->read(51);
+    last_val_pin3 = hal.gpio->read(52);
+}
+
 
 AP_HAL_MAIN_CALLBACKS(&plane);

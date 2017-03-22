@@ -958,6 +958,7 @@ private:
     void rpm_update(void);
     void button_update(void);
     void stats_update();
+    void update_rssi(void);
     void ice_update(void);
     void report_radio();
     void report_ins();
