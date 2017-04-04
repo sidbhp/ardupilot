@@ -244,6 +244,8 @@ return_zero:
  */
 void Plane::complete_auto_takeoff(void)
 {
+    uint16_t num_takeoffs = g.num_takeoffs + 1;
+    g.num_takeoffs.set_and_save(num_takeoffs);
 #if GEOFENCE_ENABLED == ENABLED
     if (g.fence_autoenable > 0) {
         if (! geofence_set_enabled(true, AUTO_TOGGLED)) {

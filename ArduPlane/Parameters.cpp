@@ -39,6 +39,13 @@ const AP_Param::Info Plane::var_info[] = {
     // @User: Advanced
     GSCALAR(sysid_my_gcs,           "SYSID_MYGCS",    255),
 
+    // @Param: NUM_TAKEOFF
+    // @DisplayName: Number of takeoffs
+    // @Description: This is used to calculate number of takeoffs done.
+    // @User: Advanced
+    // @ReadOnly: True
+    GSCALAR(num_takeoffs,          "NUM_TAKEOFF",  0),
+
 #if CLI_ENABLED == ENABLED
     // @Param: CLI_ENABLED
     // @DisplayName: CLI Enable

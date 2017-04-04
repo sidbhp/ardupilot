@@ -53,6 +53,7 @@ public:
         k_param_avoidance_adsb,
         k_param_landing,
         k_param_NavEKF3,
+        k_param_num_takeoffs,
 
         // Misc
         //
@@ -354,6 +355,7 @@ public:
 
     AP_Int16 format_version;
     AP_Int8 software_type;
+    AP_Int16 num_takeoffs;
 
     // Telemetry control
     //
