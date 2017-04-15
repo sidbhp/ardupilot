@@ -76,8 +76,8 @@ public:
         k_param_reset_mission_chan,
         k_param_land_flare_alt, // unused - moved to AP_Landing
         k_param_land_flare_sec, // unused - moved to AP_Landing
-        k_param_crosstrack_min_distance, // unused
-        k_param_rudder_steer, // unused
+        k_param_land_target_min_gndspd, //tbd: move to AP_Landing
+        k_param_land_target_max_gndspd,
         k_param_throttle_nudge,
         k_param_alt_offset,
         k_param_ins,                // libraries/AP_InertialSensor variables
@@ -497,6 +497,10 @@ public:
     AP_Float takeoff_rotate_speed;
     AP_Int8 takeoff_throttle_slewrate;
     AP_Float takeoff_pitch_limit_reduction_sec;
+    AP_Float land_target_min_gndspd;
+    AP_Float land_target_max_gndspd;
+    AP_Float land_reverse_throttle_wspd_min;
+    AP_Float land_reverse_throttle_wspd_max;
     AP_Int8 level_roll_limit;
     AP_Int8 flapin_channel;
     AP_Int8 flaperon_output;

@@ -212,6 +212,42 @@ const AP_Param::Info Plane::var_info[] = {
     // @User: Advanced
     GSCALAR(takeoff_pitch_limit_reduction_sec, "TKOFF_PLIM_SEC",  2),
 
+    // @Param: LAND_TMIN_GNDSPD
+    // @DisplayName: Landing groundspeed target range minimum 
+    // @Description: This parameter sets the minimum target range of groundspeed post flare
+    // @Units: m/s
+    // @Range: 0 15
+    // @Increment: 1
+    // @User: User
+    GSCALAR(land_target_min_gndspd, "LAND_TMIN_GNDSPD",  11),
+
+    // @Param: LAND_TMAX_GNDSPD
+    // @DisplayName: Landing groundspeed target range minimum 
+    // @Description: This parameter sets the maximum target range of groundspeed post flare
+    // @Units: m/s
+    // @Range: 0 15
+    // @Increment: 1
+    // @User: User
+    GSCALAR(land_target_max_gndspd, "LAND_TMAX_GNDSPD",  14),
+
+    // @Param: LAND_RTHR_ASPD_MAX
+    // @DisplayName: Landing enable reverse throttle airspeed maximum
+    // @Description: This parameter sets the maximum body wind speed range for maximum reverse throttle
+    // @Units: m/s
+    // @Range: 0 15
+    // @Increment: 1
+    // @User: User
+    GSCALAR(land_reverse_throttle_wspd_max, "LAND_WSPD_MAX", 3),
+
+    // @Param: LAND_RTHR_ASPD_MIN
+    // @DisplayName: Landing enable reverse throttle airspeed minimum 
+    // @Description: This parameter sets the minimum body wind speed range for zero reverse throttle
+    // @Units: m/s
+    // @Range: 0 15
+    // @Increment: 1
+    // @User: User
+    GSCALAR(land_reverse_throttle_wspd_min, "LAND_WSPD_MIN", 0),
+
     // @Param: TKOFF_FLAP_PCNT
     // @DisplayName: Takeoff flap percentage
     // @Description: The amount of flaps (as a percentage) to apply in automatic takeoff

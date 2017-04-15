@@ -578,12 +578,14 @@ void Plane::handle_auto_mode(void)
         if (landing.is_throttle_suppressed()) {
             // we are in the final stage of a landing - force
             // zero throttle
-            if(gps.ground_speed() > 8 && rangefinder_state.in_range &&
+            if(gps.ground_speed() > g.land_target_min_gndspd &&
+                (g.land_target_max_gndspd - g.land_target_min_gndspd) > 0.0f
+              && rangefinder_state.in_range &&
               (height_above_target() - rangefinder_correction()) > 0.3f) {
-                if(gps.ground_speed() > 18) {
+                if(gps.ground_speed() > g.land_target_max_gndspd) {
                     SRV_Channels::set_output_scaled(SRV_Channel::k_throttle,-100);
                 } else {
-                    SRV_Channels::set_output_scaled(SRV_Channel::k_throttle,-100*(gps.ground_speed()-8)/10);
+                    SRV_Channels::set_output_scaled(SRV_Channel::k_throttle,-100*(gps.ground_speed()-g.land_target_min_gndspd)/(g.land_target_max_gndspd - g.land_target_min_gndspd));
                 }
             } else {
                 SRV_Channels::set_output_scaled(SRV_Channel::k_throttle,0);
