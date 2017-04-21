@@ -575,10 +575,19 @@ void Plane::handle_auto_mode(void)
         
         // allow landing to restrict the roll limits
         nav_roll_cd = landing.constrain_roll(nav_roll_cd, g.level_roll_limit*100UL);
-
         if (landing.is_throttle_suppressed()) {
-            // if landing is considered complete throttle is never allowed, regardless of landing type
-            SRV_Channels::set_output_scaled(SRV_Channel::k_throttle, 0);
+            // we are in the final stage of a landing - force
+            // zero throttle
+            if(gps.ground_speed() > 8 && rangefinder_state.in_range &&
+              (height_above_target() - rangefinder_correction()) > 0.3f) {
+                if(gps.ground_speed() > 18) {
+                    SRV_Channels::set_output_scaled(SRV_Channel::k_throttle,-100);
+                } else {
+                    SRV_Channels::set_output_scaled(SRV_Channel::k_throttle,-100*(gps.ground_speed()-8)/10);
+                }
+            } else {
+                SRV_Channels::set_output_scaled(SRV_Channel::k_throttle,0);
+            }
         } else {
             calc_throttle();
         }
