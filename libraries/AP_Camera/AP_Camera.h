@@ -87,6 +87,7 @@ private:
     AP_Int16        _servo_on_pwm;      // PWM value to move servo to when shutter is activated
     AP_Int16        _servo_off_pwm;     // PWM value to move servo to when shutter is deactivated
     uint8_t         _trigger_counter;   // count of number of cycles shutter has been held open
+    uint8_t         _on_counter;
     AP_Relay       *_apm_relay;         // pointer to relay object from the base class Relay.
 
     void            servo_pic();        // Servo operated camera

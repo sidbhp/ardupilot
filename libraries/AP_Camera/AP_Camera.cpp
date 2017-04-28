@@ -180,6 +180,24 @@ AP_Camera::trigger_pic_cleanup()
                 break;
         }
     }
+
+    if (_on_counter) {
+        printf("Counter: %d : %d\n", _camera_switched_on, _on_counter);
+        _on_counter--;
+    } else {
+        switch (_trigger_type) {
+            case AP_CAMERA_TRIGGER_TYPE_SERVO:
+                RC_Channel_aux::set_radio(RC_Channel_aux::k_cam_trigger, _servo_off_pwm);
+                break;
+            case AP_CAMERA_TRIGGER_TYPE_RELAY:
+                if (_relay_on) {
+                    _apm_relay->off(1);
+                } else {
+                    _apm_relay->on(1);
+                }
+                break;
+        }
+    }
 }
 
 /// decode deprecated MavLink message that controls camera.
@@ -410,11 +428,16 @@ void AP_Camera::switch_on(void){
         return;                   // Servo operated camera --> do nothing
         break;
     case AP_CAMERA_TRIGGER_TYPE_RELAY:
-        _apm_relay->on(1);                  //replay high to switch on camera;
+        if (_relay_on) {
+            _apm_relay->on(1);
+        } else {
+            _apm_relay->off(1);
+        }
         GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Camera: Swiched ON \n");
         break;
     }
     _camera_switched_on = true;
+    _on_counter = constrain_int16(2*_trigger_duration*5,0,255);
 }
 
 void AP_Camera::switch_off(void){
@@ -429,10 +452,15 @@ void AP_Camera::switch_off(void){
         return;                   // Servo operated camera --> do nothing
         break;
     case AP_CAMERA_TRIGGER_TYPE_RELAY:
-        _apm_relay->off(1);                  //replay low to switch on camera;
+        if (_relay_on) {
+            _apm_relay->on(1);
+        } else {
+            _apm_relay->off(1);
+        }
         GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Camera: Swiched OFF \n");
         break;
     }
     _camera_switched_on = false;
+    _on_counter = constrain_int16(2*_trigger_duration*5,0,255);
 }
 //#endif //defined(CONFIG_ARCH_BOARD_SP_V3)
