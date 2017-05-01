@@ -182,7 +182,6 @@ AP_Camera::trigger_pic_cleanup()
     }
 
     if (_on_counter) {
-        printf("Counter: %d : %d\n", _camera_switched_on, _on_counter);
         _on_counter--;
     } else {
         switch (_trigger_type) {

@@ -41,6 +41,7 @@ const AP_Scheduler::Task Plane::scheduler_tasks[] = {
     SCHED_TASK(set_servos,            400,    100),
     SCHED_TASK(read_control_switch,     7,    100),
     SCHED_TASK(update_rssi,             1,    100),
+    SCHED_TASK(update_logger_stat,      1,    100),
     SCHED_TASK(gcs_retry_deferred,     50,    500),
     SCHED_TASK(update_GPS_50Hz,        50,    300),
     SCHED_TASK(update_GPS_10Hz,        10,    400),
@@ -1134,5 +1135,28 @@ void Plane::update_rssi(void)
     last_val_pin3 = hal.gpio->read(52);
 }
 
+void Plane::update_logger_stat(void)
+{
+
+    mavlink_rover_logger_status_t logger_status;
+    
+    if(hal.gpio->read(60)) {
+        logger_status.gps_fix = 1;
+        logger_status.cam_log_stat = 1;
+        for (uint8_t i=0; i<num_gcs; i++) {
+            if (gcs[i].initialised) {
+                mavlink_msg_rover_logger_status_send_struct(gcs[i].get_chan(), &logger_status);
+            }
+        }
+    } else {
+        logger_status.gps_fix = 0;
+        logger_status.cam_log_stat = 0;
+        for (uint8_t i=0; i<num_gcs; i++) {
+            if (gcs[i].initialised) {
+                mavlink_msg_rover_logger_status_send_struct(gcs[i].get_chan(), &logger_status);
+            }
+        }
+    }
+}
 
 AP_HAL_MAIN_CALLBACKS(&plane);
