@@ -94,14 +94,14 @@ public:
         k_param_scheduler,
         k_param_relay,
         k_param_takeoff_throttle_delay,
-        k_param_skip_gyro_cal, // unused
+        k_param_takeoff_rudder_mix,
         k_param_auto_fbw_steer,
         k_param_waypoint_max_radius,
         k_param_ground_steer_alt,        
         k_param_ground_steer_dps,
         k_param_rally_limit_km_old, //unused anymore -- just holding this index
         k_param_hil_err_limit,
-        k_param_sonar_old, // unused
+        k_param_takeoff_rudder_mix_height,
         k_param_log_bitmask,
         k_param_BoardConfig,
         k_param_rssi_range,     // unused, replaced by rssi_ library parameters
@@ -497,6 +497,8 @@ public:
     AP_Float takeoff_rotate_speed;
     AP_Int8 takeoff_throttle_slewrate;
     AP_Float takeoff_pitch_limit_reduction_sec;
+    AP_Float takeoff_rudder_mix_height;
+    AP_Float takeoff_rudder_mix;
     AP_Float land_target_min_gndspd;
     AP_Float land_target_max_gndspd;
     AP_Float land_reverse_throttle_wspd_min;
