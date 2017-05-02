@@ -273,7 +273,7 @@ void Plane::init_ardupilot()
 
 void Plane::init_logger_stat_pin(void)
 {
-    int8_t dpin = hal.gpio->analogPinToDigitalPin(60);  //TODO: make parameter
+    int8_t dpin = hal.gpio->analogPinToDigitalPin(59);  //TODO: make parameter
     if (dpin == -1) {
         return;
     }

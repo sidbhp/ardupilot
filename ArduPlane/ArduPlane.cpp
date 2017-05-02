@@ -1140,7 +1140,7 @@ void Plane::update_logger_stat(void)
 
     mavlink_rover_logger_status_t logger_status;
     
-    if(hal.gpio->read(60)) {
+    if(hal.gpio->read(59)) {
         logger_status.gps_fix = 1;
         logger_status.cam_log_stat = 1;
         for (uint8_t i=0; i<num_gcs; i++) {
