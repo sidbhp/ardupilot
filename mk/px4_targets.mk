@@ -116,7 +116,7 @@ sparrow-v10: $(BUILDROOT)/make.flags CHECK_MODULES $(MAVLINK_HEADERS) $(PX4_ROOT
 	$(v) $(SKETCHBOOK)/Tools/scripts/add_git_hashes.py $(HASHADDER_FLAGS) "$(SKETCH)-sparrow-v10.px4" "$(SKETCH)-sparrow-v10.px4"
 	$(v) echo "PX4 $(SKETCH) Firmware is in $(SKETCH)-sparrow-v10.px4"
 	
-sp-v3: $(BUILDROOT)/make.flags CHECK_MODULES $(MAVLINK_HEADERS) $(PX4_ROOT)/Archives/sp-v3.export $(SKETCHCPP) module_mk px4-io-v2
+sp-v3: $(BUILDROOT)/make.flags CHECK_MODULES $(MAVLINK_HEADERS) $(PX4_ROOT)/Archives/sp-v3.export $(SKETCHCPP) module_mk
 	$(v) echo Building sp-v3
 	$(RULEHDR)
 	$(v) cp $(SP_V3_CONFIG_FILE) $(PX4_ROOT)/makefiles/nuttx/
