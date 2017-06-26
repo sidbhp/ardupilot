@@ -9,6 +9,7 @@
 #else
 #include <time.h>
 #endif
+extern const AP_HAL::HAL& hal;
 
 /* Helper class implements AP_HAL::Print so we can use utility/vprintf */
 class BufferPrinter : public AP_HAL::BetterStream {
