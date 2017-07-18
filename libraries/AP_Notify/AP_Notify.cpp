@@ -22,6 +22,7 @@
 #include "ExternalLED.h"
 #include "NavioLED_I2C.h"
 #include "OreoLED_PX4.h"
+#include "DycoLED.h"
 #include "RCOutputRGBLed.h"
 #include "ToneAlarm_Linux.h"
 #include "ToneAlarm_PX4.h"
@@ -108,6 +109,8 @@ void AP_Notify::init(bool enable_external_leds)
         // Oreo LED enable/disable by NTF_OREO_THEME parameter
         if (_oreo_theme) {
             _devices[4] = new OreoLED_PX4(_oreo_theme);
+        } else {
+            _devices[4] = new DycoLED();
         }
 
     #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_PX4_V4 // Has its own LED board
@@ -115,12 +118,14 @@ void AP_Notify::init(bool enable_external_leds)
         _devices[1] = new ToshibaLED_I2C();
         _devices[2] = new ToneAlarm_PX4();
         _devices[3] = new Display();
+        _devices[4] = new DycoLED();
 
     #else   // All other px4 boards use standard devices.
         _devices[0] = new AP_BoardLED();
         _devices[1] = new ToshibaLED_I2C();
         _devices[2] = new ToneAlarm_PX4();
         _devices[3] = new Display();
+        _devices[4] = new DycoLED();
     #endif
 
 // Notify devices for VRBRAIN boards
