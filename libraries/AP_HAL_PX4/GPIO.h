@@ -1,6 +1,8 @@
 #pragma once
 
 #include "AP_HAL_PX4.h"
+#include <drivers/drv_dma_bitbang.h>
+#include "AP_HAL_PX4_Namespace.h"
 
 #define PX4_GPIO_PIEZO_PIN              110
 #define PX4_GPIO_EXT_FMU_RELAY1_PIN     111
@@ -45,8 +47,24 @@ public:
 
     // used by UART code to avoid a hw bug in the AUAV-X2
     void set_usb_connected(void) { _usb_connected = true; }
+ 
+#if defined(DMAMAP_BITBANG)
+    //DMA bitbang Interface
+    bool setup_dma_bitbang(uint32_t mult, uint32_t offset, uint32_t buffer_size);
+    void push_bitbang_state(uint8_t pin, bool set);
+    void flush_bitbang_states(AP_HAL::MemberProc callback);
+    void step_bitbang_state(void);
+#endif
 
 private:
+
+#if defined(DMAMAP_BITBANG)
+    uint32_t *bb_buffer;
+    uint32_t _bb_buffer_size;
+    uint16_t bb_pointer;
+    AP_HAL::MemberProc _dma_cb;
+    static void dma_callback(DMA_HANDLE handle, uint8_t isr, void *arg);
+#endif
     int _led_fd = -1;
     int _tone_alarm_fd = -1;
     int _gpio_fmu_fd = -1;
