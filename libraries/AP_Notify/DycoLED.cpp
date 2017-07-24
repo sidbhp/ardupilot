@@ -13,8 +13,8 @@
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
+*/
+/*
 DycoLED Driver Usage Guide
 Five Parameters to set pattern:
 * Color Series: color values after completion or at start of each step of pattern
@@ -54,9 +54,19 @@ another pattern or solid color is set.
 #include <errno.h>
 
 extern const AP_HAL::HAL& hal;
+#define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
 
+#define BYTE_TO_BINARY(byte)  \
+  (byte & 0x80 ? '1' : '0'), \
+  (byte & 0x40 ? '1' : '0'), \
+  (byte & 0x20 ? '1' : '0'), \
+  (byte & 0x10 ? '1' : '0'), \
+  (byte & 0x08 ? '1' : '0'), \
+  (byte & 0x04 ? '1' : '0'), \
+  (byte & 0x02 ? '1' : '0'), \
+  (byte & 0x01 ? '1' : '0') 
 
-led_pattern DycoLED::preset_pattern[14]={{{BLUE,RED},{100,100},{1.0,1.0},10,2},                             //INITIALISING
+led_pattern DycoLED::preset_pattern[16]={{{BLUE,RED},{100,100},{1.0,1.0},10,2},                             //INITIALISING
                                        {{RED,BLUE,GREEN},{250,250,250},{1.0,1.0,1.0},15,3},                 //SAV_TRIM_ESC_CAL
                                        {{BLACK,YELLOW},{250,250},{1.0,1.0},15,2},                           //FS_RAD_BATT
                                        {{BLUE,YELLOW},{250,250},{1.0,1.0},15,2},                            //FS_GPS
@@ -66,11 +76,13 @@ led_pattern DycoLED::preset_pattern[14]={{{BLUE,RED},{100,100},{1.0,1.0},10,2}, 
                                        {{BLUE,BLUE},{1000,1000},{1.0,1.0},1,2},                             //ARMED_NOGPS
                                        {{BLACK,YELLOW},{500,500},{1.0,1.0},15,2},                           //PREARM_CHECK
                                        {{BLACK,GREEN},{500,500},{1.0,1.0},15,2},                            //DISARMED_GPS
-                                       {{BLACK,BLUE},{500,500},{1.0,1.0},31,2},                             //DISARMED_NOGPS
-                                       {{GREEN,BLACK,GREEN,BLACK},{100,50,100,1000},{1.0,1.0,1.0,1.0},1,4}, //SAFE_STROBE
-                                       {{RED,BLACK,RED,BLACK},{100,50,100,1000},{1.0,1.0,1.0,1.0},1,4},     //FAIL_STROBE
-                                       {{BLUE,BLACK,BLUE,BLACK},{100,50,100,1000},{1.0,1.0,1.0,1.0},1,4}};  //NEUTRAL_STROBE
- 
+                                       {{BLACK,BLUE},{100,100},{1.0,1.0},31,2},                             //DISARMED_NOGPS
+                                       {{GREEN,BLACK,GREEN,BLACK},{50,25,50,500},{1.0,1.0,1.0,1.0},1,4}, //SAFE_STROBE
+                                       {{RED,BLACK,RED,BLACK},{50,25,50,500},{1.0,1.0,1.0,1.0},1,4},     //FAIL_STROBE
+                                       {{BLUE,BLACK,BLUE,BLACK},{50,25,50,500},{1.0,1.0,1.0,1.0},1,4},  //NEUTRAL_STROBE
+                                       {{WHITE,BLACK,WHITE,BLACK},{50,25,50,1125},{1.0,1.0,1.0,1.0},1,4},  //NEUTRAL_STROBE
+                                       {{BLACK,WHITE,BLACK,WHITE,BLACK},{625,50,25,50,500},{1.0,1.0,1.0,1.0,1.0},1,5}};  //NEUTRAL_STROBE
+
 
 bool DycoLED::init()
 {
@@ -88,6 +100,10 @@ void DycoLED::set_preset_pattern(uint16_t led,uint8_t patt)
 // at 50Hz
 void DycoLED::update()
 {
+    // Do Strobe on LED 3 and 4
+    set_preset_pattern(2, 14);
+    set_preset_pattern(3, 15);
+    
     if (AP_Notify::flags.initialising) {
         set_preset_pattern(STATUS_LED,NOTIFY_INITIALISING);
         set_preset_pattern(STROBE_LED,NOTIFY_NEUTRAL_STROBE);
@@ -103,11 +119,7 @@ void DycoLED::update()
         set_preset_pattern(STROBE_LED,NOTIFY_FAIL_STROBE);
         return;
     }
-    if(!AP_Notify::flags.gps_fusion){
-        set_preset_pattern(STATUS_LED,NOTIFY_FS_GPS);
-        set_preset_pattern(STROBE_LED,NOTIFY_FAIL_STROBE);
-        return;
-    }
+
     if(AP_Notify::flags.ekf_bad){
         set_preset_pattern(STATUS_LED,NOTIFY_EKF_BAD);
         set_preset_pattern(STROBE_LED,NOTIFY_FAIL_STROBE);
@@ -115,7 +127,7 @@ void DycoLED::update()
     }
     
     if (AP_Notify::flags.armed) {
-        if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D_DGPS) {
+        if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D_DGPS && AP_Notify::flags.gps_fusion) {
             _ledstrip.set_solid_color(STATUS_LED,GREEN);
             set_preset_pattern(STROBE_LED,NOTIFY_SAFE_STROBE);
         } else{
@@ -127,7 +139,7 @@ void DycoLED::update()
             set_preset_pattern(STATUS_LED,NOTIFY_PREARM_CHECK);
             set_preset_pattern(STROBE_LED,NOTIFY_NEUTRAL_STROBE);
         } else{
-            if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D_DGPS) {
+            if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D_DGPS && AP_Notify::flags.gps_fusion) {
                 set_preset_pattern(STATUS_LED,NOTIFY_DISARMED_GPS);
                 set_preset_pattern(STROBE_LED,NOTIFY_SAFE_STROBE);
             } else{
@@ -148,6 +160,7 @@ DycoLEDDriver::DycoLEDDriver()
     _pattern_color = NULL;
     _brightness = NULL;
     _pattern_time = NULL;
+    _prev_beat = 0;
 }
 
 void DycoLEDDriver::reset()
@@ -159,7 +172,7 @@ void DycoLEDDriver::set_rgb(uint16_t red, uint16_t green, uint16_t blue)
 {    
     clk_prev_time = 0;
     clk_pulse_count = 0;
-    data_hold = red << 10 | green | blue << 5 | 1U<<15;     //1 set_bit(MSB),5 bits Red,5 bits Blue,5 bits Green intensities
+    data_hold = red << 8 | green | blue << 16 | 1U<<24;     //1 set_bit(MSB),8 bits Red,8 bits Blue,8 bits Green intensities
                                                             //in the same sequence
 }
 void DycoLEDDriver::set_solid_color(uint8_t color)
@@ -189,12 +202,11 @@ void DycoLEDDriver::set_pattern(uint16_t color_series[],float bright_series[],
     _res = res;
     _step_cnt = step_cnt;
 }
-void DycoLEDDriver::pattern_step()
+
+void DycoLEDDriver::pattern_step(uint32_t beat)
 {
     int16_t red_diff, blue_diff, green_diff;
     uint16_t red, blue, green;
-    uint32_t diff_time;
-    uint32_t cur_time = AP_HAL::millis64();
     uint16_t step_size;
     uint8_t next_color,color;
     if(_res == 0){
@@ -208,11 +220,10 @@ void DycoLEDDriver::pattern_step()
     next_color = _pattern_color[(_step+1)%_step_cnt];
     color = _pattern_color[_step];
     step_size = _pattern_time[_step]/_res;
-    diff_time = cur_time - _prev_time;
-    
-    if((diff_time > step_size) && (_iter < _res)){
+
+    if(((beat - _prev_beat) > step_size) && (_iter < _res)){
         _iter++;
-        _prev_time = cur_time;
+        _prev_beat = beat;
     }
     //calculate difference between two consecutive colors b/w which transition is taking place
     red_diff = preset_color[next_color][0]*_brightness[(_step+1)%_step_cnt] - preset_color[color][0]*_brightness[_step];
@@ -226,10 +237,9 @@ void DycoLEDDriver::pattern_step()
 
     if(_iter >= _res){
         _step++;                //get ready for next step/transition
-        _iter =0;
+        _iter = 0;
     }
-    set_rgb(red,green,blue);
-    
+    set_rgb(red,green,blue);  
 }
 
 //LED Strip Driver Functions
@@ -237,20 +247,21 @@ DycoLEDStripDriver::DycoLEDStripDriver()
 {
     _init = false;
     _strip_cnt = 0;
-    _commcomp = false;
-    clk_pin = false;
+    tx_complete = true;
     cntr = 0;
+    _beat = 0;
 }
 
 void DycoLEDStripDriver::init(uint16_t length)
 {
     _led = new DycoLEDDriver[length];
     hal.scheduler->register_io_process(FUNCTOR_BIND_MEMBER(&DycoLEDStripDriver::generate_beat_pattern, void));
+    // Setup GPIO to do dma supported bitbanging
     hal.gpio->pinMode(DYCODOUT,HAL_GPIO_OUTPUT);
     hal.gpio->pinMode(DYCOCLK,HAL_GPIO_OUTPUT);
     hal.gpio->write(DYCOCLK,0);                     // both Clock pin and data pin at low state
     hal.gpio->write(DYCODOUT,0);
-    
+    hal.gpio->setup_dma_bitbang(1, 0, 2*(75+25*(length-1)) + 1); //Run @ ~2.5 MHz clock
     _length = length;
     _init = true;
 }
@@ -263,39 +274,52 @@ void DycoLEDStripDriver::set_solid_color(uint8_t led_num, uint8_t color)
 //function for data transfer to dycoled and update with latest rgb values
 bool DycoLEDStripDriver::update()
 {
-    bool data;
-    uint16_t len = _length;
-    uint32_t total_clk_pulses = (75+25*(len-1));
     if(!_init){
         return false;
     }
-    hal.gpio->pinMode(DYCODOUT,HAL_GPIO_OUTPUT);
-    hal.gpio->pinMode(DYCOCLK,HAL_GPIO_OUTPUT);
-
+    bool data;
+    uint16_t len = _length;
+    uint32_t total_clk_pulses = (75+25*(len-1));
     if(clk_pulse_count < total_clk_pulses){
-        hal.gpio->write(DYCOCLK, clk_pin = !clk_pin);       //toggle CLK pin
-        
-        if(clk_pin){
-            if(clk_pulse_count < 50) {
-                hal.gpio->write(DYCODOUT, 0);               //send 50 LOW bits to initiate data transfer
-                //printf("0");
-            } else if(clk_pulse_count >= 50 && clk_pulse_count % 25 == 0){
-                hal.gpio->write(DYCODOUT, 1);               //set bit HIGH to enable led
-                _led[_strip_cnt].reset();
-                _strip_cnt++;
-            } else if(clk_pulse_count > (uint16_t)(50+25*(_strip_cnt-1)) && clk_pulse_count < (uint16_t)(75+25*(_strip_cnt-1))){
-                cntr = _strip_cnt - 1;
-                data = _led[_strip_cnt-1].pop_data();       //pop rbg data bits out of the led data buffer
-                hal.gpio->write(DYCODOUT, data);
-            } 
-            clk_pulse_count++;
+        if(clk_pulse_count < 50) {
+            //send 50 LOW bits to initiate data transfer
+            hal.gpio->push_bitbang_state(DYCOCLK, 1);
+            hal.gpio->push_bitbang_state(DYCODOUT, 0);
+            hal.gpio->step_bitbang_state();
+            hal.gpio->push_bitbang_state(DYCOCLK, 0);
+            hal.gpio->push_bitbang_state(DYCODOUT, 0);
+            hal.gpio->step_bitbang_state();
+        } else if(clk_pulse_count >= 50 && clk_pulse_count % 25 == 0){
+            //set bit HIGH to enable led
+            hal.gpio->push_bitbang_state(DYCOCLK, 1);
+            hal.gpio->push_bitbang_state(DYCODOUT, 1);
+            hal.gpio->step_bitbang_state();
+            hal.gpio->push_bitbang_state(DYCOCLK, 0);
+            hal.gpio->push_bitbang_state(DYCODOUT, 0);
+            hal.gpio->step_bitbang_state();
+            _led[_strip_cnt].reset();
+            _strip_cnt++;
+        } else if(clk_pulse_count > (uint16_t)(50+25*(_strip_cnt-1)) && clk_pulse_count < (uint16_t)(75+25*(_strip_cnt-1))){
+            cntr = _strip_cnt - 1;
+
+            data = _led[_strip_cnt-1].pop_data();       //pop rbg data bits out of the led data buffer
+
+            hal.gpio->push_bitbang_state(DYCOCLK, 1);
+            hal.gpio->push_bitbang_state(DYCODOUT, data);
+            hal.gpio->step_bitbang_state();
+            hal.gpio->push_bitbang_state(DYCOCLK, 0);
+            hal.gpio->push_bitbang_state(DYCODOUT, 0);
+            hal.gpio->step_bitbang_state();
         }
+        clk_pulse_count++;
     } else{
-        hal.gpio->write(DYCOCLK,0);         //transfer complete, reset CLK and DATA pins and
-        hal.gpio->write(DYCODOUT,0);        //initialise flags and counters for next data transfer cycle
+        //transfer complete, reset CLK and DATA pins and
+        //initialise flags and counters for next data transfer cycle
+        hal.gpio->push_bitbang_state(DYCODOUT, 0);
+        hal.gpio->push_bitbang_state(DYCOCLK, 0);
         _strip_cnt = 0;
-        _commcomp = true;
-        clk_pulse_count =0;
+        hal.gpio->step_bitbang_state();
+        clk_pulse_count = 0;
         for(int i=0; i<len; i++){
             _led[cntr].reset();             //prepare data buffer for next data transfer cycle
         }
@@ -313,11 +337,25 @@ void DycoLEDStripDriver::set_pattern(uint16_t led_num,uint16_t color_series[],
 
 void DycoLEDStripDriver::generate_beat_pattern()
 {
-    if(_commcomp){
+    if(tx_complete) {
+        //increment beat value
+        _beat++;
+        // step only if tx_completed
+        // we retry after timeout
         for(int i=0;i<_length;i++){
-            _led[i].pattern_step();
+            _led[i].pattern_step(_beat);
         }
-        _commcomp = false;
+    } else if(_tx_timeout-- > 0) {
+        return;
     }
-    update();
+    while(!update());
+    hal.gpio->flush_bitbang_states(FUNCTOR_BIND_MEMBER(&DycoLEDStripDriver::tx_complete_callback, void));
+    tx_complete = false;
+    _tx_timeout = 5;    //timeout after 5ms
+}
+
+void DycoLEDStripDriver::tx_complete_callback()
+{
+    // set tx complete flag so we can begin next transmission
+    tx_complete = true;
 }

@@ -20,12 +20,10 @@
 #include <AP_HAL/AP_HAL.h>
 #include "NotifyDevice.h"
 
-#define CLK_PERIOD 200          //200ns
-
 #define DYCOCLK 50
 #define DYCODOUT 51
 
-#define MAX_NUM_LEDS    35
+#define MAX_NUM_LEDS    4
 #define MAX_PATTERN_STEPS 16
 
 
@@ -45,10 +43,10 @@ private:
     uint8_t _step_cnt;
     uint16_t* _pattern_color;
     uint16_t* _pattern_time;
-    uint32_t _prev_time;
+    uint32_t _prev_beat;
     float* _brightness;
     void set_rgb(uint16_t red, uint16_t green, uint16_t blue);
-    //RGB values corresponding to|  OFF  |   RED  | ORANGE  |  AMBER  |  YELLOW | GREEN  |  BLUE  | PURPLE  |  WHITE   |
+    //RGB values corresponding to|  OFF  |   RED  | ORANGE  |         AMBER |  YELLOW |  GREEN |     BLUE   | PURPLE |  WHITE   |
     uint8_t preset_color[9][3] = {{0,0,0},{255,0,0},{255,128,0},{255,192,0},{255,255,0},{0,255,0},{0,0,255},{128,0,128},{255,255,255}};
 
 public:
@@ -57,7 +55,7 @@ public:
     bool pop_data();
     void reset();
     //pattern functions
-    void pattern_step();
+    void pattern_step(uint32_t beat);
     void set_pattern(uint16_t color_series[],float bright_series[],uint16_t time_series[],uint8_t res, uint8_t step_cnt);
 };
 
@@ -69,12 +67,13 @@ private:
     uint32_t clk_pulse_count;
     uint8_t _length;
     bool _init;
-    bool _commcomp;
     bool clk_pin;
     uint16_t _strip_cnt;
     uint16_t cntr;
     DycoLEDDriver* _led;
-
+    uint32_t _beat;
+    bool tx_complete;
+    int8_t _tx_timeout;
 public:
     DycoLEDStripDriver();
     void generate_beat_pattern();
@@ -82,6 +81,7 @@ public:
     void set_solid_color(uint8_t led_num, uint8_t color);
     void set_pattern(uint16_t led_num,uint16_t color_series[],float bright_series[],uint16_t time_series[],uint8_t res, uint8_t step_cnt);
     void init(uint16_t length);
+    void tx_complete_callback();
 };
 
 struct led_pattern
@@ -135,6 +135,6 @@ public:
 protected:
     DycoLEDStripDriver _ledstrip;
     void set_preset_pattern(uint16_t led,uint8_t patt);
-    static led_pattern preset_pattern[14];
+    static led_pattern preset_pattern[16];
 };
 
