@@ -43,4 +43,10 @@ public:
 
     /* return true if USB cable is connected */
     virtual bool    usb_connected(void) = 0;
+
+    //DMA bitbang Interface
+    virtual bool setup_dma_bitbang(uint32_t mult, uint32_t offset, uint32_t buffer_size) { return false; }
+    virtual void push_bitbang_state(uint8_t pin, bool set) {}
+    virtual void flush_bitbang_states(AP_HAL::MemberProc p) {}
+    virtual void step_bitbang_state(void) {}
 };

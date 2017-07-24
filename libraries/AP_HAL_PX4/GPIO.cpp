@@ -16,6 +16,7 @@
 #include <modules/px4iofirmware/protocol.h>
 #include <arch/board/board.h>
 #include <board_config.h>
+#include <drivers/drv_dma_bitbang.h>
 
 #define LOW     0
 #define HIGH    1
@@ -293,6 +294,72 @@ bool PX4GPIO::usb_connected(void)
     return stm32_gpioread(GPIO_OTGFS_VBUS) && _usb_connected;
 }
 
+#if defined(DMAMAP_BITBANG)
+/*
+    setup dma bitbang driver and acquire buffer for storing
+*/
+bool PX4GPIO::setup_dma_bitbang(uint32_t mult, uint32_t offset, uint32_t buffer_size)
+{
+    bb_buffer = new uint32_t[buffer_size];
+    if(bb_buffer == NULL) {
+        return false;
+    }
+    _bb_buffer_size = buffer_size;
+    memset(bb_buffer, 0, buffer_size);
+    // Initialise dma bitbang driver
+    dma_bb_init(mult, offset);
+    bb_pointer = 0;
+    return true;
+}
+
+/*
+    Push pin states for next flush
+    pin 0-15 pins on GPIO bus
+    Only Aux 1-4 are supported on Pixhawk
+    inc flag selects if next state should be written to on next call
+*/
+void PX4GPIO::push_bitbang_state(uint8_t pin, bool set)
+{
+    // convert FMU pin to GPIO pin map
+    switch(pin) {
+        case PX4_GPIO_FMU_SERVO_PIN(0): pin = 14; break;
+        case PX4_GPIO_FMU_SERVO_PIN(1): pin = 13; break;
+        case PX4_GPIO_FMU_SERVO_PIN(2): pin = 11; break;
+        case PX4_GPIO_FMU_SERVO_PIN(3): pin = 9; break;
+        default: return;
+    }
+
+    if (set) {
+        bb_buffer[bb_pointer] |= (1UL<<pin);
+    } else {
+        bb_buffer[bb_pointer] |= (1UL<<(pin+16));
+    }
+}
+
+
+void PX4GPIO::step_bitbang_state()
+{
+    bb_pointer++;
+    bb_buffer[bb_pointer] = 0;
+}
+
+/*
+    Flush bitbang states and register callback to be called after completion
+*/
+void PX4GPIO::flush_bitbang_states(AP_HAL::MemberProc p)
+{
+    dma_bb_send_buff(bb_buffer, bb_pointer, dma_callback, this);
+    _dma_cb = p;
+    bb_pointer = 0;
+}
+
+void PX4GPIO::dma_callback(DMA_HANDLE handle, uint8_t isr, void *arg)
+{
+    PX4GPIO* obj = (PX4GPIO*)arg;
+    obj->_dma_cb();
+}
+
+#endif
 
 PX4DigitalSource::PX4DigitalSource(uint8_t v) :
     _v(v)
