@@ -427,6 +427,8 @@ public:
         _force_disable_gps = disable;
     }
 
+    void trigg_time_sync_pin(void);
+
 protected:
 
     // configuration parameters
@@ -448,6 +450,7 @@ protected:
     AP_Int16 _delay_ms[GPS_MAX_RECEIVERS];
     AP_Int8 _blend_mask;
     AP_Float _blend_tc;
+    AP_Int8 _tm_trig_pin;
 
     uint32_t _log_gps_bit = -1;
 
@@ -568,6 +571,9 @@ private:
 
     // used for flight testing with GPS loss
     bool _force_disable_gps;
+    //Time sync trigger pulse times
+    uint64_t _fedge_tm_sync_time; // Falling Edge time (in monotonic timeframe)
+    uint64_t _redge_tm_sync_time; // Rising Edge time (in monotonic timeframe)
 };
 
 namespace AP {

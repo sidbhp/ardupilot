@@ -185,6 +185,27 @@ AP_GPS_UBLOX::_request_next_config(void)
         _unconfigured_messages & = ~CONFIG_RATE_RAW;
 #endif
         break;
+    case STEP_SFRBX:
+#if UBLOX_RXM_RAW_LOGGING
+        if(gps._raw_data == 0) {
+            _unconfigured_messages &= ~CONFIG_RATE_SFRB;
+        } else if(!_request_message_rate(CLASS_RXM, MSG_RXM_SFRBX)) {
+            _next_message--;
+        }
+#else
+        _unconfigured_messages & = ~CONFIG_RATE_SFRB;
+#endif
+        break;
+    case STEP_TM2:
+#if UBLOX_RXM_RAW_LOGGING
+        if(gps._raw_data == 0) {
+            _unconfigured_messages &= ~CONFIG_RATE_TM2;
+        } else if(!_request_message_rate(CLASS_TIM, MSG_TIM_TM2)) {
+            _next_message--;
+        }
+#else
+        _unconfigured_messages & = ~CONFIG_RATE_SFRB;
+#endif
     case STEP_VERSION:
         if(!_have_version && !hal.util->get_soft_armed()) {
             _request_version();
@@ -310,6 +331,26 @@ AP_GPS_UBLOX::_verify_rate(uint8_t msg_class, uint8_t msg_id, uint8_t rate) {
                 _cfg_needs_save = true;
             }
             break;
+        case MSG_RXM_SFRBX:
+            if(rate == gps._raw_data) {
+                _unconfigured_messages &= ~CONFIG_RATE_SFRB;
+            } else {
+                _configure_message_rate(msg_class, msg_id, gps._raw_data);
+                _unconfigured_messages |= CONFIG_RATE_SFRB;
+                _cfg_needs_save = true;
+            }
+            break;
+        case MSG_TIM_TM2:
+            if(rate == gps._raw_data) {
+                _unconfigured_messages &= ~CONFIG_RATE_TM2;
+            } else {
+                // Note: TIM_TM2 msg rate is irrelevant but we need to send anything > 0 to enable
+                // trigger message
+                _configure_message_rate(msg_class, msg_id, gps._raw_data);
+                _unconfigured_messages |= CONFIG_RATE_TM2;
+                _cfg_needs_save = true;
+            }
+            break;    
         }
         break;
 #endif // UBLOX_RXM_RAW_LOGGING
@@ -586,6 +627,60 @@ void AP_GPS_UBLOX::log_rxm_rawx(const struct ubx_rxm_rawx &raw)
         AP::logger().WriteBlock(&pkt, sizeof(pkt));
     }
 }
+
+void AP_GPS_UBLOX::log_rxm_sfrbx(const struct ubx_rxm_sfrbx &sfrb)
+{
+    if (!AP::logger().logging_started()) {
+        return;
+    }
+    uint64_t now = AP_HAL::micros64();
+
+    struct log_GPS_SFRBH header = {
+        LOG_PACKET_HEADER_INIT(LOG_GPS_SFRBH_MSG),
+        time_us    : now,
+        gnssId     : sfrb.gnssId,
+        svId       : sfrb.svId,
+        freqId     : sfrb.freqId,
+        numWords   : sfrb.numWords,
+        version    : sfrb.version,
+    };
+    AP::logger().WriteBlock(&header, sizeof(header));
+
+    for (uint8_t i=0; i<sfrb.numWords; i++) {
+        struct log_GPS_SFRBS pkt = {
+            LOG_PACKET_HEADER_INIT(LOG_GPS_SFRBS_MSG),
+            time_us    : now,
+            data       : sfrb.data[i],
+        };
+        AP::logger().WriteBlock(&pkt, sizeof(pkt));
+    }
+}
+
+void AP_GPS_UBLOX::log_tim_tm2(const struct ubx_tim_tm2 &tm2)
+{
+    if (AP::logger().logging_started()) {
+        return;
+    }
+    uint64_t now = AP_HAL::micros64();
+    struct log_GPS_TIM pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_GPS_TIM_MSG),
+        time_us    : now,
+        redge_us   : gps._redge_tm_sync_time,
+        fedge_us   : gps._fedge_tm_sync_time,
+        ch         : tm2.ch,
+        flags      : tm2.flags,
+        count      : tm2.count,
+        wnR        : tm2.wnR,
+        wnF        : tm2.wnF,
+        towMsR     : tm2.towMsR,
+        towSubMsR  : tm2.towSubMsR,
+        towMsF     : tm2.towMsF,
+        towSubMsF  : tm2.towSubMsF,
+        accEst     : tm2.accEst
+    };
+    AP::logger().WriteBlock(&pkt, sizeof(pkt));
+}
+
 #endif // UBLOX_RXM_RAW_LOGGING
 
 void AP_GPS_UBLOX::unexpected_message(void)
@@ -866,7 +961,20 @@ AP_GPS_UBLOX::_parse_gps(void)
         log_rxm_raw(_buffer.rxm_raw);
         return false;
     } else if (_class == CLASS_RXM && _msg_id == MSG_RXM_RAWX && gps._raw_data != 0) {
+        static uint32_t last_time = 0;
+        hal.console->printf("RAWX: %d\n",  AP_HAL::millis() - last_time);
+        last_time = AP_HAL::millis();
         log_rxm_rawx(_buffer.rxm_rawx);
+        return false;
+    } else if (_class == CLASS_RXM && _msg_id == MSG_RXM_SFRBX && gps._raw_data != 0) {
+        log_rxm_sfrbx(_buffer.rxm_sfrbx);
+        return false;
+    } else if (_class == CLASS_TIM && _msg_id == MSG_TIM_TM2 && gps._raw_data != 0) {
+        //Log TM2 message if we have correct sequence of rising edge and falling edge time for the INT pulse
+        if (gps._redge_tm_sync_time < gps._fedge_tm_sync_time) {
+            Debug("Received Time Sync MSG...\n");
+            log_tim_tm2(_buffer.tim_tm2);
+        }
         return false;
     }
 #endif // UBLOX_RXM_RAW_LOGGING

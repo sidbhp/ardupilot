@@ -354,6 +354,7 @@ void AP_Camera::feedback_pin_timer(void)
         _last_pin_state != trigger_polarity) {
         _feedback_timestamp_us = AP_HAL::micros();
         _camera_trigger_count++;
+        AP::gps().trigg_time_sync_pin();
     }
     _last_pin_state = pin_state;
 }
@@ -362,7 +363,7 @@ void AP_Camera::feedback_pin_timer(void)
   setup a callback for a feedback pin. When on PX4 with the right FMU
   mode we can use the microsecond timer.
  */
-void AP_Camera::setup_feedback_callback(void)
+void AP_Camera::setup_feedback_callback()
 {
     if (_feedback_pin <= 0 || _timer_installed || _isr_installed) {
         // invalid or already installed
@@ -395,6 +396,9 @@ void AP_Camera::log_picture()
         return;
     }
     if (!using_feedback_pin()) {
+        // send GPS Time Sync pulse here as this is closest we can get
+        // to capturing image time without feedback
+        AP::gps().trigg_time_sync_pin();
         gcs().send_message(MSG_CAMERA_FEEDBACK);
         if (df->should_log(log_camera_bit)) {
             df->Write_Camera(ahrs, current_loc);

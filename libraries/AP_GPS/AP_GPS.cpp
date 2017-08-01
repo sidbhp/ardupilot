@@ -264,6 +264,13 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("BLEND_TC", 21, AP_GPS, _blend_tc, 10.0f),
 
+    // @Param: TM_TRIG_PIN
+    // @DisplayName: Timer Msg Trigger Pin
+    // @Description: Set pin to be used to send pulse to GPS INT pin to generate accurate timing, can be used for precise geotagging.
+    // @Values: -1:Disabled,13:APM2 A9 pin,47:APM1 relay,50:Pixhawk AUXOUT1,51:Pixhawk AUXOUT2,52:Pixhawk AUXOUT3,53:Pixhawk AUXOUT4,54:Pixhawk AUXOUT5,55:Pixhawk AUXOUT6,111:PX4 FMU Relay1,112:PX4 FMU Relay2,113:PX4IO Relay1,114:PX4IO Relay2,115:PX4IO ACC1,116:PX4IO ACC2
+    // @User: Advanced
+    AP_GROUPINFO("TM_TRIG_PIN", 22, AP_GPS, _tm_trig_pin, 50),
+
     AP_GROUPEND
 };
 
@@ -304,6 +311,14 @@ void AP_GPS::init(const AP_SerialManager& serial_manager)
         if (_rate_ms[i] <= 0 || _rate_ms[i] > GPS_MAX_RATE_MS) {
             _rate_ms[i] = GPS_MAX_RATE_MS;
         }
+    }
+
+    //reset time sync trigger pin
+    if (_tm_trig_pin != -1) {
+        hal.gpio->pinMode(_tm_trig_pin, HAL_GPIO_OUTPUT);
+        hal.gpio->write(_tm_trig_pin, 0);
+        _fedge_tm_sync_time = 0;
+        _redge_tm_sync_time = 0;
     }
 }
 
@@ -682,6 +697,12 @@ void AP_GPS::update(void)
         }
     }
 
+    // create ~2ms pulse on time sync after trigg
+    if (_tm_trig_pin != -1 && _redge_tm_sync_time > _fedge_tm_sync_time) {
+        hal.gpio->pinMode(_tm_trig_pin, HAL_GPIO_OUTPUT);
+        hal.gpio->write(_tm_trig_pin, 0);
+        _fedge_tm_sync_time = AP_HAL::micros64();
+    }
     // if blending is requested, attempt to calculate weighting for each GPS
     if (_auto_switch == 2) {
         _output_is_blended = calc_blend_weights();
@@ -1542,6 +1563,17 @@ bool AP_GPS::prepare_for_arming(void) {
     return all_passed;
 }
 
+/*
+ Trigger GPS Time Sync Pin
+*/
+void AP_GPS::trigg_time_sync_pin(void)
+{
+    if (_tm_trig_pin != -1) {
+        hal.gpio->pinMode(_tm_trig_pin, HAL_GPIO_OUTPUT);
+        hal.gpio->write(_tm_trig_pin, 1);
+        _redge_tm_sync_time = AP_HAL::micros();
+    }
+}
 namespace AP {
 
 AP_GPS &gps()

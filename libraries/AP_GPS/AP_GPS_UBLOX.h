@@ -37,11 +37,12 @@
  * modules are configured with all ubx binary messages off, which
  * would mean we would never detect it.
  */
-#define UBLOX_SET_BINARY "\265\142\006\001\003\000\001\006\001\022\117$PUBX,41,1,0023,0001,115200,0*1C\r\n"
+#define UBLOX_SET_BINARY "\265\142\006\001\003\000\001\006\001\022\117$PUBX,41,1,0023,0001,230400,0*1C\r\n"
 
 #define UBLOX_RXM_RAW_LOGGING 1
 #define UBLOX_MAX_RXM_RAW_SATS 22
 #define UBLOX_MAX_RXM_RAWX_SATS 32
+#define UBLOX_MAX_RXM_SFRBX_SATS 32
 #define UBLOX_GNSS_SETTINGS 1
 
 #define UBLOX_MAX_GNSS_CONFIG_BLOCKS 7
@@ -73,12 +74,14 @@
 #define CONFIG_SBAS          (1<<12)
 #define CONFIG_RATE_PVT      (1<<13)
 #define CONFIG_TP5           (1<<14)
+#define CONFIG_RATE_SFRB     (1<<15)
+#define CONFIG_RATE_TM2      (1<<16)
 
 #define CONFIG_REQUIRED_INITIAL (CONFIG_RATE_NAV | CONFIG_RATE_POSLLH | CONFIG_RATE_STATUS | CONFIG_RATE_VELNED)
 
 #define CONFIG_ALL (CONFIG_RATE_NAV | CONFIG_RATE_POSLLH | CONFIG_RATE_STATUS | CONFIG_RATE_SOL | CONFIG_RATE_VELNED \
                     | CONFIG_RATE_DOP | CONFIG_RATE_MON_HW | CONFIG_RATE_MON_HW2 | CONFIG_RATE_RAW | CONFIG_VERSION \
-                    | CONFIG_NAV_SETTINGS | CONFIG_GNSS | CONFIG_SBAS)
+                    | CONFIG_NAV_SETTINGS | CONFIG_GNSS | CONFIG_SBAS | CONFIG_RATE_SFRB | CONFIG_RATE_TM2)
 
 //Configuration Sub-Sections
 #define SAVE_CFG_IO     (1<<0)
@@ -391,6 +394,30 @@ private:
             uint8_t reserved3;
         } svinfo[UBLOX_MAX_RXM_RAWX_SATS];
     };
+    struct PACKED ubx_rxm_sfrbx {
+        uint8_t gnssId;
+        uint8_t svId;
+        uint8_t reserved1;
+        uint8_t freqId;
+        uint8_t numWords;
+        uint8_t reserved2;
+        uint8_t version;
+        uint8_t reserved3;
+        uint32_t data[UBLOX_MAX_RXM_SFRBX_SATS];
+    };
+
+    struct PACKED ubx_tim_tm2 {
+        uint8_t ch;
+        uint8_t flags;
+        uint16_t count;
+        uint16_t wnR;
+        uint16_t wnF;
+        uint32_t towMsR;
+        uint32_t towSubMsR;
+        uint32_t towMsF;
+        uint32_t towSubMsF;
+        uint32_t accEst;
+    };
 #endif
 
     struct PACKED ubx_ack_ack {
@@ -432,6 +459,8 @@ private:
 #if UBLOX_RXM_RAW_LOGGING
         ubx_rxm_raw rxm_raw;
         ubx_rxm_rawx rxm_rawx;
+        ubx_rxm_sfrbx rxm_sfrbx;
+        ubx_tim_tm2 tim_tm2;
 #endif
         ubx_ack_ack ack;
     } _buffer;
@@ -444,6 +473,7 @@ private:
         CLASS_CFG = 0x06,
         CLASS_MON = 0x0A,
         CLASS_RXM = 0x02,
+        CLASS_TIM = 0x0D,
         MSG_ACK_NACK = 0x00,
         MSG_ACK_ACK = 0x01,
         MSG_POSLLH = 0x2,
@@ -465,7 +495,9 @@ private:
         MSG_MON_VER = 0x04,
         MSG_NAV_SVINFO = 0x30,
         MSG_RXM_RAW = 0x10,
-        MSG_RXM_RAWX = 0x15
+        MSG_RXM_SFRBX = 0x13,
+        MSG_RXM_RAWX = 0x15,
+        MSG_TIM_TM2 = 0x03
     };
     enum ubx_gnss_identifier {
         GNSS_GPS     = 0x00,
@@ -516,6 +548,8 @@ private:
         STEP_MON_HW2,
         STEP_RAW,
         STEP_RAWX,
+        STEP_SFRBX,
+        STEP_TM2,
         STEP_VERSION,
         STEP_LAST
     };
@@ -585,7 +619,8 @@ private:
     void log_mon_hw2(void);
     void log_rxm_raw(const struct ubx_rxm_raw &raw);
     void log_rxm_rawx(const struct ubx_rxm_rawx &raw);
-
+    void log_rxm_sfrbx(const struct ubx_rxm_sfrbx &sfrbx);
+    void log_tim_tm2(const struct ubx_tim_tm2 &tm2);
     // Calculates the correct log message ID based on what GPS instance is being logged
     uint8_t _ubx_msg_log_index(uint8_t ubx_msg) {
         return (uint8_t)(ubx_msg + (state.instance * UBX_MSG_TYPES));

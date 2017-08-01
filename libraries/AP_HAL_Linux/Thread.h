@@ -19,7 +19,7 @@
 #include <pthread.h>
 #include <inttypes.h>
 #include <stdlib.h>
-
+#include <pthread_barrier.h> // Only for macOSX Systems
 #include <AP_HAL/utility/functor.h>
 
 namespace Linux {

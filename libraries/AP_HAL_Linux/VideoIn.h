@@ -15,6 +15,8 @@
 #pragma once
 
 #include "AP_HAL_Linux.h"
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP ||\
+    CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_MINLURE
 #include <linux/videodev2.h>
 #include <vector>
 
@@ -84,3 +86,4 @@ private:
 };
 
 }
+#endif

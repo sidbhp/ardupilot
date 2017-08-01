@@ -85,11 +85,16 @@ void Thread::_poison_stack()
     void *stackp;
     uint32_t *p, *curr, *begin, *end;
 
+#if defined(__APPLE__) && defined(__MACH__)
+    stack_size = pthread_get_stacksize_np(pthread_self());
+    guard_size = pthread_get_guardsize_np(pthread_self());
+#else
     if (pthread_getattr_np(_ctx, &attr) != 0 ||
         pthread_attr_getstack(&attr, &stackp, &stack_size) != 0 ||
         pthread_attr_getguardsize(&attr, &guard_size) != 0) {
         return;
     }
+#endif
 
     stack_size /= sizeof(uint32_t);
     guard_size /= sizeof(uint32_t);

@@ -389,4 +389,5 @@ bool VideoIn::_dequeue_frame(Frame &frame)
     return true;
 }
 
-#endif
+#endif //CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP ||\
+         CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_MINLURE

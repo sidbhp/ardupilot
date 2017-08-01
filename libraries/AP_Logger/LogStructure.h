@@ -835,6 +835,39 @@ struct PACKED log_GPS_RAWS {
     uint8_t trkStat;
 };
 
+struct PACKED log_GPS_SFRBH {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint8_t gnssId;
+    uint8_t svId;
+    uint8_t freqId;
+    uint8_t numWords;
+    uint8_t version;
+};
+
+struct PACKED log_GPS_SFRBS {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint32_t data;
+};
+
+struct PACKED log_GPS_TIM {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint64_t redge_us;
+    uint64_t fedge_us;
+    uint8_t ch;
+    uint8_t flags;
+    uint16_t count;
+    uint16_t wnR;
+    uint16_t wnF;
+    uint32_t towMsR;
+    uint32_t towSubMsR;
+    uint32_t towMsF;
+    uint32_t towSubMsF;
+    uint32_t accEst;
+};
+
 struct PACKED log_GPS_SBF_EVENT {  
 	LOG_PACKET_HEADER; 
 	uint64_t time_us;
@@ -1382,6 +1415,12 @@ Format characters in the format string for binary log messages
       "GRXH", "QdHbBB", "TimeUS,rcvTime,week,leapS,numMeas,recStat", "s-----", "F-----" }, \
     { LOG_GPS_RAWS_MSG, sizeof(log_GPS_RAWS), \
       "GRXS", "QddfBBBHBBBBB", "TimeUS,prMes,cpMes,doMes,gnss,sv,freq,lock,cno,prD,cpD,doD,trk", "s------------", "F------------" }, \
+    { LOG_GPS_SFRBH_MSG, sizeof(log_GPS_SFRBH), \
+      "GSFH", "QBBBBB", "TimeUS,gnssId,svId,freqId,numWords,version", "s-----", "F-----"}, \
+    { LOG_GPS_SFRBS_MSG, sizeof(log_GPS_SFRBS), \
+      "GSFS", "QI", "TimeUS,data", "s-", "F-"}, \
+    { LOG_GPS_TIM_MSG, sizeof(log_GPS_TIM), \
+      "GTIM", "QQQBBHHHIIIII", "TimeUS,RUS,FUS,ch,flags,cnt,wnR,wnF,gRMS,gRNS,gFMS,gFNS,aEst", "s------------", "F------------"}, \
     { LOG_GPS_SBF_EVENT_MSG, sizeof(log_GPS_SBF_EVENT), \
       "SBFE", "QIHBBdddfffff", "TimeUS,TOW,WN,Mode,Err,Lat,Lng,Height,Undul,Vn,Ve,Vu,COG", "s----DUm-nnnh", "F----000-0000" }, \
     { LOG_ESC1_MSG, sizeof(log_Esc), \
@@ -1578,6 +1617,9 @@ enum LogMessages : uint8_t {
     LOG_GPS_RAW_MSG,
     LOG_GPS_RAWH_MSG,
     LOG_GPS_RAWS_MSG,
+    LOG_GPS_SFRBH_MSG,
+    LOG_GPS_SFRBS_MSG,
+    LOG_GPS_TIM_MSG,
 	LOG_GPS_SBF_EVENT_MSG,
     LOG_ACC1_MSG,
     LOG_ACC2_MSG,
