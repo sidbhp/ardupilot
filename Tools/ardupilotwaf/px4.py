@@ -194,6 +194,7 @@ def _process_romfs(self):
         'init.d/rcS',
         'tones/startup',
         'defaults.parm',
+        'profiled/test.ledbin',
         (bld.env.PX4_BOOTLOADER, 'bootloader/fmu_bl.bin'),
     ]
 

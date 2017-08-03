@@ -5,6 +5,8 @@
 #define HAL_OS_POSIX_IO 1
 #define HAL_BOARD_LOG_DIRECTORY "/fs/microsd/APM/LOGS"
 #define HAL_BOARD_TERRAIN_DIRECTORY "/fs/microsd/APM/TERRAIN"
+#define HAL_BOARD_SDCARD_PROFILED_FILE "/fs/microsd/APM/profiled/test.ledbin"
+#define HAL_BOARD_DEFAULT_PROFILED_FILE "/etc/profiled/test.ledbin"
 #define HAL_PARAM_DEFAULTS_PATH "/etc/defaults.parm"
 #define HAL_INS_DEFAULT HAL_INS_PX4
 #define HAL_BARO_DEFAULT HAL_BARO_PX4
