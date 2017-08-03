@@ -23,7 +23,7 @@
 #define DYCOCLK 50
 #define DYCODOUT 51
 
-#define MAX_NUM_LEDS    4
+#define MAX_NUM_LEDS    39
 #define MAX_PATTERN_STEPS 16
 
 
@@ -37,26 +37,16 @@ private:
     uint32_t data_hold;
     uint32_t data_buf;
     //pattern parameters
-    uint16_t _iter;
-    uint8_t _step;
-    uint8_t _res;
-    uint8_t _step_cnt;
-    uint16_t* _pattern_color;
-    uint16_t* _pattern_time;
     uint32_t _prev_beat;
     float* _brightness;
-    void set_rgb(uint16_t red, uint16_t green, uint16_t blue);
     //RGB values corresponding to|  OFF  |   RED  | ORANGE  |         AMBER |  YELLOW |  GREEN |     BLUE   | PURPLE |  WHITE   |
     uint8_t preset_color[9][3] = {{0,0,0},{255,0,0},{255,128,0},{255,192,0},{255,255,0},{0,255,0},{0,0,255},{128,0,128},{255,255,255}};
 
 public:
+    void set_rgb(uint16_t red, uint16_t green, uint16_t blue);
     DycoLEDDriver();
-    void set_solid_color(uint8_t color);
     bool pop_data();
     void reset();
-    //pattern functions
-    void pattern_step(uint32_t beat);
-    void set_pattern(uint16_t color_series[],float bright_series[],uint16_t time_series[],uint8_t res, uint8_t step_cnt);
 };
 
 //DycoLEDStrip: this class is used for controling each and every
@@ -74,12 +64,15 @@ private:
     uint32_t _beat;
     bool tx_complete;
     int8_t _tx_timeout;
+    bool _restart_beat_counter;
+    uint16_t _next_time;
+    int _fd;
 public:
     DycoLEDStripDriver();
+    bool populate_next_state();
     void generate_beat_pattern();
     bool update();
-    void set_solid_color(uint8_t led_num, uint8_t color);
-    void set_pattern(uint16_t led_num,uint16_t color_series[],float bright_series[],uint16_t time_series[],uint8_t res, uint8_t step_cnt);
+    bool time_to_send();
     void init(uint16_t length);
     void tx_complete_callback();
 };
