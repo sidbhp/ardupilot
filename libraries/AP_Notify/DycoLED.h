@@ -23,7 +23,7 @@
 #define DYCOCLK 50
 #define DYCODOUT 51
 
-#define MAX_NUM_LEDS    39
+#define MAX_NUM_LEDS    100
 #define MAX_PATTERN_STEPS 16
 
 
@@ -90,6 +90,7 @@ class DycoLED: public NotifyDevice
 {
 public:
     // init - initialised the LED
+    DycoLED(int8_t num_leds) : _num_leds(num_leds) {}
     bool init();
     enum led_type{
         STATUS_LED,
@@ -127,6 +128,7 @@ public:
     };
 protected:
     DycoLEDStripDriver _ledstrip;
+    int8_t _num_leds;
     void set_preset_pattern(uint16_t led,uint8_t patt);
     static led_pattern preset_pattern[16];
 };
