@@ -47,8 +47,11 @@ extern const AP_HAL::HAL& hal;
 
 bool DycoLED::init()
 {
-    _ledstrip.init(MAX_NUM_LEDS);
-    return true;
+    if(_num_leds < MAX_NUM_LEDS) {
+        _ledstrip.init(_num_leds);
+        return true;
+    }
+    return false;
 }
 
 // update - updates led according to timed_updated.  Should be called
