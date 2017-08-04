@@ -75,6 +75,14 @@ const AP_Param::GroupInfo AP_Notify::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("OREO_THEME", 4, AP_Notify, _oreo_theme, 0),
 
+    // @Param: NUM_PROFILED
+    // @DisplayName: Profiled Count
+    // @Description: Set number of Profiled that would be connected
+    // @Range: 0 100
+    // @Increment: 1
+    // @User: Advanced
+    AP_GROUPINFO("NUM_PROFILED", 5, AP_Notify, _num_profileds, 4),
+
     AP_GROUPEND
 };
 
@@ -110,7 +118,7 @@ void AP_Notify::init(bool enable_external_leds)
         if (_oreo_theme) {
             _devices[4] = new OreoLED_PX4(_oreo_theme);
         } else {
-            _devices[4] = new DycoLED();
+            _devices[4] = new DycoLED(_num_profileds);
         }
 
     #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_PX4_V4 // Has its own LED board
@@ -118,14 +126,14 @@ void AP_Notify::init(bool enable_external_leds)
         _devices[1] = new ToshibaLED_I2C();
         _devices[2] = new ToneAlarm_PX4();
         _devices[3] = new Display();
-        _devices[4] = new DycoLED();
+        _devices[4] = new DycoLED(_num_profileds);
 
     #else   // All other px4 boards use standard devices.
         _devices[0] = new AP_BoardLED();
         _devices[1] = new ToshibaLED_I2C();
         _devices[2] = new ToneAlarm_PX4();
         _devices[3] = new Display();
-        _devices[4] = new DycoLED();
+        _devices[4] = new DycoLED(_num_profileds);
     #endif
 
 // Notify devices for VRBRAIN boards

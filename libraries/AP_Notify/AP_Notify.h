@@ -145,6 +145,7 @@ private:
     AP_Int8 _buzzer_enable;
     AP_Int8 _display_type;
     AP_Int8 _oreo_theme;
+    AP_Int8 _num_profileds;
 
     char _send_text[NOTIFY_TEXT_BUFFER_SIZE];
     uint32_t _send_text_updated_millis; // last time text changed
