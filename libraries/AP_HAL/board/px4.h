@@ -9,7 +9,9 @@
 #define HAL_INS_DEFAULT HAL_INS_PX4
 #define HAL_BARO_DEFAULT HAL_BARO_PX4
 #define HAL_COMPASS_DEFAULT HAL_COMPASS_PX4
-
+#ifndef HAL_MINIMIZE_FEATURES
+#define HAL_MINIMIZE_FEATURES 0
+#endif
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 #define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_PX4_V1
 #define HAL_STORAGE_SIZE            8192
@@ -25,8 +27,10 @@
 #define HAL_STORAGE_SIZE            16384
 #define HAL_HAVE_IMU_HEATER         1 // for Pixhawk2
 #define HAL_IMU_TEMP_DEFAULT       -1 // disabled
-#define HAL_WITH_UAVCAN             1
-#define HAL_MINIMIZE_FEATURES       1
+#define HAL_WITH_UAVCAN             0
+#ifndef HAL_MINIMIZE_FEATURES
+#define HAL_MINIMIZE_FEATURES 1 //by default minimize the features
+#endif
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
 #define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_PX4_V4
 #define HAL_STORAGE_SIZE            16384

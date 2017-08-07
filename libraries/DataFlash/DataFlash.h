@@ -270,8 +270,10 @@ private:
 
 #if AP_AHRS_NAVEKF_AVAILABLE
     void Log_Write_EKF2(AP_AHRS_NavEKF &ahrs, bool optFlowEnabled);
+#ifdef HAL_USE_EKF3
     void Log_Write_EKF3(AP_AHRS_NavEKF &ahrs, bool optFlowEnabled);
-#endif
+#endif //HAL_USE_EKF3
+#endif //AP_AHRS_NAVEKF_AVAILABLE
 
     void backend_starting_new_log(const DataFlash_Backend *backend);
 

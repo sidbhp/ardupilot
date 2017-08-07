@@ -511,7 +511,7 @@ void Copter::init_visual_odom()
 // update visual odometry sensor
 void Copter::update_visual_odom()
 {
-#if VISUAL_ODOMETRY_ENABLED == ENABLED
+#if VISUAL_ODOMETRY_ENABLED == ENABLED && defined(HAL_USE_EKF3)
     // check for updates
     if (g2.visual_odom.enabled() && (g2.visual_odom.get_last_update_ms() != visual_odom_last_update_ms)) {
         visual_odom_last_update_ms = g2.visual_odom.get_last_update_ms();

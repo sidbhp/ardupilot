@@ -104,6 +104,11 @@ revisions.
         default=False,
         help='Force a static build')
 
+    g.add_option('--minimize-features',
+        type='int',
+        default=0,
+        help='Select the level to which features should be minimized, valid values are 0,1 and 2')
+
 def _collect_autoconfig_files(cfg):
     for m in sys.modules.values():
         paths = []
@@ -146,6 +151,10 @@ def configure(cfg):
         cfg.env.STATIC_LINKING = True
 
     cfg.load('ap_library')
+
+    cfg.env.HAL_MINIMIZE_FEATURES = cfg.options.minimize_features
+    cfg.define('HAL_MINIMIZE_FEATURES', cfg.options.minimize_features)
+    cfg.msg('Setting minimize feature level to', str(cfg.options.minimize_features), color='GREEN')
 
     cfg.msg('Setting board to', cfg.options.board)
     cfg.get_board().configure(cfg)

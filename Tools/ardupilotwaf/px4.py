@@ -274,6 +274,7 @@ def configure(cfg):
             # PX4Firmware build systems (cmake and legacy make-based) can live
             # together
             '-DCMAKE_BUILD',
+            '-DHAL_MINIMIZE_FEATURES=%d' % cfg.env.HAL_MINIMIZE_FEATURES,
             '-DARDUPILOT_BUILD',
             '-I%s' % bldpath('libraries/GCS_MAVLink'),
             '-I%s' % bldpath('libraries/GCS_MAVLink/include/mavlink'),
@@ -284,6 +285,7 @@ def configure(cfg):
             # PX4Firmware build systems (cmake and legacy make-based) can live
             # together
             '-DCMAKE_BUILD',
+            '-DHAL_MINIMIZE_FEATURES=%d' % cfg.env.HAL_MINIMIZE_FEATURES,
         )),
     )
 

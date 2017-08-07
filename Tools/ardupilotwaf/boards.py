@@ -508,7 +508,10 @@ class px4(Board):
             'PX4NuttX',
             'uavcan',
         ]
-
+        if env.HAL_MINIMIZE_FEATURES >= 2:
+            self.px4io_name = None
+            cfg.define('HAL_PX4_HAVE_PX4IO', 0)
+            cfg.define('HAL_PX4_HAVE_MTD_SUPPORT', 0)
         env.ROMFS_EXCLUDE = self.ROMFS_EXCLUDE
 
         env.PX4_BOOTLOADER_NAME = self.bootloader_name
