@@ -79,7 +79,7 @@ const AP_Param::GroupInfo AP_Notify::var_info[] = {
     // @Range: 0 100
     // @Increment: 1
     // @User: Advanced
-    AP_GROUPINFO("NUM_PROFILED", 5, AP_Notify, _num_profileds, 4),
+    AP_GROUPINFO("NUM_PROFILED", 5, AP_Notify, _num_profileds, 10),
 
     AP_GROUPEND
 };
