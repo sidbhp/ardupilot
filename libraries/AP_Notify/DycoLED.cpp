@@ -33,17 +33,6 @@
 #include <errno.h>
 
 extern const AP_HAL::HAL& hal;
-#define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
-
-#define BYTE_TO_BINARY(byte)  \
-  (byte & 0x80 ? '1' : '0'), \
-  (byte & 0x40 ? '1' : '0'), \
-  (byte & 0x20 ? '1' : '0'), \
-  (byte & 0x10 ? '1' : '0'), \
-  (byte & 0x08 ? '1' : '0'), \
-  (byte & 0x04 ? '1' : '0'), \
-  (byte & 0x02 ? '1' : '0'), \
-  (byte & 0x01 ? '1' : '0') 
 
 bool DycoLED::init()
 {
@@ -60,33 +49,37 @@ void DycoLED::update()
 {
     // Do Strobe on LED 3 and 4 
     if (AP_Notify::flags.initialising) {
+        _ledstrip.set_led_file("Initialising.ledbin");
         return;                  // exit so no other status modify this pattern
     }
     if (AP_Notify::flags.save_trim || AP_Notify::flags.esc_calibration){
+        _ledstrip.set_led_file("Breathing_orange.ledbin");
         return;
     }
     if(AP_Notify::flags.failsafe_radio || AP_Notify::flags.failsafe_battery){
+        _ledstrip.set_led_file("Breathing_orange.ledbin");
         return;
     }
 
     if(AP_Notify::flags.ekf_bad){
+        _ledstrip.set_led_file("Breathing_orange.ledbin");
         return;
     }
     
     if (AP_Notify::flags.armed) {
         if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D_DGPS && AP_Notify::flags.gps_fusion) {
-            
+            _ledstrip.set_led_file("Solid_green.ledbin");
         } else{
-            
+            _ledstrip.set_led_file("Solid_blue.ledbin");
         }
     } else{
         if (!AP_Notify::flags.pre_arm_check) {
-        
+            _ledstrip.set_led_file("Breathing_orange.ledbin");
         } else{
             if (AP_Notify::flags.gps_status >= AP_GPS::GPS_OK_FIX_3D_DGPS && AP_Notify::flags.gps_fusion) {
-        
+                _ledstrip.set_led_file("Breathing_green.ledbin");
             } else{
-        
+                _ledstrip.set_led_file("Breathing_blue.ledbin");
             }
         }
     }
@@ -127,19 +120,20 @@ DycoLEDStripDriver::DycoLEDStripDriver()
     _restart_beat_counter = false;
     _next_time = 0;
     _fd = -1;
+    strcpy(_filename, "Breathing_blue.ledbin");
 }
 
 void DycoLEDStripDriver::init(uint16_t length)
 {
-    _led = new DycoLEDDriver[length];
+    _length = length + 1;
+    _led = new DycoLEDDriver[_length];
     hal.scheduler->register_io_process(FUNCTOR_BIND_MEMBER(&DycoLEDStripDriver::generate_beat_pattern, void));
     // Setup GPIO to do dma supported bitbanging
     hal.gpio->pinMode(DYCODOUT,HAL_GPIO_OUTPUT);
     hal.gpio->pinMode(DYCOCLK,HAL_GPIO_OUTPUT);
     hal.gpio->write(DYCOCLK,0);                     // both Clock pin and data pin at low state
     hal.gpio->write(DYCODOUT,0);
-    hal.gpio->setup_dma_bitbang(1, 0, 2*(75+25*(length-1)) + 1); //Run @ ~2.5 MHz clock
-    _length = length;
+    hal.gpio->setup_dma_bitbang(1, 0, 2*(75+25*(_length-1)) + 1); //Run @ ~2.5 MHz clock
     _init = true;
 }
 
@@ -203,7 +197,6 @@ bool DycoLEDStripDriver::update()
 
 bool DycoLEDStripDriver::time_to_send()
 {
-
     if(_next_time*10 == _beat) {
         _beat++;
         return true;
@@ -213,24 +206,46 @@ bool DycoLEDStripDriver::time_to_send()
     return false;
 }
 
+void DycoLEDStripDriver::set_led_file(const char filename[])
+{
+    if(strcmp(filename,_filename) == 0) {
+        return;
+    }
+    strcpy(_filename, filename);
+    if(_fd != -1) {
+        ::close(_fd);
+    }
+    _fd = -1;
+}
+
 bool DycoLEDStripDriver::populate_next_state()
 {
     if(_fd == -1) {
-        _fd = ::open(HAL_BOARD_SDCARD_PROFILED_FILE, O_RDONLY);
+        char filepath[50];
+
+        sprintf(filepath, "%s/%s", HAL_BOARD_SDCARD_PROFILED_DIR, _filename);
+        printf("Trying profiled file %s\n", filepath);
+        _fd = ::open(filepath, O_RDONLY);
         if(_fd == -1) {
             //fallback to default
-            _fd = ::open(HAL_BOARD_DEFAULT_PROFILED_FILE, O_RDONLY);
+            sprintf(filepath, "%s/%s", HAL_BOARD_DEFAULT_PROFILED_DIR, _filename);
+            printf("Trying profiled file %s\n", filepath);
+            _fd = ::open(filepath, O_RDONLY);
         }
         if (_fd == -1) {
-            printf("Open %s failed - %s\n",
-                                HAL_BOARD_DEFAULT_PROFILED_FILE, strerror(errno));
+            printf("Open %s/%s failed - %s\n",
+                                HAL_BOARD_DEFAULT_PROFILED_DIR, _filename, strerror(errno));
             return false;
         }
         ::lseek(_fd, 0, SEEK_SET);
+        _next_time = 0;
+        _beat = 0;
     }
     uint8_t data[6] = {0};
     uint16_t prev_time = _next_time;
-    while(true) {
+    uint16_t num_runs = 0;
+    while(num_runs < MAX_NUM_LEDS) {
+        num_runs++;
         //read in 6 bytes packet
         uint8_t size = ::read(_fd, data, 6);
         if(size < 6) {

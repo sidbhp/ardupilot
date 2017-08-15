@@ -67,6 +67,7 @@ private:
     bool _restart_beat_counter;
     uint16_t _next_time;
     int _fd;
+    char _filename[30];
 public:
     DycoLEDStripDriver();
     bool populate_next_state();
@@ -75,6 +76,7 @@ public:
     bool time_to_send();
     void init(uint16_t length);
     void tx_complete_callback();
+    void set_led_file(const char filename[]);
 };
 
 struct led_pattern
