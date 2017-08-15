@@ -193,7 +193,13 @@ def _process_romfs(self):
         'init.d/rc.error',
         'init.d/rcS',
         'tones/startup',
-        'profiled/test.ledbin',
+        'profiled/Breathing_blue.ledbin',
+        'profiled/Breathing_orange.ledbin',
+        'profiled/Breathing_green.ledbin',
+        'profiled/Solid_blue.ledbin',
+        'profiled/Solid_orange.ledbin',
+        'profiled/Solid_green.ledbin',
+        'profiled/Initialising.ledbin',
         (bld.env.PX4_BOOTLOADER, 'bootloader/fmu_bl.bin'),
     ]
 
