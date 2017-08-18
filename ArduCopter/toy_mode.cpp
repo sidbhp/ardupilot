@@ -287,7 +287,9 @@ void ToyMode::update()
                  */
                 if (set_and_remember_mode(ALT_HOLD, MODE_REASON_TMODE)) {
                     GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Tmode: ALT_HOLD update arm");
+#if AC_FENCE == ENABLED
                     copter.fence.enable(false);
+#endif
                     if (!copter.init_arm_motors(true)) {
                         // go back to LOITER
                         GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_ERROR, "Tmode: ALT_HOLD arm failed");
@@ -310,7 +312,9 @@ void ToyMode::update()
             upgrade_to_loiter = false;
             AP_Notify::flags.hybrid_loiter = false;
         } else if (copter.position_ok() && set_and_remember_mode(LOITER, MODE_REASON_TMODE)) {
+#if AC_FENCE == ENABLED
             copter.fence.enable(true);
+#endif
             GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Tmode: LOITER update");            
         }
     }
@@ -449,11 +453,13 @@ void ToyMode::update()
     }
     
     if (new_mode != copter.control_mode) {
+#if AC_FENCE == ENABLED
         if (copter.mode_requires_GPS(new_mode)) {
             copter.fence.enable(true);
         } else {
             copter.fence.enable(false);
         }
+#endif
         if (set_and_remember_mode(new_mode, MODE_REASON_TX_COMMAND)) {
             GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "Tmode: mode %s", copter.flight_mode_string(new_mode));
         } else {
@@ -595,7 +601,9 @@ void ToyMode::action_arm(void)
     
     if (needs_gps && copter.arming.pre_arm_gps_checks(false)) {
         // we want GPS and checks are passing, arm and enable fence
+#if AC_FENCE == ENABLED
         copter.fence.enable(true);
+#endif
         copter.init_arm_motors(false);
         if (!copter.motors->armed()) {
             AP_Notify::events.arming_failed = true;
@@ -609,7 +617,9 @@ void ToyMode::action_arm(void)
         GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_ERROR, "Tmode: GPS arming failed");
     } else {
         // non-GPS mode
+#if AC_FENCE == ENABLED
         copter.fence.enable(false);
+#endif
         copter.init_arm_motors(false);
         if (!copter.motors->armed()) {
             AP_Notify::events.arming_failed = true;

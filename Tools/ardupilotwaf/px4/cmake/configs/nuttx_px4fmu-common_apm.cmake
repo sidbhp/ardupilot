@@ -20,13 +20,13 @@ set(config_module_list
 #
 # System commands
 #
-    systemcmds/bl_update
+#    systemcmds/bl_update
     systemcmds/mixer
-    systemcmds/perf
+#    systemcmds/perf
     systemcmds/reboot
-    systemcmds/top
+#    systemcmds/top
     systemcmds/nshterm
-    systemcmds/mtd
+#    systemcmds/mtd
     systemcmds/ver
     systemcmds/usb_connected
     systemcmds/otp
@@ -36,7 +36,7 @@ set(config_module_list
 #
     modules/systemlib
     modules/systemlib/mixer
-    modules/uORB
+#    modules/uORB
 )
 
 set(config_extra_builtin_cmds

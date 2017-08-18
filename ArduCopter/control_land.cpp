@@ -171,9 +171,9 @@ int32_t Copter::land_get_alt_above_ground(void)
 
 void Copter::land_run_vertical_control(bool pause_descent)
 {
-    bool navigating = pos_control->is_active_xy();
 
 #if PRECISION_LANDING == ENABLED
+    bool navigating = pos_control->is_active_xy();
     bool doing_precision_landing = !ap.land_repo_active && precland.target_acquired() && navigating;
 #else
     bool doing_precision_landing = false;

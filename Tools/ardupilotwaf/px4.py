@@ -193,9 +193,11 @@ def _process_romfs(self):
         'init.d/rc.error',
         'init.d/rcS',
         'tones/startup',
-        'defaults.parm',
-        (bld.env.PX4_BOOTLOADER, 'bootloader/fmu_bl.bin'),
+        'defaults.parm'
     ]
+    if bld.env.HAL_MINIMIZE_FEATURES <= 1:
+        file_list.append(bld.env.PX4_BOOTLOADER, 'bootloader/fmu_bl.bin')
+    
 
     if bld.env.PX4_BOARD_RC:
         board_rc = 'init.d/rc.%s' % bld.env.get_flat('PX4_BOARD_NAME')

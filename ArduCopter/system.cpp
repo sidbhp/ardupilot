@@ -293,8 +293,9 @@ void Copter::init_ardupilot()
 
     // initialise DataFlash library
     DataFlash.set_mission(&mission);
+#if LOGGING_ENABLED == ENABLED
     DataFlash.setVehicle_Startup_Log_Writer(FUNCTOR_BIND(&copter, &Copter::Log_Write_Vehicle_Startup_Messages, void));
-
+#endif
     // initialise the flight mode and aux switch
     // ---------------------------
     reset_control_switch();
