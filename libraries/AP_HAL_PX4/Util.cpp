@@ -236,19 +236,19 @@ void PX4Util::set_imu_target_temp(int8_t *target)
     _heater.target = target;
 }
 
-
+#if HAL_MINIMIZE_FEATURES < 2
 extern "C" {
     extern void *fat_dma_alloc(size_t);
     extern void fat_dma_free(void *, size_t);
 }
-
+#endif
 /*
   allocate DMA-capable memory if possible. Otherwise return normal
   memory.
 */
 void *PX4Util::dma_allocate(size_t size)
 {
-#if !defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
+#if !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && HAL_MINIMIZE_FEATURES < 2
     return fat_dma_alloc(size);
 #else
     return malloc(size);
@@ -256,7 +256,7 @@ void *PX4Util::dma_allocate(size_t size)
 }
 void PX4Util::dma_free(void *ptr, size_t size)
 {
-#if !defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
+#if !defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && HAL_MINIMIZE_FEATURES < 2
     fat_dma_free(ptr, size);
 #else
     return free(ptr);
