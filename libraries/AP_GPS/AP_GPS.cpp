@@ -22,6 +22,8 @@
 #include <AP_BoardConfig/AP_BoardConfig.h>
 #include <climits>
 
+#include "AP_GPS_UBLOX.h"
+#if HAL_MINIMIZE_FEATURES < 2
 #include "AP_GPS_NOVA.h"
 #include "AP_GPS_ERB.h"
 #include "AP_GPS_GSOF.h"
@@ -33,10 +35,9 @@
 #include "AP_GPS_SBP.h"
 #include "AP_GPS_SBP2.h"
 #include "AP_GPS_SIRF.h"
-#include "AP_GPS_UBLOX.h"
 #include "AP_GPS_MAV.h"
 #include "GPS_Backend.h"
-
+#endif
 #if HAL_WITH_UAVCAN
 #include <AP_UAVCAN/AP_UAVCAN.h>
 #include "AP_GPS_UAVCAN.h"
@@ -57,8 +58,11 @@ const uint32_t AP_GPS::_baudrates[] = {9600U, 115200U, 9600U, 115200U, 4800U, 19
 
 // initialisation blobs to send to the GPS to try to get it into the
 // right mode
+#if HAL_MINIMIZE_FEATURES < 2
 const char AP_GPS::_initialisation_blob[] = UBLOX_SET_BINARY MTK_SET_BINARY SIRF_SET_BINARY;
-
+#else
+const char AP_GPS::_initialisation_blob[] = UBLOX_SET_BINARY;
+#endif
 // table of user settable parameters
 const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @Param: TYPE
@@ -397,6 +401,7 @@ void AP_GPS::detect_instance(uint8_t instance)
     struct detect_state *dstate = &detect_state[instance];
     uint32_t now = AP_HAL::millis();
 
+#if HAL_MINIMIZE_FEATURES < 2
     switch (_type[instance]) {
 #if CONFIG_HAL_BOARD == HAL_BOARD_QURT
     case GPS_TYPE_QURT:
@@ -405,7 +410,6 @@ void AP_GPS::detect_instance(uint8_t instance)
         goto found_gps;
         break;
 #endif
-
     // user has to explicitly set the MAV type, do not use AUTO
     // do not try to detect the MAV type, assume it's there
     case GPS_TYPE_MAV:
@@ -442,6 +446,7 @@ void AP_GPS::detect_instance(uint8_t instance)
     default:
         break;
     }
+#endif //HAL_MINIMIZE_FEATURES
 
     if (_port[instance] == nullptr) {
         // UART not available
@@ -457,6 +462,7 @@ void AP_GPS::detect_instance(uint8_t instance)
     // the correct baud rate, and should have the selected baud broadcast
     dstate->auto_detected_baud = true;
 
+#if HAL_MINIMIZE_FEATURES < 2
     switch (_type[instance]) {
     // by default the sbf/trimble gps outputs no data on its port, until configured.
     case GPS_TYPE_SBF:
@@ -474,7 +480,7 @@ void AP_GPS::detect_instance(uint8_t instance)
     default:
         break;
     }
-
+#endif // HAL_MINIMIZE_FEATURES
     if (now - dstate->last_baud_change_ms > GPS_BAUD_TIME_MS) {
         // try the next baud rate
         // incrementing like this will skip the first element in array of bauds
@@ -524,6 +530,7 @@ void AP_GPS::detect_instance(uint8_t instance)
             new_gps = new AP_GPS_MTK(*this, state[instance], _port[instance]);
         }
 #endif
+#if HAL_MINIMIZE_FEATURES < 2
         else if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_SBP) &&
                  AP_GPS_SBP2::_detect(dstate->sbp2_detect_state, data)) {
             new_gps = new AP_GPS_SBP2(*this, state[instance], _port[instance]);
@@ -532,12 +539,14 @@ void AP_GPS::detect_instance(uint8_t instance)
                  AP_GPS_SBP::_detect(dstate->sbp_detect_state, data)) {
             new_gps = new AP_GPS_SBP(*this, state[instance], _port[instance]);
         }
+#endif
 #if !HAL_MINIMIZE_FEATURES
         else if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_SIRF) &&
                  AP_GPS_SIRF::_detect(dstate->sirf_detect_state, data)) {
             new_gps = new AP_GPS_SIRF(*this, state[instance], _port[instance]);
         }
 #endif
+#if HAL_MINIMIZE_FEATURES < 2
         else if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_ERB) &&
                  AP_GPS_ERB::_detect(dstate->erb_detect_state, data)) {
             new_gps = new AP_GPS_ERB(*this, state[instance], _port[instance]);
@@ -545,8 +554,9 @@ void AP_GPS::detect_instance(uint8_t instance)
                    AP_GPS_NMEA::_detect(dstate->nmea_detect_state, data)) {
             new_gps = new AP_GPS_NMEA(*this, state[instance], _port[instance]);
         }
+#endif
     }
-
+#if HAL_MINIMIZE_FEATURES < 2
 found_gps:
     if (new_gps != nullptr) {
         state[instance].status = NO_FIX;
@@ -554,6 +564,7 @@ found_gps:
         timing[instance].last_message_time_ms = now;
         new_gps->broadcast_gps_type();
     }
+#endif
 }
 
 AP_GPS::GPS_Status AP_GPS::highest_supported_status(uint8_t instance) const

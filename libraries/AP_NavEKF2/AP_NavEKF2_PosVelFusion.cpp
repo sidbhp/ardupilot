@@ -14,7 +14,7 @@ extern const AP_HAL::HAL& hal;
 /********************************************************
 *                   RESET FUNCTIONS                     *
 ********************************************************/
-
+#if HAL_MINIMIZE_FEATURES < 2
 // Reset velocity states to last GPS measurement if available or to zero if in constant position mode or if PV aiding is not absolute
 // Do not reset vertical velocity using GPS as there is baro alt available to constrain drift
 void NavEKF2_core::ResetVelocity(void)
@@ -129,7 +129,7 @@ void NavEKF2_core::ResetPosition(void)
     lastPosReset_ms = imuSampleTime_ms;
 
 }
-
+#endif
 // reset the vertical position state using the last height measurement
 void NavEKF2_core::ResetHeight(void)
 {
@@ -214,7 +214,7 @@ bool NavEKF2_core::resetHeightDatum(void)
     terrainState += oldHgt;
     return true;
 }
-
+#if HAL_MINIMIZE_FEATURES < 2
 /********************************************************
 *                   FUSE MEASURED_DATA                  *
 ********************************************************/
@@ -727,7 +727,7 @@ void NavEKF2_core::FuseVelPosNED()
     // stop performance timer
     hal.util->perf_end(_perf_FuseVelPosNED);
 }
-
+#endif // HAL_MINIMIZE_FEATURES
 /********************************************************
 *                   MISC FUNCTIONS                      *
 ********************************************************/

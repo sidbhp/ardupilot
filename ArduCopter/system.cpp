@@ -287,12 +287,13 @@ void Copter::init_ardupilot()
 
     // initialise AP_RPM library
     rpm_sensor.init();
-
+#if MISSION == ENABLED
     // initialise mission library
     mission.init();
-
     // initialise DataFlash library
     DataFlash.set_mission(&mission);
+#endif
+
 #if LOGGING_ENABLED == ENABLED
     DataFlash.setVehicle_Startup_Log_Writer(FUNCTOR_BIND(&copter, &Copter::Log_Write_Vehicle_Startup_Messages, void));
 #endif

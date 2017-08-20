@@ -204,7 +204,9 @@ void NOINLINE Copter::send_vfr_hud(mavlink_channel_t chan)
 
 void NOINLINE Copter::send_current_waypoint(mavlink_channel_t chan)
 {
+#if MISSION == ENABLED
     mavlink_msg_mission_current_send(chan, mission.get_current_nav_index());
+#endif
 }
 
 void NOINLINE Copter::send_proximity(mavlink_channel_t chan, uint16_t count_max)
@@ -582,8 +584,10 @@ bool GCS_MAVLINK_Copter::try_send_message(enum ap_message id)
         break;
 
     case MSG_ADSB_VEHICLE:
+#if ADSB_ENABLED == ENABLED
         CHECK_PAYLOAD_SIZE(ADSB_VEHICLE);
         copter.adsb.send_adsb_vehicle(chan);
+#endif
         break;
     case MSG_BATTERY_STATUS:
         send_battery_status(copter.battery);
@@ -790,7 +794,7 @@ GCS_MAVLINK_Copter::data_stream_send(void)
     }
 }
 
-
+#if MISSION == ENABLED
 bool GCS_MAVLINK_Copter::handle_guided_request(AP_Mission::Mission_Command &cmd)
 {
     return copter.do_guided(cmd);
@@ -805,14 +809,17 @@ void GCS_MAVLINK_Copter::handle_change_alt_request(AP_Mission::Mission_Command &
 
     // To-Do: update target altitude for loiter or waypoint controller depending upon nav mode
 }
+#endif //MISSION == ENABLED
 
 void GCS_MAVLINK_Copter::packetReceived(const mavlink_status_t &status,
                                         mavlink_message_t &msg)
 {
+#if MISSION == ENABLED
     if (copter.g2.dev_options.get() & DevOptionADSBMAVLink) {
         // optional handling of GLOBAL_POSITION_INT as a MAVLink based avoidance source
         copter.avoidance_adsb.handle_msg(msg);
     }
+#endif
     GCS_MAVLINK::packetReceived(status, msg);
 }
 
@@ -879,7 +886,7 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
 #endif
         break;
     }
-
+#if MISSION == ENABLED
     case MAVLINK_MSG_ID_MISSION_WRITE_PARTIAL_LIST: // MAV ID: 38
     {
         handle_mission_write_partial_list(copter.mission, msg);
@@ -937,7 +944,7 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
         handle_mission_clear_all(copter.mission, msg);
         break;
     }
-
+#endif // MISSION == ENABLED
     case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:    // MAV ID: 66
     {
         handle_request_data_stream(msg, false);
@@ -1033,6 +1040,7 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
         switch(packet.command)
         {
             case MAV_CMD_DO_SET_ROI: {
+#if MISSION == ENABLED
                 // param1 : /* Region of interest mode (not used)*/
                 // param2 : /* MISSION index/ target ID (not used)*/
                 // param3 : /* ROI index (not used)*/
@@ -1050,6 +1058,7 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
                 roi_loc.alt = (int32_t)(packet.z * 100.0f);
                 copter.set_auto_yaw_roi(roi_loc);
                 result = MAV_RESULT_ACCEPTED;
+#endif
                 break;
             }
             default:
@@ -1112,6 +1121,7 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
             break;
 
         case MAV_CMD_CONDITION_YAW:
+#if MISSION == ENABLED
             // param1 : target angle [0-360]
             // param2 : speed during change [deg per second]
             // param3 : direction (-1:ccw, +1:cw)
@@ -1124,6 +1134,7 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
             } else {
                 result = MAV_RESULT_FAILED;
             }
+#endif
             break;
 
         case MAV_CMD_DO_CHANGE_SPEED:
@@ -1172,6 +1183,7 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
             break;
 
         case MAV_CMD_DO_SET_ROI:
+#if MISSION == ENABLED
             // param1 : regional of interest mode (not supported)
             // param2 : mission index/ target id (not supported)
             // param3 : ROI index (not supported)
@@ -1188,6 +1200,7 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
             roi_loc.alt = (int32_t)(packet.param7 * 100.0f);
             copter.set_auto_yaw_roi(roi_loc);
             result = MAV_RESULT_ACCEPTED;
+#endif
             break;
 
 #if CAMERA == ENABLED
@@ -1229,6 +1242,7 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
             break;
 
         case MAV_CMD_MISSION_START:
+#if MISSION == ENABLED
             if (copter.motors->armed() && copter.set_mode(AUTO, MODE_REASON_GCS_COMMAND)) {
                 copter.set_auto_armed(true);
                 if (copter.mission.state() != AP_Mission::MISSION_RUNNING) {
@@ -1236,6 +1250,7 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
                 }
                 result = MAV_RESULT_ACCEPTED;
             }
+#endif
             break;
 
         case MAV_CMD_PREFLIGHT_CALIBRATION:
@@ -1588,6 +1603,7 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
 
     case MAVLINK_MSG_ID_SET_ATTITUDE_TARGET:   // MAV ID: 82
     {
+#if MISSION == ENABLED
         // decode packet
         mavlink_set_attitude_target_t packet;
         mavlink_msg_set_attitude_target_decode(msg, &packet);
@@ -1624,12 +1640,13 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
 
         copter.guided_set_angle(Quaternion(packet.q[0],packet.q[1],packet.q[2],packet.q[3]),
             climb_rate_cms, use_yaw_rate, packet.body_yaw_rate);
-
+#endif
         break;
     }
 
     case MAVLINK_MSG_ID_SET_POSITION_TARGET_LOCAL_NED:     // MAV ID: 84
     {
+#if MISSION == ENABLED
         // decode packet
         mavlink_set_position_target_local_ned_t packet;
         mavlink_msg_set_position_target_local_ned_decode(msg, &packet);
@@ -1702,12 +1719,13 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
         } else {
             result = MAV_RESULT_FAILED;
         }
-
+#endif
         break;
     }
 
     case MAVLINK_MSG_ID_SET_POSITION_TARGET_GLOBAL_INT:    // MAV ID: 86
     {
+#if MISSION == ENABLED
         // decode packet
         mavlink_set_position_target_global_int_t packet;
         mavlink_msg_set_position_target_global_int_decode(msg, &packet);
@@ -1781,7 +1799,7 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
         } else {
             result = MAV_RESULT_FAILED;
         }
-
+#endif
         break;
     }
 

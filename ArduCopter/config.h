@@ -105,6 +105,7 @@
  # define AC_AVOID_ENABLED   			DISABLED
  # define CLI_ENABLED           		DISABLED
  # define FRSKY_TELEM_ENABLED 	        DISABLED
+ # define MISSION						DISABLED
 #endif
 
 
@@ -689,4 +690,8 @@
 
 #ifndef TOY_MODE_ENABLED
 #define TOY_MODE_ENABLED DISABLED
+#endif
+
+#ifndef MISSION
+#define MISSION	ENABLED
 #endif

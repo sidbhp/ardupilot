@@ -1,5 +1,5 @@
 #include "Copter.h"
-
+#if MISSION == ENABLED
 /*
  * Init and run calls for auto flight mode
  *
@@ -861,3 +861,4 @@ void Copter::auto_payload_place_run_descend()
     land_run_horizontal_control();
     land_run_vertical_control();
 }
+#endif //MISSION == ENABLED

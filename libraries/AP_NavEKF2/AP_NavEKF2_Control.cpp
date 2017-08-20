@@ -324,8 +324,10 @@ void NavEKF2_core::setAidingMode()
         }
 
         // Always reset the position and velocity when changing mode
+#if HAL_MINIMIZE_FEATURES < 2
         ResetVelocity();
         ResetPosition();
+#endif
     }
 }
 

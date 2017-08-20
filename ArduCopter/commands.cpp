@@ -76,7 +76,7 @@ bool Copter::set_home(const Location& loc, bool lock)
         scaleLongDown = longitude_scale(loc);
         // record home is set
         set_home_state(HOME_SET_NOT_LOCKED);
-
+#if MISSION == ENABLED
         // log new home position which mission library will pull from ahrs
         if (should_log(MASK_LOG_CMD)) {
             AP_Mission::Mission_Command temp_cmd;
@@ -84,6 +84,7 @@ bool Copter::set_home(const Location& loc, bool lock)
                 DataFlash.Log_Write_Mission_Cmd(mission, temp_cmd);
             }
         }
+#endif //MISSION == ENABLED
     }
 
     // lock home position

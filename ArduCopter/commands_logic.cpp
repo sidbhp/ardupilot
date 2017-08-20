@@ -1,5 +1,5 @@
 #include "Copter.h"
-
+#if MISSION == ENABLED
 // start_command - this function will be called when the ap_mission lib wishes to start a new command
 bool Copter::start_command(const AP_Mission::Mission_Command& cmd)
 {
@@ -1175,3 +1175,4 @@ void Copter::do_mount_control(const AP_Mission::Mission_Command& cmd)
     camera_mount.set_angle_targets(cmd.content.mount_control.roll, cmd.content.mount_control.pitch, cmd.content.mount_control.yaw);
 #endif
 }
+#endif //MISSION == ENABLED

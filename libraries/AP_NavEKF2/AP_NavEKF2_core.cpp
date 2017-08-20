@@ -386,10 +386,11 @@ bool NavEKF2_core::InitialiseFilterBootstrap(void)
     stateStruct.body_magfield.zero();
 
     // read the GPS and set the position and velocity states
+#if HAL_MINIMIZE_FEATURES < 2
     readGpsData();
     ResetVelocity();
     ResetPosition();
-
+#endif
     // read the barometer and set the height state
     readBaroData();
     ResetHeight();
@@ -494,10 +495,10 @@ void NavEKF2_core::UpdateFilter(bool predict)
 
         // Update states using  magnetometer data
         SelectMagFusion();
-
+#if HAL_MINIMIZE_FEATURES < 2
         // Update states using GPS and altimeter data
         SelectVelPosFusion();
-
+#endif
         // Update states using range beacon data
         SelectRngBcnFusion();
 

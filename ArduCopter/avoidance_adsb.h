@@ -1,5 +1,5 @@
 #pragma once
-
+#if MISSION == ENABLED
 #include <AP_Avoidance/AP_Avoidance.h>
 
 // Provide Copter-specific implementation of avoidance.  While most of
@@ -41,3 +41,4 @@ protected:
     // control mode before avoidance began
     control_mode_t prev_control_mode = RTL;
 };
+#endif // MISSION == ENABLED

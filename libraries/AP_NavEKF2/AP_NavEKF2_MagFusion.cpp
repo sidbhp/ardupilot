@@ -164,9 +164,10 @@ void NavEKF2_core::realignYawGPS()
             // calculate new filter quaternion states from Euler angles
             stateStruct.quat.from_euler(eulerAngles.x, eulerAngles.y, gpsYaw);
             // reset the velocity and position states as they will be inaccurate due to bad yaw
+#if HAL_MINIMIZE_FEATURES < 2
             ResetVelocity();
             ResetPosition();
-
+#endif
             // send yaw alignment information to console
             GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_INFO, "EKF2 IMU%u yaw aligned to GPS velocity",(unsigned)imu_index);
 

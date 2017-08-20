@@ -464,9 +464,10 @@ private:
 
     // constrain states
     void ConstrainStates();
-
+#if HAL_MINIMIZE_FEATURES < 2
     // fuse selected position, velocity and height measurements
     void FuseVelPosNED();
+#endif
 
     // fuse range beacon measurements
     void FuseRngBcn();
@@ -570,10 +571,10 @@ private:
 
     // check for new range beacon data and update stored measurements if available
     void readRngBcnData();
-
+#if HAL_MINIMIZE_FEATURES < 2
     // determine when to perform fusion of GPS position and  velocity measurements
     void SelectVelPosFusion();
-
+#endif
     // determine when to perform fusion of range measurements take realtive to a beacon at a known NED position
     void SelectRngBcnFusion();
 
@@ -595,13 +596,13 @@ private:
 
     // zero stored variables
     void InitialiseVariables();
-
+#if HAL_MINIMIZE_FEATURES < 2
     // reset the horizontal position states uing the last GPS measurement
     void ResetPosition(void);
 
     // reset velocity states using the last GPS measurement
     void ResetVelocity(void);
-
+#endif
     // reset the vertical position state using the last height measurement
     void ResetHeight(void);
 

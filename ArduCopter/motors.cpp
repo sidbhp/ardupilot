@@ -184,8 +184,9 @@ bool Copter::init_arm_motors(bool arming_from_gcs)
         // Reset home position if it has already been set before (but not locked)
         set_home_to_current_location(false);
     }
+#if MISSION == ENABLED
     calc_distance_and_bearing();
-
+#endif
     // enable gps velocity based centrefugal force compensation
     ahrs.set_correct_centrifugal(true);
     hal.util->set_soft_armed(true);
@@ -266,9 +267,10 @@ void Copter::init_disarm_motors()
 
     // send disarm command to motors
     motors->armed(false);
-
+#if MISSION == ENABLED
     // reset the mission
     mission.reset();
+#endif // MISSION == ENABLED
 
     DataFlash_Class::instance()->set_vehicle_armed(false);
 

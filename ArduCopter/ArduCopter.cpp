@@ -101,7 +101,9 @@ const AP_Scheduler::Task Copter::scheduler_tasks[] = {
     SCHED_TASK(update_beacon,        400,     50),
     SCHED_TASK(update_visual_odom,   400,     50),
     SCHED_TASK(update_altitude,       10,    100),
+#if MISSION == ENABLED
     SCHED_TASK(run_nav_updates,       50,    100),
+#endif
     SCHED_TASK(update_throttle_hover,100,     90),
     SCHED_TASK(three_hz_loop,          3,     75),
     SCHED_TASK(compass_accumulate,   100,    100),
@@ -518,9 +520,9 @@ void Copter::one_hz_loop()
 
     // log terrain data
     terrain_logging();
-
+#if ADSB_ENABLED == ENABLED
     adsb.set_is_flying(!ap.land_complete);
-    
+#endif
     // update error mask of sensors and subsystems. The mask uses the
     // MAV_SYS_STATUS_* values from mavlink. If a bit is set then it
     // indicates that the sensor or subsystem is present but not
