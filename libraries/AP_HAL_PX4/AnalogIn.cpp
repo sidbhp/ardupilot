@@ -11,9 +11,11 @@
 #include <nuttx/analog/adc.h>
 #include <nuttx/config.h>
 #include <arch/board/board.h>
+#ifndef DISABLE_UORB
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/system_power.h>
+#endif
 #include <GCS_MAVLink/GCS_MAVLink.h>
 #include <errno.h>
 #include "GPIO.h"
@@ -205,9 +207,11 @@ void PX4AnalogIn::init()
     if (_adc_fd == -1) {
         AP_HAL::panic("Unable to open " ADC0_DEVICE_PATH);
 	}
+#ifndef DISABLE_UORB
     _battery_handle   = orb_subscribe(ORB_ID(battery_status));
     _servorail_handle = orb_subscribe(ORB_ID(servorail_status));
     _system_power_handle = orb_subscribe(ORB_ID(system_power));
+#endif
 }
 
 
@@ -305,7 +309,7 @@ void PX4AnalogIn::_timer_tick(void)
         }
     }
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1) && !defined(DISABLE_UORB) 
     // check for new battery data on FMUv1
     if (_battery_handle != -1) {
         struct battery_status_s battery;
@@ -331,7 +335,7 @@ void PX4AnalogIn::_timer_tick(void)
     }
 #endif
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
+#if (defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || defined(CONFIG_ARCH_BOARD_PX4FMU_V4)) && !defined(DISABLE_UORB)
     // check for new servorail data on FMUv2
     if (_servorail_handle != -1) {
         struct servorail_status_s servorail;

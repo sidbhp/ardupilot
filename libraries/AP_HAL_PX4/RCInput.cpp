@@ -6,8 +6,9 @@
 #include <unistd.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
+#ifndef DISABLE_UORB
 #include <uORB/uORB.h>
-
+#endif
 using namespace PX4;
 
 extern const AP_HAL::HAL& hal;
@@ -15,10 +16,13 @@ extern const AP_HAL::HAL& hal;
 void PX4RCInput::init()
 {
     _perf_rcin = perf_alloc(PC_ELAPSED, "APM_rcin");
+#ifndef DISABLE_UORB
     _rc_sub = orb_subscribe(ORB_ID(input_rc));
+  
     if (_rc_sub == -1) {
         AP_HAL::panic("Unable to subscribe to input_rc");
     }
+#endif
     clear_overrides();
     pthread_mutex_init(&rcin_mutex, nullptr);
 
@@ -129,13 +133,14 @@ void PX4RCInput::clear_overrides()
 void PX4RCInput::_timer_tick(void)
 {
     perf_begin(_perf_rcin);
+#ifndef DISABLE_UORB
     bool rc_updated = false;
     if (orb_check(_rc_sub, &rc_updated) == 0 && rc_updated) {
         pthread_mutex_lock(&rcin_mutex);
         orb_copy(ORB_ID(input_rc), _rc_sub, &_rcin);
         pthread_mutex_unlock(&rcin_mutex);
     }
-
+#endif
 #ifdef HAL_RCINPUT_WITH_AP_RADIO
     if (radio && radio->last_recv_us() != last_radio_us) {
         last_radio_us = radio->last_recv_us();

@@ -9,8 +9,10 @@
 #include <apps/nsh.h>
 #include <fcntl.h>
 #include "UARTDriver.h"
+#ifndef DISABLE_UORB
 #include <uORB/uORB.h>
 #include <uORB/topics/safety.h>
+#endif
 #include <systemlib/board_serial.h>
 #include <drivers/drv_gpio.h>
 #include <AP_Math/AP_Math.h>
@@ -27,7 +29,9 @@ extern bool _px4_thread_should_exit;
  */
 PX4Util::PX4Util(void) : Util()
 {
+#ifndef DISABLE_UORB
     _safety_handle = orb_subscribe(ORB_ID(safety));
+#endif
 }
 
 
@@ -73,10 +77,9 @@ bool PX4Util::run_debug_shell(AP_HAL::BetterStream *stream)
  */
 enum PX4Util::safety_state PX4Util::safety_switch_state(void)
 {
-#if !HAL_HAVE_SAFETY_SWITCH
+#if !HAL_HAVE_SAFETY_SWITCH || defined(DISABLE_UORB)
     return AP_HAL::Util::SAFETY_NONE;
-#endif
-
+#else
     if (_safety_handle == -1) {
         _safety_handle = orb_subscribe(ORB_ID(safety));
     }
@@ -94,6 +97,7 @@ enum PX4Util::safety_state PX4Util::safety_switch_state(void)
         return AP_HAL::Util::SAFETY_ARMED;
     }
     return AP_HAL::Util::SAFETY_DISARMED;
+#endif //!HAL_HAVE_SAFETY_SWITCH || defined(DISABLE_UORB)
 }
 
 void PX4Util::set_system_clock(uint64_t time_utc_usec)

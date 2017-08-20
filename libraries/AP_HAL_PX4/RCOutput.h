@@ -2,9 +2,10 @@
 
 #include "AP_HAL_PX4.h"
 #include <systemlib/perf_counter.h>
+#ifndef DISABLE_UORB
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
-
+#endif
 #define PX4_NUM_OUTPUT_CHANNELS 16
 
 class PX4::PX4RCOutput : public AP_HAL::RCOutput 
@@ -60,6 +61,7 @@ private:
     uint32_t _rate_mask_alt;
     uint16_t _enabled_channels;
     uint32_t _period_max;
+#ifndef DISABLE_UORB
     struct {
         int pwm_sub;
         actuator_outputs_s outputs;
@@ -67,6 +69,7 @@ private:
     actuator_armed_s _armed;
 
     orb_advert_t _actuator_armed_pub;
+#endif
     uint16_t _esc_pwm_min;
     uint16_t _esc_pwm_max;
 

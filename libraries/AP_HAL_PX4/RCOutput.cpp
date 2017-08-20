@@ -53,11 +53,11 @@ void PX4RCOutput::init()
         hal.console->printf("RCOutput: Unable to get servo count\n");        
         return;
     }
-
+#ifndef DISABLE_UORB
     for (uint8_t i=0; i<ORB_MULTI_MAX_INSTANCES; i++) {
         _outputs[i].pwm_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), i);
     }
-
+#endif
 #if !defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
     struct stat st;
     // don't try and open px4fmu unless there is a px4io. Otherwise we
@@ -368,6 +368,7 @@ uint16_t PX4RCOutput::read(uint8_t ch)
     // if px4io has given us a value for this channel use that,
     // otherwise use the value we last sent. This makes it easier to
     // observe the behaviour of failsafe in px4io
+#ifndef DISABLE_UORB
     for (uint8_t i=0; i<ORB_MULTI_MAX_INSTANCES; i++) {
         if (_outputs[i].pwm_sub >= 0 && 
             ch < _outputs[i].outputs.noutputs &&
@@ -375,6 +376,7 @@ uint16_t PX4RCOutput::read(uint8_t ch)
             return _outputs[i].outputs.output[ch];
         }
     }
+#endif
     return _period[ch];
 }
 
@@ -406,6 +408,7 @@ void PX4RCOutput::read_last_sent(uint16_t* period_us, uint8_t len)
  */
 void PX4RCOutput::_arm_actuators(bool arm)
 {
+#ifndef DISABLE_UORB
     if (_armed.armed == arm) {
         // already armed;
         return;
@@ -420,12 +423,12 @@ void PX4RCOutput::_arm_actuators(bool arm)
     }
     _armed.lockdown = false;
     _armed.force_failsafe = false;
-
     if (_actuator_armed_pub == nullptr) {
         _actuator_armed_pub = orb_advertise(ORB_ID(actuator_armed), &_armed);
     } else {
         orb_publish(ORB_ID(actuator_armed), _actuator_armed_pub, &_armed);
     }
+#endif
 }
 
 void PX4RCOutput::_send_outputs(void)
@@ -521,8 +524,8 @@ void PX4RCOutput::_send_outputs(void)
         perf_end(_perf_rcout);
         _last_output = now;
     }
-
 update_pwm:
+#ifndef DISABLE_UORB
     for (uint8_t i=0; i<ORB_MULTI_MAX_INSTANCES; i++) {
         bool rc_updated = false;
         if (_outputs[i].pwm_sub >= 0 && 
@@ -531,7 +534,8 @@ update_pwm:
             orb_copy(ORB_ID(actuator_outputs), _outputs[i].pwm_sub, &_outputs[i].outputs);
         }
     }
-
+#endif
+    return;
 }
 
 void PX4RCOutput::cork()

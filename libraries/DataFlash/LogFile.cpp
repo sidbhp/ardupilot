@@ -1731,7 +1731,7 @@ bool DataFlash_Backend::Log_Write_Mode(uint8_t mode, uint8_t reason)
 // Write ESC status messages
 void DataFlash_Class::Log_Write_ESC(void)
 {
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 && !defined(DISABLE_UORB)
     static int _esc_status_sub = -1;
     struct esc_status_s esc_status;
 
