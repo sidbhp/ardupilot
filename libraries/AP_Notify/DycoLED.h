@@ -20,8 +20,8 @@
 #include <AP_HAL/AP_HAL.h>
 #include "NotifyDevice.h"
 
-#define DYCOCLK 50
-#define DYCODOUT 51
+#define DYCOCLK 54
+#define DYCODOUT 55
 
 #define MAX_NUM_LEDS    100
 #define MAX_PATTERN_STEPS 16
