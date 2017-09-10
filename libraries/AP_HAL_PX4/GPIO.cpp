@@ -328,6 +328,8 @@ void PX4GPIO::push_bitbang_state(uint8_t pin, bool set)
         case PX4_GPIO_FMU_SERVO_PIN(3): pin = 9; break;
         case PX4_GPIO_FMU_SERVO_PIN(4): pin = 13; break;
         case PX4_GPIO_FMU_SERVO_PIN(5): pin = 14; break;
+        case PX4_GPIO_FMU_SERVO_PIN(8): pin = 8; break;
+        case PX4_GPIO_FMU_SERVO_PIN(9): pin = 9; break;
         default: return;
     }
 
