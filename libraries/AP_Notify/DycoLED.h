@@ -92,7 +92,7 @@ class DycoLED: public NotifyDevice
 {
 public:
     // init - initialised the LED
-    DycoLED(int8_t num_leds) : _num_leds(num_leds) {}
+    DycoLED(int8_t num_leds) : _num_leds(num_leds), _override_set(false) {}
     bool init();
     enum led_type{
         STATUS_LED,
@@ -128,10 +128,12 @@ public:
         PURPLE,
         WHITE
     };
+    void handle_set_led_pattern_cmd(float led_num, float pattern_id);
 protected:
     DycoLEDStripDriver _ledstrip;
     int8_t _num_leds;
     void set_preset_pattern(uint16_t led,uint8_t patt);
     static led_pattern preset_pattern[16];
+    bool _override_set;
 };
 

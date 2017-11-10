@@ -235,6 +235,15 @@ void AP_Notify::handle_led_control(mavlink_message_t *msg)
     }
 }
 
+void AP_Notify::handle_set_led_pattern_cmd(float led_num, float pattern_id)
+{
+    for (uint8_t i = 0; i < CONFIG_NOTIFY_DEVICES_COUNT; i++) {
+        if(_devices[i] != nullptr) {
+            _devices[i]->handle_set_led_pattern_cmd(led_num, pattern_id);
+        }
+    }
+}
+
 // handle a PLAY_TUNE message
 void AP_Notify::handle_play_tune(mavlink_message_t *msg)
 {

@@ -201,6 +201,8 @@ def _process_romfs(self):
         'profiled/Solid_orange.ledbin',
         'profiled/Solid_green.ledbin',
         'profiled/Initialising.ledbin',
+        'profiled/LEDPattern1.ledbin',
+        'profiled/LEDPattern2.ledbin',
         (bld.env.PX4_BOOTLOADER, 'bootloader/fmu_bl.bin'),
     ]
 

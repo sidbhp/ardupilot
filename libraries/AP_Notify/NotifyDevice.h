@@ -19,6 +19,9 @@ public:
 
     // handle a PLAY_TUNE message, by default device ignore message
     virtual void handle_play_tune(mavlink_message_t *msg) {}
+
+    // handle SET LED PATTERN command
+    virtual void handle_set_led_pattern_cmd(float led_num, float pattern_id) { }
     
     // this pointer is used to read the parameters relative to devices
     const AP_Notify *pNotify;

@@ -173,7 +173,11 @@ public:
         bool cold_start; // use cold start procedure
         uint16_t height_delay_cm; // height delay for start
     };
-    
+    // LED Command
+    struct PACKED DO_set_LED_Pattern {
+        uint16_t led_id;
+        uint16_t pattern_id;
+    };
     union PACKED Content {
         // jump structure
         Jump_Command jump;
@@ -235,6 +239,7 @@ public:
         // navigation delay
         Navigation_Delay_Command nav_delay;
 
+        DO_set_LED_Pattern led_pattern;
         // raw bytes, for reading/writing to eeprom. Note that only 10 bytes are available
         // if a 16 bit command ID is used
         uint8_t bytes[12];

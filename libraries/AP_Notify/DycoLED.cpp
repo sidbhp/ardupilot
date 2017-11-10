@@ -47,6 +47,9 @@ bool DycoLED::init()
 // at 50Hz
 void DycoLED::update()
 {
+    if(_override_set) {
+        return;
+    }
     // Do Strobe on LED 3 and 4 
     if (AP_Notify::flags.initialising) {
         _ledstrip.set_led_file("Initialising.ledbin");
@@ -83,6 +86,14 @@ void DycoLED::update()
             }
         }
     }
+}
+
+void DycoLED::handle_set_led_pattern_cmd(float led_num, float pattern_id)
+{
+    char name[22];
+    sprintf(name, "LEDPattern%d.ledbin", (uint32_t)pattern_id);
+    _ledstrip.set_led_file((const char*)name);
+    _override_set = true;
 }
 
 DycoLEDDriver::DycoLEDDriver()

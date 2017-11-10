@@ -118,6 +118,9 @@ public:
     // handle a LED_CONTROL message
     static void handle_led_control(mavlink_message_t* msg);
 
+    // handle SET LED PATTERN Command
+    static void handle_set_led_pattern_cmd(float led_num, float pattern_id);
+
     // handle a PLAY_TUNE message
     static void handle_play_tune(mavlink_message_t* msg);
 

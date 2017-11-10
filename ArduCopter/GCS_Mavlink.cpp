@@ -1616,7 +1616,11 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
         case MAV_CMD_FIXED_MAG_CAL:
             result = copter.compass.fixed_mag_cal(copter.ahrs, packet.param1, packet.param2, packet.param3, packet.param4);
             break;
-            
+
+        case MAV_CMD_SET_LED_PATTERN:
+            AP_Notify::handle_set_led_pattern_cmd(packet.param1, packet.param2);
+            result = MAV_RESULT_ACCEPTED;
+            break;
         default:
             result = MAV_RESULT_UNSUPPORTED;
             break;

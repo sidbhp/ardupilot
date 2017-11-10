@@ -779,6 +779,11 @@ MAV_MISSION_RESULT AP_Mission::mavlink_int_to_mission_cmd(const mavlink_mission_
         copy_location = true;
         break;
 
+    case MAV_CMD_SET_LED_PATTERN:
+        cmd.content.led_pattern.led_id = packet.param1;
+        cmd.content.led_pattern.pattern_id = packet.param2;
+        break;
+
     default:
         // unrecognised command
         return MAV_MISSION_UNSUPPORTED;
@@ -1228,7 +1233,10 @@ bool AP_Mission::mission_cmd_to_mavlink_int(const AP_Mission::Mission_Command& c
         copy_location = true;
         packet.param1 = cmd.p1/100.0f; // copy max-descend parameter (m->cm)
         break;
-
+    case MAV_CMD_SET_LED_PATTERN:
+        packet.param1 = cmd.content.led_pattern.led_id;
+        packet.param2 = cmd.content.led_pattern.pattern_id;
+        break;
     default:
         // unrecognised command
         return false;

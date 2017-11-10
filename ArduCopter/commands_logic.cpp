@@ -160,6 +160,10 @@ bool Copter::start_command(const AP_Mission::Mission_Command& cmd)
         break;
 #endif
 
+    case MAV_CMD_SET_LED_PATTERN:
+        AP_Notify::handle_set_led_pattern_cmd(cmd.content.led_pattern.led_id, cmd.content.led_pattern.pattern_id);
+        break;
+
     default:
         // do nothing with unrecognized MAVLink messages
         break;
@@ -269,6 +273,7 @@ bool Copter::verify_command(const AP_Mission::Mission_Command& cmd)
     case MAV_CMD_DO_GRIPPER:
     case MAV_CMD_DO_GUIDED_LIMITS:
     case MAV_CMD_DO_FENCE_ENABLE:
+    case MAV_CMD_SET_LED_PATTERN:
         return true;
 
     default:
