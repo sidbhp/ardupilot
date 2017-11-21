@@ -65,7 +65,7 @@ private:
         uint32_t frame_count;
     } report;
     float last_flap;
-
+	float last_nosewheel;
     // are we controlling a heli?
     bool heli_frame;
 

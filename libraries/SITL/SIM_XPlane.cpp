@@ -43,7 +43,7 @@ XPlane::XPlane(const char *home_str, const char *frame_str) :
 
     heli_frame = (strstr(frame_str, "-heli") != nullptr);
 
-    socket_in.bind("0.0.0.0", bind_port);
+    socket_in.bind("127.0.0.1", bind_port);
     printf("Waiting for XPlane data on UDP port %u and sending to port %u\n",
            (unsigned)bind_port, (unsigned)xplane_port);
 
@@ -222,9 +222,9 @@ bool XPlane::receive_data(void)
 
         case Joystick1:
             rcin_chan_count = 4;
-            rcin[0] = (data[2] + 1)*0.5f;
-            rcin[1] = (data[1] + 1)*0.5f;
-            rcin[3] = (data[3] + 1)*0.5f;
+            rcin[0] = 0.5f;
+            rcin[1] = 0.5f;
+            rcin[3] = 0.5f;
             break;
 
         case ThrottleCommand: {
@@ -406,13 +406,19 @@ void XPlane::send_data(const struct sitl_input &input)
         }
     }
 
+    //send_dref("sim/flightmodel/parts/tire_steer_cmd", rudder*20.0f);
+    d.code = Joystick1;
+    d.data[0] = elevator;
+    d.data[1] = aileron;
+    d.data[2] = rudder;
+    //d.data[4] = rudder*20.0f;
+    socket_out.send(&d, sizeof(d));
     d.code = FlightCon;
     d.data[0] = elevator;
     d.data[1] = aileron;
     d.data[2] = rudder;
-    d.data[4] = rudder;
+    d.data[4] = rudder*20.0f;
     socket_out.send(&d, sizeof(d));
-
     if (!heli_frame) {
         d.code = ThrottleCommand;
         d.data[0] = throttle;
