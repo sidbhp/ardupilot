@@ -389,10 +389,8 @@ def write_SPI_config(f):
         f.write('#define HAL_SPI_BUS_LIST %s\n\n' % ','.join(devlist))
         write_SPI_table(f)
 
-def write_UART_config(f):
+def write_UART_config(f, uart_list):
         '''write UART config defines'''
-        get_config('UART_ORDER')
-        uart_list = config['UART_ORDER']
         f.write('\n// UART configuration\n')
 
         # write out driver declarations for HAL_ChibOS_Class.cpp
@@ -653,10 +651,10 @@ def write_hwdef_header(outfilename):
 
         write_peripheral_enable(f)
         write_prototype_file()
-
-        dma_resolver.write_dma_header(f, periph_list, mcu_type)
-
-        write_UART_config(f)
+        get_config('UART_ORDER')
+        uart_list = config['UART_ORDER']
+        dma_resolver.write_dma_header(f, periph_list, mcu_type, exclusive_dma_list, uart_list)
+        write_UART_config(f, uart_list)
 
         f.write('''
 /*
@@ -719,24 +717,31 @@ def write_hwdef_header(outfilename):
 def build_peripheral_list():
         '''build a list of peripherals for DMA resolver to work on'''
         peripherals = []
+        exclusive_dma_list = []
         done = set()
         prefixes = ['SPI', 'USART', 'UART', 'I2C']
         for p in allpins:
                 type = p.type
-                if type in done:
-                        continue
                 for prefix in prefixes:
                         if type.startswith(prefix):
-                                peripherals.append(type + "_TX")
-                                peripherals.append(type + "_RX")
+                                if type not in done:
+                                    peripherals.append(type + "_TX")
+                                    peripherals.append(type + "_RX")
+                
+                if type in done:
+                        continue
                 if type.startswith('ADC'):
                         peripherals.append(type)                        
                 if type.startswith('SDIO'):
                         peripherals.append(type)
                 if type.startswith('TIM') and p.has_extra('RCIN'):
                         peripherals.append(p.label)
+
                 done.add(type)
-        return peripherals
+        get_config('EXC_DMA', required=False)
+        if 'EXC_DMA' in config:
+            exclusive_dma_list = config['EXC_DMA']
+        return peripherals, exclusive_dma_list
 
 def process_line(line):
         '''process one line of pin definition file'''
@@ -817,7 +822,7 @@ mcu_type = get_config('MCU',1)
 print("Setup for MCU %s" % mcu_type)
 
 # build a list for peripherals for DMA resolver
-periph_list = build_peripheral_list()
+periph_list, exclusive_dma_list = build_peripheral_list()
 
 # write out hwdef.h
 write_hwdef_header(os.path.join(outdir, "hwdef.h"))

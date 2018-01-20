@@ -5,7 +5,10 @@ import importlib
 
 # peripheral types that can be shared, wildcard patterns
 SHARED_MAP = [ "I2C*", "USART*_TX", "UART*_TX", "SPI*" ]
-
+OPTIONAL_MAP = ["USART*_TX", "UART*_TX", "USART*_RX", "UART*_RX"]
+PRIORITY_MAP = {"USART*_RX":1, "UART*_RX":1, "SPI*":2, "I2C*":3, "COMMON":4, "USART*_TX":5, "UART*_TX":5}
+exclusive_priority_map = {}
+unoptional_priority_map = {}
 ignore_list = []
 dma_map = None
 
@@ -47,6 +50,34 @@ def can_share(periph):
                 print("%s can't share" % periph)
         return False
 
+def is_optional(periph):
+        '''check if a peripheral is in the OPTIONAL_MAP list'''
+        for f in OPTIONAL_MAP:
+                if fnmatch.fnmatch(periph, f):
+                        return True
+        if debug:
+                print("%s not optional" % periph)
+        return False
+
+def get_priority(periph, exclusive_list, uart_order):
+	if periph in exclusive_priority_map:
+		if exclusive_priority_map[periph] > 0:
+			exclusive_priority_map[periph] = exclusive_priority_map[periph] - 1
+		return exclusive_priority_map[periph]*100
+	if periph in unoptional_priority_map:
+		if unoptional_priority_map[periph] > 0:
+			unoptional_priority_map[periph] = unoptional_priority_map[periph] - 1
+		return unoptional_priority_map[periph]*100 + 1
+	for f in PRIORITY_MAP:
+		if fnmatch.fnmatch(periph, f):
+			value = 100*(PRIORITY_MAP[f] + 1)
+			if periph[:-3] in uart_order:
+				value -= len(uart_order) - uart_order.index(periph[:-3])
+			return value
+	#By default we return priority of COMMON
+	return 100*PRIORITY_MAP["COMMON"]
+
+
 def chibios_dma_define_name(key):
         '''return define name needed for board.h for ChibiOS'''
         if key.startswith('ADC'):
@@ -67,7 +98,7 @@ def chibios_dma_define_name(key):
                 print("Error: Unknown key type %s" % key)
                 sys.exit(1)
 
-def write_dma_header(f, peripheral_list, mcu_type):
+def write_dma_header(f, peripheral_list, mcu_type, exclusive_list, uart_order):
         '''write out a DMA resolver header file'''
         global dma_map
         try:
@@ -78,45 +109,71 @@ def write_dma_header(f, peripheral_list, mcu_type):
                 sys.exit(1)
         
         print("Writing DMA map")
-        unassigned = []
-        curr_dict = {}
+	unassigned = []
+	remove_next = []
+	tries = 0
+	for periph in exclusive_list:
+		#start from least priority, we will work our way up,
+		#this is so that we replace lower priority devices first
+		exclusive_priority_map[periph] = len(PRIORITY_MAP) + 1
+	while True:
+		tries = tries + 1
+		peripheral_list = sorted(peripheral_list, key=lambda x: get_priority(x, exclusive_list, uart_order))
+		unassigned = []
+		curr_dict = {}
+		for periph in peripheral_list:
+			assigned = False
+			check_list = []
+			if not periph in dma_map:
+				print("Unknown peripheral function %s in DMA map for %s" % (periph, mcu_type))
+				sys.exit(1)
+			for stream in dma_map[periph]:
+				if check_possibility(periph, stream, curr_dict, dma_map, check_list):
+					curr_dict[periph] = stream
+					assigned = True
+					break
+			if assigned == False:
+				unassigned.append(periph)
 
-	for periph in peripheral_list:
-		assigned = False
-		check_list = []
-                if not periph in dma_map:
-                        print("Unknown peripheral function %s in DMA map for %s" % (periph, mcu_type))
-                        sys.exit(1)
-		for stream in dma_map[periph]:
-			if check_possibility(periph, stream, curr_dict, dma_map, check_list):
-				curr_dict[periph] = stream
-				assigned = True
-				break
-		if assigned == False:
-			unassigned.append(periph)
+		# now look for shared DMA possibilities
+		stream_assign = {}
+		for k in curr_dict.iterkeys():
+			stream_assign[curr_dict[k]] = [k]
 
-	# now look for shared DMA possibilities
-	stream_assign = {}
-	for k in curr_dict.iterkeys():
-	        stream_assign[curr_dict[k]] = [k]
+		unassigned_new = unassigned[:]
+		exclusive_stream = []
+		for periph in unassigned:
+			for stream in dma_map[periph]:
+				share_ok = True
+				for periph2 in stream_assign[stream]:
+					if periph in exclusive_list or periph2 in exclusive_list:
+						share_ok = False
+					if not can_share(periph) or not can_share(periph2):
+						share_ok = False
+				if share_ok:
+					if debug:
+						print("Sharing %s on %s with %s" % (periph, stream, stream_assign[stream]))
+					curr_dict[periph] = stream
+					stream_assign[stream].append(periph)
+					unassigned_new.remove(periph)
+					if periph in exclusive_list:
+						exclusive_stream.append(stream)
+					break
+		unoptional_assigned = False
+		for periph in unassigned_new:
+			if not is_optional(periph):
+				unoptional_assigned = True
+				if periph in exclusive_priority_map:
+					continue
+				if periph not in unoptional_priority_map:
+					unoptional_priority_map[periph] = len(PRIORITY_MAP) + 1
+		if unoptional_assigned and tries > 100:
+			print("Cannot Resolve all Unoptional DMA assignments:\n ", unassigned_new)
+			sys.exit(0)
+		elif not unoptional_assigned:
+			break
 
-	unassigned_new = unassigned[:]
-	for periph in unassigned:
-		for stream in dma_map[periph]:
-	                share_ok = True
-	                for periph2 in stream_assign[stream]:
-	                        if not can_share(periph) or not can_share(periph2):
-	                                share_ok = False
-	                if share_ok:
-                                if debug:
-                                        print("Sharing %s on %s with %s" % (periph, stream, stream_assign[stream]))
-	                        curr_dict[periph] = stream
-	                        stream_assign[stream].append(periph)
-	                        unassigned_new.remove(periph)
-	                        break
 	unassigned = unassigned_new
-
-
 	f.write("// auto-generated DMA mapping from dma_resolver.py\n")
 
 	if unassigned:
