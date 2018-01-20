@@ -172,6 +172,9 @@ class generic_pin(object):
                 # on STM32F4 these speeds correspond to 2MHz, 25MHz, 50MHz and 100MHz
                 values = ['SPEED_VERYLOW', 'SPEED_LOW', 'SPEED_MEDIUM', 'SPEED_HIGH']
                 v = 'SPEED_MEDIUM'
+                #set GPIOs to SPEED_LOW
+                if self.is_CS() or self.type == 'OUTPUT' or self.type == 'INPUT' or self.is_RTS():
+                        v = "SPEED_LOW"
                 for e in self.extra:
                         if e in values:
                                 v = e
