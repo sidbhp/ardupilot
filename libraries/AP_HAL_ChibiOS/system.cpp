@@ -26,7 +26,7 @@
 extern const AP_HAL::HAL& hal;
 extern "C"
 {
-#define bkpt() __asm volatile("BKPT #0\n")
+
 typedef enum  {
     Reset = 1,
     NMI = 2,
