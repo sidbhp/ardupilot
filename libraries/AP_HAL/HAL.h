@@ -14,6 +14,7 @@
 #if HAL_WITH_UAVCAN
 #include "CAN.h"
 #endif
+#define bkpt() __asm volatile("BKPT #0\n")
 
 class AP_HAL::HAL {
 public:
