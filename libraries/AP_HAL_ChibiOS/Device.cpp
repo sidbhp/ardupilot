@@ -72,9 +72,9 @@ void DeviceBus::bus_thread(void *arg)
         }
         // don't delay for less than 400usec, so one thread doesn't
         // completely dominate the CPU
-        if (delay < 100) {
-            delay = 100;
-        }
+        if (delay < 400) {
+            delay = 400;
+        }        
         hal.scheduler->delay_microseconds(delay);
     }
     return;

@@ -100,20 +100,29 @@ void Scheduler::init()
 void Scheduler::get_stats(void)
 {
     thread_t* tp = chRegFirstThread();
-    uint32_t idle_time = 0;
-    uint32_t total_time = 0;
+    uint64_t idle_time = 0;
+    uint64_t total_time = 0;
     uint8_t idx = 0;
     const uint8_t max_tasks = 20;
     static uint64_t last_time[max_tasks];
-    uint32_t task_usec[max_tasks];
+    uint64_t task_usec[max_tasks], max_usec[max_tasks], min_usec[max_tasks];
+    static uint32_t last_num_runs[max_tasks];
+    static uint64_t last_spi_bus_time[max_tasks], spi_bus_task_usec[max_tasks];
+    uint32_t num_runs[max_tasks];
     const char *names[max_tasks];
     uint8_t prio[max_tasks];
     uint8_t states[max_tasks];
     const char *state_names[] = { CH_STATE_NAMES };
     
     do {
-        uint64_t cumulative = tp->stats.cumulative;
+        uint64_t cumulative = RTC2US(STM32_SYSCLK, tp->stats.cumulative);
         uint64_t delta = cumulative - last_time[idx];
+        num_runs[idx] = tp->stats.n - last_num_runs[idx];
+        max_usec[idx] = RTC2US(STM32_SYSCLK, tp->stats.worst);
+        min_usec[idx] = RTC2US(STM32_SYSCLK, tp->stats.best);
+        tp->stats.best = -1;
+        tp->stats.worst = 0;
+        last_num_runs[idx] = tp->stats.n;
         last_time[idx] = cumulative;
         task_usec[idx] = delta;
         names[idx] = tp->name;
@@ -126,10 +135,10 @@ void Scheduler::get_stats(void)
         tp = chRegNextThread(tp);
         idx++;
     } while (tp != NULL);
-
+    hal.console->printf("%12s %4s %12s %3s %10s %6s %6s %6s %6s\n","NAME", "PRIO", "STATE", "PCT", "TOTAL", "RUNS", "AVG", "MAX", "MIN");
     for (uint8_t i=0; i<idx; i++) {
         uint32_t pct = (100*uint64_t(task_usec[i])) / total_time;
-        hal.console->printf("%12s %4u %12s %2u%% %u\n", names[i], (unsigned)prio[i], state_names[states[i]], (unsigned)pct, (unsigned)task_usec[i]);
+        hal.console->printf("%12s %4u %12s %2u%% %10u %6u %6u %8u %6u\n", names[i], (unsigned)prio[i], state_names[states[i]], (unsigned)pct, (unsigned)task_usec[i], num_runs[i], (unsigned)task_usec[i]/num_runs[i], (unsigned)max_usec[i], (unsigned)min_usec[i]);
     }
     
     _busy_percent = 100 * (1.0f - (float)idle_time / total_time);
