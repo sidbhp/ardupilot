@@ -44,12 +44,8 @@
 #define APM_SPI_PRIORITY        181
 #endif
 
-#ifndef APM_UAVCAN_PRIORITY
-#define APM_UAVCAN_PRIORITY     178
-#endif
-
 #ifndef APM_CAN_PRIORITY
-#define APM_CAN_PRIORITY        177
+#define APM_CAN_PRIORITY        178
 #endif
 
 #ifndef APM_I2C_PRIORITY
@@ -119,9 +115,7 @@ private:
     thread_t* _io_thread_ctx;
     thread_t* _storage_thread_ctx;
     thread_t* _toneAlarm_thread_ctx;
-#if HAL_WITH_UAVCAN
-    thread_t* _uavcan_thread_ctx;
-#endif
+
 #if CH_CFG_USE_SEMAPHORES == TRUE
     binary_semaphore_t _timer_semaphore;
     binary_semaphore_t _io_semaphore;
@@ -132,9 +126,7 @@ private:
     static void _storage_thread(void *arg);
     static void _uart_thread(void *arg);
     static void _toneAlarm_thread(void *arg);
-#if HAL_WITH_UAVCAN
-    static void _uavcan_thread(void *arg);
-#endif
+
     void _run_timers();
     void _run_io(void);
     static void thread_create_trampoline(void *ctx);    
