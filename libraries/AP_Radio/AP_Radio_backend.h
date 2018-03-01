@@ -63,6 +63,14 @@ public:
     // set the 2.4GHz wifi channel used by companion computer, so it can be avoided
     virtual void set_wifi_channel(uint8_t channel) = 0;
     
+    virtual void mavlink_update(uint32_t max_time_us) {}
+
+    virtual void mavlink_write(const uint8_t *pkt, uint8_t len) {}
+
+    virtual uint8_t mavlink_read() { return 0; }
+
+    virtual int16_t mavlink_available() { return 0; }
+
 protected:
 
     AP_Radio::ap_radio_protocol get_protocol(void) const {

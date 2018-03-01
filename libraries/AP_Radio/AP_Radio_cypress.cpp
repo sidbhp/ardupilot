@@ -1,6 +1,6 @@
 #include <AP_HAL/AP_HAL.h>
 
-#ifdef HAL_RCINPUT_WITH_AP_RADIO
+#ifdef HAL_RCINPUT_WITH_AP_RADIO 
 
 #include <AP_Math/AP_Math.h>
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
@@ -647,7 +647,7 @@ void AP_Radio_cypress::radio_init(void)
     // setup handler for rising edge of IRQ pin
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
     stm32_gpiosetevent(CYRF_IRQ_INPUT, true, false, false, irq_radio_trampoline);
-#elif CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
+#elif CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS && defined(HAL_GPIO_RADIO_IRQ)
     hal.gpio->attach_interrupt(HAL_GPIO_RADIO_IRQ, trigger_irq_radio_event, HAL_GPIO_INTERRUPT_RISING);
 #endif
 }

@@ -1,11 +1,12 @@
 #include <AP_HAL/AP_HAL.h>
 
-#ifdef HAL_RCINPUT_WITH_AP_RADIO
+#if defined(HAL_RCINPUT_WITH_AP_RADIO) || defined(HAL_MAVLINK_WITH_AP_RADIO)
 
 #include "AP_Radio.h"
 #include "AP_Radio_backend.h"
 #include "AP_Radio_cypress.h"
 #include "AP_Radio_cc2500.h"
+#include "AP_Radio_CrazyRadio.h"
 
 extern const AP_HAL::HAL& hal;
 
@@ -130,7 +131,18 @@ const AP_Param::GroupInfo AP_Radio::var_info[] = {
     // @Range: 0 31
     // @User: Advanced
     AP_GROUPINFO("_ABLVL",  17, AP_Radio, auto_bind_rssi, 0),
-    
+
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_CHIBIOS_CRAZYFLIE2
+
+    AP_GROUPINFO("_CR_CH",  18, AP_Radio, cr_chan, 80),
+
+    AP_GROUPINFO("_CR_R",  19, AP_Radio, cr_rate, 2),
+
+    AP_GROUPINFO("_CR_A1",  20, AP_Radio, cr_addr1, 0xE7E7),
+
+    AP_GROUPINFO("_CR_A2",  21, AP_Radio, cr_addr2, 0xE7E7E7),
+
+#endif
     AP_GROUPEND
 };
 
@@ -144,17 +156,25 @@ AP_Radio::AP_Radio(void)
         AP_HAL::panic("Multiple AP_Radio declarations");
     }
     _instance = this;
+    _instance->driver = nullptr;
 }
 
 bool AP_Radio::init(void)
 {
     switch (radio_type) {
+#ifdef HAL_RCINPUT_WITH_AP_RADIO
     case RADIO_TYPE_CYRF6936:
         driver = new AP_Radio_cypress(*this);
         break;
+#endif
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
-    case RADIO_TYPE_CC2500:
+#ifdef HAL_RCINPUT_WITH_AP_RADIO
+   case RADIO_TYPE_CC2500:
         driver = new AP_Radio_cc2500(*this);
+        break;
+#endif
+    case RADIO_TYPE_CRAZYRADIO:
+        driver = new AP_Radio_CrazyRadio(*this);
         break;
 #endif
     default:
@@ -249,6 +269,39 @@ void AP_Radio::set_wifi_channel(uint8_t channel)
 {
     if (driver) {
         driver->set_wifi_channel(channel);
+    }
+}
+
+void AP_Radio::mavlink_update(uint32_t max_time_us)
+{
+    if (driver) {
+        driver->mavlink_update(max_time_us);
+    }
+}
+
+void AP_Radio::mavlink_write(const uint8_t *pkt, uint8_t len)
+{
+    if (driver) {
+        driver->mavlink_write(pkt, len);
+    }
+}
+
+uint8_t AP_Radio::mavlink_read()
+{
+    if (driver) {
+        return driver->mavlink_read();
+    } else {
+        return 0;
+    }
+}
+
+
+uint32_t AP_Radio::mavlink_available()
+{
+    if (driver) {
+        return driver->mavlink_available();
+    } else {
+        return 0;
     }
 }
 

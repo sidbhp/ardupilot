@@ -23,12 +23,14 @@
 #include <GCS_MAVLink/GCS.h>
 
 class AP_Radio_backend;
+class AP_Radio_CrazyRadio;
 
 class AP_Radio
 {
 public:
     friend class AP_Radio_backend;
-    
+    friend class AP_Radio_CrazyRadio;
+
     // constructor
     AP_Radio(void);
     
@@ -71,6 +73,7 @@ public:
         RADIO_TYPE_NONE=0,
         RADIO_TYPE_CYRF6936=1,
         RADIO_TYPE_CC2500=2,
+        RADIO_TYPE_CRAZYRADIO=3
     };
     
     enum ap_radio_protocol {
@@ -95,7 +98,15 @@ public:
 
     // set the 2.4GHz wifi channel used by companion computer, so it can be avoided
     void set_wifi_channel(uint8_t channel);
-    
+
+    void mavlink_update(uint32_t max_time_us = 1000);
+
+    void mavlink_write(const uint8_t *pkt, uint8_t len);
+
+    uint8_t mavlink_read();
+
+    uint32_t mavlink_available();
+
 private:
     AP_Radio_backend *driver;
 
@@ -116,6 +127,10 @@ private:
     AP_Int8 tx_buzzer_adjust;
     AP_Int8 auto_bind_time;
     AP_Int8 auto_bind_rssi;
+    AP_Int8 cr_chan;
+    AP_Int8 cr_rate;
+    AP_Int32 cr_addr1;
+    AP_Int32 cr_addr2;
     
     static AP_Radio *_instance;
 };
