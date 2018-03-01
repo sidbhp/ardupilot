@@ -69,6 +69,7 @@ void HardFault_Handler(void) {
     (void)isFaultOnUnstacking;
     (void)isFaultOnStacking;
     (void)isFaultAddressValid;
+    bkpt();
     //Cause debugger to stop. Ignored if no debugger is attached
     while(1) {}
 }
