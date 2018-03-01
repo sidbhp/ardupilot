@@ -22,7 +22,7 @@
 
 #include <AP_HAL/AP_HAL.h>
 #include "AP_SerialManager.h"
-
+#include <AP_Radio/AP_Radio.h>
 extern const AP_HAL::HAL& hal;
 
 #ifdef HAL_SERIAL5_PROTOCOL
@@ -190,6 +190,16 @@ void AP_SerialManager::init()
                                          AP_SERIALMANAGER_MAVLINK_BUFSIZE_RX,
                                          AP_SERIALMANAGER_MAVLINK_BUFSIZE_TX);
                     break;
+                case SerialProtocol_CrazyRadio:
+#ifdef HAL_MAVLINK_WITH_AP_RADIO
+                    state[i].uart->begin(1000000, 
+                                         AP_SERIALMANAGER_MAVLINK_BUFSIZE_RX,
+                                         AP_SERIALMANAGER_MAVLINK_BUFSIZE_TX);
+                    state[i].uart->set_unbuffered_writes(true);
+                    state[i].uart->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
+                    AP_Radio::instance()->init();
+#endif                
+                    break;
                 case SerialProtocol_FrSky_D:
                     // Note baudrate is hardcoded to 9600
                     state[i].baud = AP_SERIALMANAGER_FRSKY_D_BAUD/1000; // update baud param in case user looks at it
@@ -319,7 +329,8 @@ AP_SerialManager::SerialProtocol AP_SerialManager::get_mavlink_protocol(mavlink_
     uint8_t chan_idx = (uint8_t)(mav_chan - MAVLINK_COMM_0);
     for (uint8_t i=0; i<SERIALMANAGER_NUM_PORTS; i++) {
         if (state[i].protocol == SerialProtocol_MAVLink ||
-            state[i].protocol == SerialProtocol_MAVLink2) {
+            state[i].protocol == SerialProtocol_MAVLink2 ||
+            state[i].protocol == SerialProtocol_CrazyRadio) {
             if (instance == chan_idx) {
                 return (SerialProtocol)state[i].protocol.get();
             }
@@ -405,7 +416,7 @@ bool AP_SerialManager::protocol_match(enum SerialProtocol protocol1, enum Serial
 
     // mavlink match
     if (((protocol1 == SerialProtocol_MAVLink) || (protocol1 == SerialProtocol_MAVLink2)) &&
-        ((protocol2 == SerialProtocol_MAVLink) || (protocol2 == SerialProtocol_MAVLink2))) {
+        ((protocol2 == SerialProtocol_MAVLink) || (protocol2 == SerialProtocol_MAVLink2)|| (protocol2 == SerialProtocol_CrazyRadio))) {
         return true;
     }
 
