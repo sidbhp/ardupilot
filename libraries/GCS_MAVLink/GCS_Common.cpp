@@ -103,22 +103,23 @@ GCS_MAVLINK::setup_uart(const AP_SerialManager& serial_manager, AP_SerialManager
       0x20 at 115200 on startup, which tells the bootloader to reset
       and boot normally
      */
-    uart->begin(115200);
-    AP_HAL::UARTDriver::flow_control old_flow_control = uart->get_flow_control();
-    uart->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
-    for (uint8_t i=0; i<3; i++) {
+    if (serialmanager_p->get_mavlink_protocol(mav_chan) != AP_SerialManager::SerialProtocol_CrazyRadio) {
+        uart->begin(115200);
+        AP_HAL::UARTDriver::flow_control old_flow_control = uart->get_flow_control();
+        uart->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
+        for (uint8_t i=0; i<3; i++) {
+            hal.scheduler->delay(1);
+            uart->write(0x30);
+            uart->write(0x20);
+        }
+        // since tcdrain() and TCSADRAIN may not be implemented...
         hal.scheduler->delay(1);
-        uart->write(0x30);
-        uart->write(0x20);
+        
+        uart->set_flow_control(old_flow_control);
+
+        // now change back to desired baudrate
+        uart->begin(serial_manager.find_baudrate(protocol, instance));
     }
-    // since tcdrain() and TCSADRAIN may not be implemented...
-    hal.scheduler->delay(1);
-    
-    uart->set_flow_control(old_flow_control);
-
-    // now change back to desired baudrate
-    uart->begin(serial_manager.find_baudrate(protocol, instance));
-
     // and init the gcs instance
     init(uart, mav_chan);
 

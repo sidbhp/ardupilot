@@ -25,7 +25,7 @@ This provides some support code and variables for MAVLink enabled sketches
 #include <AP_Common/AP_Common.h>
 #include <AP_GPS/AP_GPS.h>
 #include <AP_HAL/AP_HAL.h>
-
+#include <AP_Radio/AP_Radio.h>
 
 #ifdef MAVLINK_SEPARATE_HELPERS
 // Shut up warnings about missing declarations; TODO: should be fixed on
@@ -63,7 +63,8 @@ void GCS_MAVLINK::lock_channel(mavlink_channel_t _chan, bool lock)
     }
     if (lock) {
         mavlink_locked_mask |= (1U<<(unsigned)_chan);
-    } else {
+    }
+    else {
         mavlink_locked_mask &= ~(1U<<(unsigned)_chan);
     }
 }
@@ -72,13 +73,13 @@ void GCS_MAVLINK::lock_channel(mavlink_channel_t _chan, bool lock)
 uint8_t mav_var_type(enum ap_var_type t)
 {
     if (t == AP_PARAM_INT8) {
-	    return MAVLINK_TYPE_INT8_T;
+        return MAVLINK_TYPE_INT8_T;
     }
     if (t == AP_PARAM_INT16) {
-	    return MAVLINK_TYPE_INT16_T;
+        return MAVLINK_TYPE_INT16_T;
     }
     if (t == AP_PARAM_INT32) {
-	    return MAVLINK_TYPE_INT32_T;
+        return MAVLINK_TYPE_INT32_T;
     }
     // treat any others as float
     return MAVLINK_TYPE_FLOAT;
@@ -95,8 +96,14 @@ uint8_t comm_receive_ch(mavlink_channel_t chan)
     if (!valid_channel(chan)) {
         return 0;
     }
-
-    return (uint8_t)mavlink_comm_port[chan]->read();
+    if (AP_SerialManager::get_instance()->get_mavlink_protocol(chan) == AP_SerialManager::SerialProtocol_CrazyRadio) {
+#ifdef HAL_MAVLINK_WITH_AP_RADIO
+        return AP_Radio::instance()->mavlink_read();
+#endif
+    }
+    else {
+        return (uint8_t)mavlink_comm_port[chan]->read();
+    }
 }
 
 /// Check for available transmit space on the nominated MAVLink channel
@@ -111,10 +118,11 @@ uint16_t comm_get_txspace(mavlink_channel_t chan)
     if ((1U<<chan) & mavlink_locked_mask) {
         return 0;
     }
-	int16_t ret = mavlink_comm_port[chan]->txspace();
-	if (ret < 0) {
-		ret = 0;
-	}
+    int16_t ret;
+    ret = mavlink_comm_port[chan]->txspace();
+    if (ret < 0) {
+        ret = 0;
+    }
     return (uint16_t)ret;
 }
 
@@ -130,10 +138,20 @@ uint16_t comm_get_available(mavlink_channel_t chan)
     if ((1U<<chan) & mavlink_locked_mask) {
         return 0;
     }
-    int16_t bytes = mavlink_comm_port[chan]->available();
-	if (bytes == -1) {
-		return 0;
-	}
+    int16_t bytes;
+    if (AP_SerialManager::get_instance()->get_mavlink_protocol(chan) == AP_SerialManager::SerialProtocol_CrazyRadio) {
+#ifdef HAL_MAVLINK_WITH_AP_RADIO
+        bytes = AP_Radio::instance()->mavlink_available();
+#else
+        bytes = -1;
+#endif
+    }
+    else {
+        bytes = mavlink_comm_port[chan]->available();
+    }
+    if (bytes == -1) {
+        return 0;
+    }
     return (uint16_t)bytes;
 }
 
@@ -145,7 +163,14 @@ void comm_send_buffer(mavlink_channel_t chan, const uint8_t *buf, uint8_t len)
     if (!valid_channel(chan)) {
         return;
     }
-    mavlink_comm_port[chan]->write(buf, len);
+    if (AP_SerialManager::get_instance()->get_mavlink_protocol(chan) == AP_SerialManager::SerialProtocol_CrazyRadio) {
+#ifdef HAL_MAVLINK_WITH_AP_RADIO
+        AP_Radio::instance()->mavlink_write(buf, len);
+#endif
+    }
+    else {
+        mavlink_comm_port[chan]->write(buf, len);
+    }
 }
 
 extern const AP_HAL::HAL& hal;
@@ -156,6 +181,6 @@ extern const AP_HAL::HAL& hal;
  */
 bool comm_is_idle(mavlink_channel_t chan)
 {
-	mavlink_status_t *status = mavlink_get_channel_status(chan);
-	return status == nullptr || status->parse_state <= MAVLINK_PARSE_STATE_IDLE;
+    mavlink_status_t *status = mavlink_get_channel_status(chan);
+    return status == nullptr || status->parse_state <= MAVLINK_PARSE_STATE_IDLE;
 }
