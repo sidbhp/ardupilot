@@ -95,7 +95,7 @@
 #include <AP_VisualOdom/AP_VisualOdom.h>
 #include <AP_SmartRTL/AP_SmartRTL.h>
 #include <AP_TempCalibration/AP_TempCalibration.h>
-
+#include <AP_Radio/AP_Radio.h>
 // Configuration
 #include "defines.h"
 #include "config.h"

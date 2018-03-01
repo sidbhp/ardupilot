@@ -1771,6 +1771,9 @@ void Copter::gcs_data_stream_send(void)
 void Copter::gcs_check_input(void)
 {
     gcs().update();
+#ifdef HAL_MAVLINK_WITH_AP_RADIO
+    AP_Radio::instance()->mavlink_update();
+#endif
 }
 
 /*
