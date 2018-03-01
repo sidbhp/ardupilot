@@ -453,6 +453,7 @@ class crazyflie2(chibios):
             CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_CHIBIOS_CRAZYFLIE2',
         )
         env.CHIBIOS_FATFS_FLAG = 'USE_FATFS=no'
+        env.DEFAULT_PARAMETERS = '../../Tools/Frame_params/CrazyFlie2/defaults.parm'
 
 class mini_pix(chibios):
     name = 'mini-pix'
