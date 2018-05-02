@@ -40,23 +40,23 @@ extern const AP_HAL::HAL& hal;
 #endif
 
 #ifndef RCIN_THD_WA_SIZE
-#define TIMER_THD_WA_SIZE 512
+#define RCIN_THD_WA_SIZE 512
 #endif
 
 #ifndef TONEALARM_THD_WA_SIZE
-#define TIMER_THD_WA_SIZE 512
+#define TONEALARM_THD_WA_SIZE 512
 #endif
 
 #ifndef IO_THD_WA_SIZE
-#define TIMER_THD_WA_SIZE 2048
+#define IO_THD_WA_SIZE 2048
 #endif
 
 #ifndef STORAGE_THD_WA_SIZE
-#define TIMER_THD_WA_SIZE 2048
+#define STORAGE_THD_WA_SIZE 2048
 #endif
 
 #ifndef UAVCAN_THD_WA_SIZE
-#define TIMER_THD_WA_SIZE 4096
+#define UAVCAN_THD_WA_SIZE 4096
 #endif
 
 THD_WORKING_AREA(_timer_thread_wa, TIMER_THD_WA_SIZE);
