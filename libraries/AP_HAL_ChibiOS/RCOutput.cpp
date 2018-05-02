@@ -911,6 +911,7 @@ void RCOutput::dshot_send(pwm_group &group, bool blocking)
  */
 void RCOutput::send_pulses_DMAR(pwm_group &group, uint32_t buffer_length)
 {
+#if STM32_DMA_ADVANCED
     /*
       The DMA approach we are using is based on the DMAR method from
       betaflight. We use the TIMn_UP DMA channel for the timer, and
@@ -938,6 +939,7 @@ void RCOutput::send_pulses_DMAR(pwm_group &group, uint32_t buffer_length)
     group.pwm_drv->tim->DCR = 0x0D | STM32_TIM_DCR_DBL(3);
 
     dmaStreamEnable(group.dma);
+#endif //#if STM32_DMA_ADVANCED
 }
 
 /*
@@ -1181,6 +1183,7 @@ bool RCOutput::serial_read_byte(uint8_t &b)
 */
 uint16_t RCOutput::serial_read_bytes(uint8_t *buf, uint16_t len)
 {
+#ifndef HAL_NO_GPIO_IRQ
     if (serial_group == nullptr) {
         return 0;
     }
@@ -1227,12 +1230,15 @@ uint16_t RCOutput::serial_read_bytes(uint8_t *buf, uint16_t len)
 
     ((GPIO *)hal.gpio)->_attach_interrupt(line, nullptr, 0);
     irq.waiter = nullptr;
-    
+
     palSetLineMode(line, restore_mode);
 #if RCOU_SERIAL_TIMING_DEBUG
     palWriteLine(HAL_GPIO_LINE_GPIO54, 0);
 #endif
     return i;
+#else
+    return 0;
+#endif //#ifndef HAL_NO_GPIO_IRQ
 }
 
 /*
@@ -1331,15 +1337,9 @@ void RCOutput::safety_update(void)
     }
     safety_update_ms = now;
 
-    AP_BoardConfig *boardconfig = AP_BoardConfig::get_instance();
-
-    if (boardconfig) {
-        // remember mask of channels to allow with safety on
-        safety_mask = boardconfig->get_safety_mask();
-    }
-    
 #ifdef HAL_GPIO_PIN_SAFETY_IN
     // handle safety button
+    AP_BoardConfig *boardconfig = AP_BoardConfig::get_instance();
     uint16_t safety_options = 0;
     if (boardconfig) {
         safety_options = boardconfig->get_safety_button_options();
@@ -1371,6 +1371,12 @@ void RCOutput::safety_update(void)
         }
     }
 #elif HAL_WITH_IO_MCU
+    AP_BoardConfig *boardconfig = AP_BoardConfig::get_instance();
+    if (boardconfig) {
+        // remember mask of channels to allow with safety on
+        safety_mask = boardconfig->get_safety_mask();
+    }
+
     safety_state = _safety_switch_state();
     iomcu.set_safety_mask(safety_mask);
 #endif

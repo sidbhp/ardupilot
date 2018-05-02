@@ -45,13 +45,11 @@ static ChibiOS::SPIDeviceManager spiDeviceManager;
 #else
 static Empty::SPIDeviceManager spiDeviceManager;
 #endif
-
 #if HAL_USE_ADC == TRUE
 static ChibiOS::AnalogIn analogIn;
 #else
 static Empty::AnalogIn analogIn;
 #endif
-
 #ifdef HAL_USE_EMPTY_STORAGE
 static Empty::Storage storageDriver;
 #else

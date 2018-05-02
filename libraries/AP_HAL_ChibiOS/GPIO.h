@@ -39,17 +39,21 @@ public:
     /* Alternative interface: */
     AP_HAL::DigitalSource* channel(uint16_t n);
 
+#ifndef HAL_NO_GPIO_IRQ
     /* Interrupt interface: */
     bool    attach_interrupt(uint8_t interrupt_num, AP_HAL::Proc p,
             uint8_t mode);
-
+    /* attach interrupt via ioline_t */
+    bool _attach_interrupt(ioline_t line, AP_HAL::Proc p, uint8_t mode);
+#else
+    /* Interrupt interface: */
+    bool    attach_interrupt(uint8_t interrupt_num, AP_HAL::Proc p,
+            uint8_t mode) { return false; }
+#endif
     /* return true if USB cable is connected */
     bool    usb_connected(void) override;
 
     void set_usb_connected() { _usb_connected = true; }
-
-    /* attach interrupt via ioline_t */
-    bool _attach_interrupt(ioline_t line, AP_HAL::Proc p, uint8_t mode);
     
 private:
     bool _usb_connected;

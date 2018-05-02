@@ -50,10 +50,12 @@ static struct gpio_entry *gpio_by_pin_num(uint8_t pin_num, bool check_enabled=tr
     return NULL;
 }
 
+#ifndef HAL_NO_GPIO_IRQ
 static void ext_interrupt_cb(EXTDriver *extp, expchannel_t channel);
 
 static EXTConfig extcfg;
 static AP_HAL::Proc ext_irq[EXT_MAX_CHANNELS]; // ext int irq list
+#endif //GPIO_IRQ
 
 GPIO::GPIO()
 {}
@@ -124,6 +126,7 @@ AP_HAL::DigitalSource* GPIO::channel(uint16_t pin)
 }
 
 extern const AP_HAL::HAL& hal;
+#ifndef HAL_NO_GPIO_IRQ
 
 /* 
    Attach an interrupt handler to ioline_t
@@ -201,11 +204,13 @@ bool GPIO::_attach_interrupt(ioline_t line, AP_HAL::Proc p, uint8_t mode)
     _ext_started = true;
     return true;
 }
+#endif //HAL_NO_GPIO_IRQ
 
 /* 
    Attach an interrupt handler to a GPIO pin number. The pin number
    must be one specified with a GPIO() marker in hwdef.dat
  */
+#ifndef HAL_NO_GPIO_IRQ
 bool GPIO::attach_interrupt(uint8_t pin, AP_HAL::Proc p, uint8_t mode)
 {
     struct gpio_entry *g = gpio_by_pin_num(pin, false);
@@ -214,6 +219,7 @@ bool GPIO::attach_interrupt(uint8_t pin, AP_HAL::Proc p, uint8_t mode)
     }
     return _attach_interrupt(g->pal_line, p, mode);
 }
+#endif //HAL_NO_GPIO_IRQ
 
 bool GPIO::usb_connected(void)
 {
@@ -244,11 +250,13 @@ void DigitalSource::toggle()
     palToggleLine(line);
 }
 
+#ifndef HAL_NO_GPIO_IRQ
 void ext_interrupt_cb(EXTDriver *extp, expchannel_t channel)
 {
     if (ext_irq[channel] != nullptr) {
         ext_irq[channel]();
     }
 }
+#endif //HAL_NO_GPIO_IRQ
 
 #endif // HAL_USE_EXT

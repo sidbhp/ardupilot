@@ -31,18 +31,20 @@
 #include <AP_BoardConfig/AP_BoardConfig.h>
 #include "shared_dma.h"
 
-#if CH_CFG_USE_DYNAMIC == TRUE
-
 using namespace ChibiOS;
 
 extern const AP_HAL::HAL& hal;
-THD_WORKING_AREA(_timer_thread_wa, 2048);
-THD_WORKING_AREA(_rcin_thread_wa, 512);
+THD_WORKING_AREA(_timer_thread_wa, TIMER_THD_WA_SIZE);
+THD_WORKING_AREA(_rcin_thread_wa, RCIN_THD_WA_SIZE);
 #ifdef HAL_PWM_ALARM
 THD_WORKING_AREA(_toneAlarm_thread_wa, 512);
 #endif
-THD_WORKING_AREA(_io_thread_wa, 2048);
-THD_WORKING_AREA(_storage_thread_wa, 2048);
+#ifndef HAL_USE_EMPTY_IO
+THD_WORKING_AREA(_io_thread_wa, IO_THD_WA_SIZE);
+#endif
+#ifndef HAL_USE_EMPTY_STORAGE
+THD_WORKING_AREA(_storage_thread_wa, STORAGE_THD_WA_SIZE);
+#endif
 #if HAL_WITH_UAVCAN
 THD_WORKING_AREA(_uavcan_thread_wa, 4096);
 #endif
@@ -82,19 +84,24 @@ void Scheduler::init()
                      _toneAlarm_thread,             /* Thread function.     */
                      this);                    /* Thread parameter.    */
 #endif
+
+#ifndef HAL_USE_EMPTY_IO
     // the IO thread runs at lower priority
     _io_thread_ctx = chThdCreateStatic(_io_thread_wa,
                      sizeof(_io_thread_wa),
                      APM_IO_PRIORITY,        /* Initial priority.      */
                      _io_thread,             /* Thread function.       */
                      this);                  /* Thread parameter.      */
+#endif
 
+#ifndef HAL_USE_EMPTY_STORAGE
     // the storage thread runs at just above IO priority
     _storage_thread_ctx = chThdCreateStatic(_storage_thread_wa,
                      sizeof(_storage_thread_wa),
                      APM_STORAGE_PRIORITY,        /* Initial priority.      */
                      _storage_thread,             /* Thread function.       */
                      this);                  /* Thread parameter.      */
+#endif
 }
 
 
@@ -286,12 +293,10 @@ void Scheduler::_run_timers(bool called_from_timer_thread)
     if (_failsafe != nullptr) {
         _failsafe();
     }
-
 #if HAL_USE_ADC == TRUE
     // process analog input
     ((AnalogIn *)hal.analogin)->_timer_tick();
 #endif
-
     _in_timer_proc = false;
 }
 
@@ -441,5 +446,3 @@ void Scheduler::restore_interrupts(void *state)
 {
     chSysRestoreStatusX((syssts_t)(uintptr_t)state);
 }
-
-#endif // CH_CFG_USE_DYNAMIC
