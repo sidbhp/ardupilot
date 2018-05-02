@@ -47,7 +47,7 @@ bool SoftSigReader::attach_capture_timer(ICUDriver* icu_drv, icuchannel_t chan, 
     //setup address for full word transfer from Timer
     dmaStreamSetPeripheral(dma, &icu_drv->tim->DMAR);
 
-    uint32_t dmamode = STM32_DMA_CR_DMEIE | STM32_DMA_CR_TEIE;
+    dmamode = STM32_DMA_CR_DMEIE | STM32_DMA_CR_TEIE;
     dmamode |= STM32_DMA_CR_CHSEL(dma_channel);
     dmamode |= STM32_DMA_CR_PL(0);
     dmaStreamSetMemory0(dma, signal);
@@ -89,12 +89,17 @@ bool SoftSigReader::attach_capture_timer(ICUDriver* icu_drv, icuchannel_t chan, 
 
 void SoftSigReader::_irq_handler(void* self, uint32_t flags)
 {
+    osalSysLockFromISR();
     SoftSigReader* sig_reader = (SoftSigReader*)self;
     sig_reader->sigbuf.push(sig_reader->signal, sig_reader->_bounce_buf_size);
-    //restart the DMA transfers
-    dmaStreamSetMemory0(sig_reader->dma, sig_reader->signal);
+    dmaStreamDisable(sig_reader->dma);
+    //setup address for full word transfer from Timer
     dmaStreamSetTransactionSize(sig_reader->dma, sig_reader->_bounce_buf_size);
+    dmaStreamSetMode(sig_reader->dma, sig_reader->dmamode | STM32_DMA_CR_DIR_P2M | STM32_DMA_CR_PSIZE_WORD |
+                        STM32_DMA_CR_MSIZE_WORD | STM32_DMA_CR_MINC | STM32_DMA_CR_TCIE);
     dmaStreamEnable(sig_reader->dma);
+    
+    osalSysUnlockFromISR();
 }
 
 
