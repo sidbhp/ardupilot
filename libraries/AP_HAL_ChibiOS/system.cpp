@@ -70,6 +70,7 @@ void HardFault_Handler(void) {
     (void)isFaultOnStacking;
     (void)isFaultAddressValid;
     //Cause debugger to stop. Ignored if no debugger is attached
+    bkpt();
     while(1) {}
 }
 
