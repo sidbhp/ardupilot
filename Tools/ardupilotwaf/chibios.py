@@ -6,7 +6,7 @@ Waf tool for ChibiOS build
 """
 
 from waflib import Errors, Logs, Task, Utils
-from waflib.TaskGen import after_method, before_method, feature
+from waflib.TaskGen import after_method, before_method, feature, after
 
 import os
 import shutil
@@ -255,9 +255,26 @@ def configure(cfg):
 
 def pre_build(bld):
     '''pre-build hook to change dynamic sources'''
+    import subprocess
+
+    hwdef = bld.path.ant_glob('libraries/AP_HAL_ChibiOS/hwdef/%s/hwdef.dat' % bld.env.get_flat('BOARD'))[0]
+    hwdef_script = bld.path.ant_glob('libraries/AP_HAL_ChibiOS/hwdef/scripts/chibios_hwdef.py')[0]
+    hwdef_out = bld.env.BUILDROOT
+    if not os.path.exists(hwdef_out):
+        os.mkdir(hwdef_out)
+    try:
+        cmd = 'python %s -D %s %s' % (hwdef_script, hwdef_out, hwdef)
+        ret = subprocess.call(cmd, shell=True)
+    except Exception:
+        print("Failed to generate hwdef.h")
+
     load_env_vars(bld.env)
     if bld.env.HAL_WITH_UAVCAN:
-        bld.get_board().with_uavcan = True
+        setup_can_build(bld)
+    bld.env.LINKFLAGS = bld.env.CPU_FLAGS[:-1] + bld.env.LINKFLAGS
+    bld.env.LINKFLAGS += ['-Wl,--gc-sections,--no-warn-mismatch,--library-path=/ld,--script=%s/ldscript.ld,--defsym=__process_stack_size__=%s,--defsym=__main_stack_size__=%s' % (bld.env.BUILDROOT, bld.env.PROCESS_STACK, bld.env.MAIN_STACK)]
+    bld.env.CXXFLAGS = bld.env.CPU_FLAGS[:-1] + bld.env.CXXFLAGS
+
 
 def build(bld):    
     bld(
@@ -265,11 +282,12 @@ def build(bld):
         source=bld.path.ant_glob('libraries/AP_HAL_ChibiOS/hwdef/%s/hwdef.dat' % bld.env.get_flat('BOARD')),
         rule="python '${AP_HAL_ROOT}/hwdef/scripts/chibios_hwdef.py' -D '${BUILDROOT}' '${AP_HAL_ROOT}/hwdef/${BOARD}/hwdef.dat'",
         group='dynamic_sources',
-        target=['hwdef.h', 'apj.prototype', 'ldscript.ld']
+        target=['hwdef.h', 'apj.prototype', 'platform.mk', 'env.py', 'ldscript.ld']
     )
     
     bld(
         # create the file modules/ChibiOS/include_dirs
+        source=['platform.mk'],
         rule="touch Makefile && BUILDDIR=${BUILDDIR_REL} CHIBIOS=${CH_ROOT_REL} AP_HAL=${AP_HAL_REL} ${CHIBIOS_BUILD_FLAGS} ${CHIBIOS_BOARD_NAME} ${MAKE} pass -f '${BOARD_MK}'",
         group='dynamic_sources',
         target='modules/ChibiOS/include_dirs'
@@ -286,12 +304,12 @@ def build(bld):
         rule="BUILDDIR='${BUILDDIR_REL}' CHIBIOS='${CH_ROOT_REL}' AP_HAL=${AP_HAL_REL} ${CHIBIOS_BUILD_FLAGS} ${CHIBIOS_BOARD_NAME} '${MAKE}' lib -f '${BOARD_MK}'",
         group='dynamic_sources',
         source=common_src,
-        target='modules/ChibiOS/libch.a'
+        target='modules/ChibiOS/libch.a',
     )
     ch_task.name = "ChibiOS_lib"
 
     bld.env.LIB += ['ch']
     bld.env.LIBPATH += ['modules/ChibiOS/']
-    wraplist = ['strerror_r', 'fclose', 'freopen', 'fread']
+    wraplist = ['strerror_r', 'fclose', 'freopen', 'fread', 'fprintf']
     for w in wraplist:
         bld.env.LINKFLAGS += ['-Wl,--wrap,%s' % w]
