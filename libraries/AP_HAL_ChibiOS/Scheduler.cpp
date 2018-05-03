@@ -34,10 +34,35 @@
 using namespace ChibiOS;
 
 extern const AP_HAL::HAL& hal;
+
+#ifndef TIMER_THD_WA_SIZE
+#define TIMER_THD_WA_SIZE 2048
+#endif
+
+#ifndef RCIN_THD_WA_SIZE
+#define TIMER_THD_WA_SIZE 512
+#endif
+
+#ifndef TONEALARM_THD_WA_SIZE
+#define TIMER_THD_WA_SIZE 512
+#endif
+
+#ifndef IO_THD_WA_SIZE
+#define TIMER_THD_WA_SIZE 2048
+#endif
+
+#ifndef STORAGE_THD_WA_SIZE
+#define TIMER_THD_WA_SIZE 2048
+#endif
+
+#ifndef UAVCAN_THD_WA_SIZE
+#define TIMER_THD_WA_SIZE 4096
+#endif
+
 THD_WORKING_AREA(_timer_thread_wa, TIMER_THD_WA_SIZE);
 THD_WORKING_AREA(_rcin_thread_wa, RCIN_THD_WA_SIZE);
 #ifdef HAL_PWM_ALARM
-THD_WORKING_AREA(_toneAlarm_thread_wa, 512);
+THD_WORKING_AREA(_toneAlarm_thread_wa, TONEALARM_THD_WA_SIZE);
 #endif
 #ifndef HAL_USE_EMPTY_IO
 THD_WORKING_AREA(_io_thread_wa, IO_THD_WA_SIZE);
@@ -46,7 +71,7 @@ THD_WORKING_AREA(_io_thread_wa, IO_THD_WA_SIZE);
 THD_WORKING_AREA(_storage_thread_wa, STORAGE_THD_WA_SIZE);
 #endif
 #if HAL_WITH_UAVCAN
-THD_WORKING_AREA(_uavcan_thread_wa, 4096);
+THD_WORKING_AREA(_uavcan_thread_wa, UAVCAN_THD_WA_SIZE);
 #endif
 
 Scheduler::Scheduler()
