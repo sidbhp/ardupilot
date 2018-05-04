@@ -149,6 +149,10 @@ size_t mem_available(void)
     totalp += chCoreGetStatusX();
 
 #if defined(CCM_RAM_SIZE)
+    if (!ccm_heap_initialised) {
+        ccm_heap_initialised = true;
+        chHeapObjectInit(&ccm_heap, (void *)CCM_BASE_ADDRESS, CCM_RAM_SIZE*1024);
+    }
     size_t ccm_available = 0;
     chHeapStatus(&ccm_heap, &ccm_available, NULL);
     totalp += ccm_available;
