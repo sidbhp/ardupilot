@@ -16,8 +16,8 @@
  */
 #include <AP_HAL/AP_HAL.h>
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
-#include "UARTDriver.h"
+#if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS && (defined(STM32F4xx_MCUCONF) || defined(STM32F7xx_MCUCONF))
+#include "UARTDriver_STM32F4.h"
 #include "GPIO.h"
 #include <usbcfg.h>
 #include "shared_dma.h"
@@ -34,25 +34,25 @@ using namespace ChibiOS;
 #endif
 
 #if HAL_WITH_IO_MCU
-extern ChibiOS::UARTDriver uart_io;
+extern ChibiOS::UARTDriver_STM32F4 uart_io;
 #endif
 
-const UARTDriver::SerialDef UARTDriver::_serial_tab[] = { HAL_UART_DEVICE_LIST };
+const UARTDriver_STM32F4::SerialDef UARTDriver_STM32F4::_serial_tab[] = { HAL_UART_DEVICE_LIST };
 
 // handle for UART handling thread
-thread_t *UARTDriver::uart_thread_ctx;
+thread_t *UARTDriver_STM32F4::uart_thread_ctx;
 
 // table to find UARTDrivers from serial number, used for event handling
-UARTDriver *UARTDriver::uart_drivers[UART_MAX_DRIVERS];
+UARTDriver_STM32F4 *UARTDriver_STM32F4::uart_drivers[UART_MAX_DRIVERS];
 
 // last time we did a 1kHz run of uarts
-uint32_t UARTDriver::last_thread_run_us;
+uint32_t UARTDriver_STM32F4::last_thread_run_us;
 
 // event used to wake up waiting thread. This event number is for
 // caller threads
 #define EVT_DATA EVENT_MASK(0)
 
-UARTDriver::UARTDriver(uint8_t _serial_num) :
+UARTDriver_STM32F4::UARTDriver_STM32F4(uint8_t _serial_num) :
 tx_bounce_buf_ready(true),
 serial_num(_serial_num),
 sdef(_serial_tab[_serial_num]),
@@ -70,7 +70,7 @@ _initialised(false)
   We use events indexed by serial_num to trigger a more rapid send for
   unbuffered_write uarts, and run at 1kHz for general UART handling
  */
-void UARTDriver::uart_thread(void* arg)
+void UARTDriver_STM32F4::uart_thread(void* arg)
 {
     uart_thread_ctx = chThdGetSelfX();
     while (true) {
@@ -97,7 +97,7 @@ void UARTDriver::uart_thread(void* arg)
 /*
   initialise UART thread
  */
-void UARTDriver::thread_init(void)
+void UARTDriver_STM32F4::thread_init(void)
 {
     if (uart_thread_ctx) {
         // already initialised
@@ -114,7 +114,7 @@ void UARTDriver::thread_init(void)
 }
 
 
-void UARTDriver::begin(uint32_t b, uint16_t rxS, uint16_t txS)
+void UARTDriver_STM32F4::begin(uint32_t b, uint16_t rxS, uint16_t txS)
 {
     thread_init();
     
@@ -207,8 +207,8 @@ void UARTDriver::begin(uint32_t b, uint16_t rxS, uint16_t txS)
                     // cannot be shared
                     dma_handle = new Shared_DMA(sdef.dma_tx_stream_id,
                                                 SHARED_DMA_NONE,
-                                                FUNCTOR_BIND_MEMBER(&UARTDriver::dma_tx_allocate, void, Shared_DMA *),
-                                                FUNCTOR_BIND_MEMBER(&UARTDriver::dma_tx_deallocate, void, Shared_DMA *));
+                                                FUNCTOR_BIND_MEMBER(&UARTDriver_STM32F4::dma_tx_allocate, void, Shared_DMA *),
+                                                FUNCTOR_BIND_MEMBER(&UARTDriver_STM32F4::dma_tx_deallocate, void, Shared_DMA *));
                 }
                 _device_initialised = true;
             }
@@ -260,7 +260,7 @@ void UARTDriver::begin(uint32_t b, uint16_t rxS, uint16_t txS)
     set_flow_control(_flow_control);
 }
 
-void UARTDriver::dma_tx_allocate(Shared_DMA *ctx)
+void UARTDriver_STM32F4::dma_tx_allocate(Shared_DMA *ctx)
 {
 #if HAL_USE_SERIAL == TRUE
     osalDbgAssert(txdma == nullptr, "double DMA allocation");
@@ -276,7 +276,7 @@ void UARTDriver::dma_tx_allocate(Shared_DMA *ctx)
 #endif // HAL_USE_SERIAL
 }
 
-void UARTDriver::dma_tx_deallocate(Shared_DMA *ctx)
+void UARTDriver_STM32F4::dma_tx_deallocate(Shared_DMA *ctx)
 {
     chSysLock();
     dmaStreamRelease(txdma);
@@ -287,9 +287,9 @@ void UARTDriver::dma_tx_deallocate(Shared_DMA *ctx)
 /*
   DMA transmit complettion interrupt handler
  */
-void UARTDriver::tx_complete(void* self, uint32_t flags)
+void UARTDriver_STM32F4::tx_complete(void* self, uint32_t flags)
 {
-    UARTDriver* uart_drv = (UARTDriver*)self;
+    UARTDriver_STM32F4* uart_drv = (UARTDriver_STM32F4*)self;
     if (!uart_drv->tx_bounce_buf_ready) {
         uart_drv->_last_write_completed_us = AP_HAL::micros();
         uart_drv->tx_bounce_buf_ready = true;
@@ -304,10 +304,10 @@ void UARTDriver::tx_complete(void* self, uint32_t flags)
 }
 
 
-void UARTDriver::rx_irq_cb(void* self)
+void UARTDriver_STM32F4::rx_irq_cb(void* self)
 {
 #if HAL_USE_SERIAL == TRUE
-    UARTDriver* uart_drv = (UARTDriver*)self;
+    UARTDriver_STM32F4* uart_drv = (UARTDriver_STM32F4*)self;
     if (!uart_drv->sdef.dma_rx) {
         return;
     }
@@ -321,10 +321,10 @@ void UARTDriver::rx_irq_cb(void* self)
 #endif // HAL_USE_SERIAL
 }
 
-void UARTDriver::rxbuff_full_irq(void* self, uint32_t flags)
+void UARTDriver_STM32F4::rxbuff_full_irq(void* self, uint32_t flags)
 {
 #if HAL_USE_SERIAL == TRUE
-    UARTDriver* uart_drv = (UARTDriver*)self;
+    UARTDriver_STM32F4* uart_drv = (UARTDriver_STM32F4*)self;
     if (uart_drv->_lock_rx_in_timer_tick) {
         return;
     }
@@ -351,12 +351,12 @@ void UARTDriver::rxbuff_full_irq(void* self, uint32_t flags)
 #endif // HAL_USE_SERIAL
 }
 
-void UARTDriver::begin(uint32_t b)
+void UARTDriver_STM32F4::begin(uint32_t b)
 {
     begin(b, 0, 0);
 }
 
-void UARTDriver::end()
+void UARTDriver_STM32F4::end()
 {
     _initialised = false;
     while (_in_timer) hal.scheduler->delay(1);
@@ -375,7 +375,7 @@ void UARTDriver::end()
     _writebuf.set_size(0);
 }
 
-void UARTDriver::flush()
+void UARTDriver_STM32F4::flush()
 {
     if (sdef.is_usb) {
 #ifdef HAVE_USB_SERIAL
@@ -387,20 +387,20 @@ void UARTDriver::flush()
     }
 }
 
-bool UARTDriver::is_initialized()
+bool UARTDriver_STM32F4::is_initialized()
 {
     return _initialised;
 }
 
-void UARTDriver::set_blocking_writes(bool blocking)
+void UARTDriver_STM32F4::set_blocking_writes(bool blocking)
 {
     _blocking_writes = blocking;
 }
 
-bool UARTDriver::tx_pending() { return false; }
+bool UARTDriver_STM32F4::tx_pending() { return false; }
 
 /* Empty implementations of Stream virtual methods */
-uint32_t UARTDriver::available() {
+uint32_t UARTDriver_STM32F4::available() {
     if (!_initialised) {
         return 0;
     }
@@ -415,7 +415,7 @@ uint32_t UARTDriver::available() {
     return _readbuf.available();
 }
 
-uint32_t UARTDriver::txspace()
+uint32_t UARTDriver_STM32F4::txspace()
 {
     if (!_initialised) {
         return 0;
@@ -423,7 +423,7 @@ uint32_t UARTDriver::txspace()
     return _writebuf.space();
 }
 
-int16_t UARTDriver::read()
+int16_t UARTDriver_STM32F4::read()
 {
     if (_uart_owner_thd != chThdGetSelfX()){
         return -1;
@@ -444,7 +444,7 @@ int16_t UARTDriver::read()
 }
 
 /* Empty implementations of Print virtual methods */
-size_t UARTDriver::write(uint8_t c)
+size_t UARTDriver_STM32F4::write(uint8_t c)
 {
     if (lock_key != 0 || !_write_mutex.take_nonblocking()) {
         return 0;
@@ -470,7 +470,7 @@ size_t UARTDriver::write(uint8_t c)
     return ret;
 }
 
-size_t UARTDriver::write(const uint8_t *buffer, size_t size)
+size_t UARTDriver_STM32F4::write(const uint8_t *buffer, size_t size)
 {
     if (!_initialised || lock_key != 0) {
 		return 0;
@@ -537,7 +537,7 @@ size_t UARTDriver::write_locked(const uint8_t *buffer, size_t size, uint32_t key
   wait for data to arrive, or a timeout. Return true if data has
   arrived, false on timeout
  */
-bool UARTDriver::wait_timeout(uint16_t n, uint32_t timeout_ms)
+bool UARTDriver_STM32F4::wait_timeout(uint16_t n, uint32_t timeout_ms)
 {
     chEvtGetAndClearEvents(EVT_DATA);
     if (available() >= n) {
@@ -552,7 +552,7 @@ bool UARTDriver::wait_timeout(uint16_t n, uint32_t timeout_ms)
 /*
   check for DMA completed for TX
  */
-void UARTDriver::check_dma_tx_completion(void)
+void UARTDriver_STM32F4::check_dma_tx_completion(void)
 {
     chSysLock();
     if (!tx_bounce_buf_ready) {
@@ -616,7 +616,7 @@ void UARTDriver::write_pending_bytes_DMA(uint32_t n)
 /*
   write any pending bytes to the device, non-DMA method
  */
-void UARTDriver::write_pending_bytes_NODMA(uint32_t n)
+void UARTDriver_STM32F4::write_pending_bytes_NODMA(uint32_t n)
 {
     ByteBuffer::IoVec vec[2];
     const auto n_vec = _writebuf.peekiovec(vec, n);
@@ -651,7 +651,7 @@ void UARTDriver::write_pending_bytes_NODMA(uint32_t n)
 /*
   write any pending bytes to the device
  */
-void UARTDriver::write_pending_bytes(void)
+void UARTDriver_STM32F4::write_pending_bytes(void)
 {
     uint32_t n;
 
@@ -691,7 +691,7 @@ void UARTDriver::write_pending_bytes(void)
   1kHz in the timer thread. Doing it this way reduces the system call
   overhead in the main task enormously.
  */
-void UARTDriver::_timer_tick(void)
+void UARTDriver_STM32F4::_timer_tick(void)
 {
     int ret;
 
@@ -786,7 +786,7 @@ void UARTDriver::_timer_tick(void)
 /*
   change flow control mode for port
  */
-void UARTDriver::set_flow_control(enum flow_control flowcontrol)
+void UARTDriver_STM32F4::set_flow_control(enum flow_control flowcontrol)
 {
     if (sdef.rts_line == 0 || sdef.is_usb) {
         // no hw flow control available
@@ -833,7 +833,7 @@ void UARTDriver::set_flow_control(enum flow_control flowcontrol)
   software update of rts line. We don't use the HW support for RTS as
   it has no hysteresis, so it ends up toggling RTS on every byte
  */
-void UARTDriver::update_rts_line(void)
+void UARTDriver_STM32F4::update_rts_line(void)
 {
     if (sdef.rts_line == 0 || _flow_control == FLOW_CONTROL_DISABLE) {
         return;
@@ -851,7 +851,7 @@ void UARTDriver::update_rts_line(void)
 /* 
    setup unbuffered writes for lower latency
  */
-bool UARTDriver::set_unbuffered_writes(bool on)
+bool UARTDriver_STM32F4::set_unbuffered_writes(bool on)
 {
     if (on && !sdef.dma_tx) {
         // we can't implement low latemcy writes safely without TX DMA
@@ -864,7 +864,7 @@ bool UARTDriver::set_unbuffered_writes(bool on)
 /*
   setup parity
  */
-void UARTDriver::configure_parity(uint8_t v)
+void UARTDriver_STM32F4::configure_parity(uint8_t v)
 {
     if (sdef.is_usb) {
         // not possible
@@ -905,7 +905,7 @@ void UARTDriver::configure_parity(uint8_t v)
 /*
   set stop bits
  */
-void UARTDriver::set_stop_bits(int n)
+void UARTDriver_STM32F4::set_stop_bits(int n)
 {
     if (sdef.is_usb) {
         // not possible
