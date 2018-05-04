@@ -27,7 +27,7 @@ namespace ChibiOS {
     class SoftSigReader;
     class SoftSigReaderInt;
     class CANManager;
-#if defined(STM32F4xx_MCUCONF)
+#if defined(STM32F4xx_MCUCONF) || defined(STM32F7xx_MCUCONF)
     typedef UARTDriver_STM32F4 UARTDriver;
 #else
     typedef UARTDriver_Generic UARTDriver;

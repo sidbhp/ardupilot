@@ -35,8 +35,13 @@ int scanf (const char *fmt, ...);
 int sscanf (const char *buf, const char *fmt, ...);
 int vsscanf (const char *buf, const char *s, va_list ap);
 void *malloc(size_t size);
+void *malloc_aligned(size_t size, size_t align);
+void *malloc_ccm_aligned(size_t size, size_t align);
 void *calloc(size_t nmemb, size_t size);
+void *calloc_aligned(size_t nmemb, size_t size, size_t align);
 void free(void *ptr);
+size_t get_thd_free_stack(void *wsp, size_t size);
+
 #ifdef __cplusplus
 }
 #endif

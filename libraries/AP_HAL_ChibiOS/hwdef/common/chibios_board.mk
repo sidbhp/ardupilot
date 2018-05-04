@@ -2,10 +2,16 @@
 # Build global options
 # NOTE: Can be overridden externally.
 #
+include ./platform.mk
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -Os -g -fomit-frame-pointer -falign-functions=16  -DCHPRINTF_USE_FLOAT=1
+  USE_OPT = -Os -gdwarf-4 -g3 -fomit-frame-pointer -falign-functions=16 --specs=nano.specs
+endif
+
+# CHPrintf use float
+ifeq ($(CHPRINTF_USE_FLOAT),)
+  USE_OPT += -DCHPRINTF_USE_FLOAT=1
 endif
 
 # C specific options here (added to USE_OPT).
@@ -91,11 +97,10 @@ endif
 PROJECT = ch
 
 # Imported source files and paths
-# Startup files.
-include $(CHIBIOS)/$(CHIBIOS_STARTUP_MK)
+
 # HAL-OSAL files (optional).
 include $(CHIBIOS)/os/hal/hal.mk
-include $(CHIBIOS)/$(CHIBIOS_PLATFORM_MK)
+
 include $(CHIBIOS)/os/hal/osal/rt/osal.mk
 # RTOS files (optional).
 include $(CHIBIOS)/os/rt/rt.mk
@@ -114,7 +119,7 @@ VARIOUSSRC = $(STREAMSSRC)
 VARIOUSINC = $(STREAMSINC)
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CSRC = $(STARTUPSRC) \
+CSRC += $(STARTUPSRC) \
        $(KERNSRC) \
        $(PORTSRC) \
        $(OSALSRC) \
@@ -123,7 +128,6 @@ CSRC = $(STARTUPSRC) \
        $(VARIOUSSRC) \
        $(FATFSSRC) \
 	   $(HWDEF)/common/stubs.c \
-	   $(HWDEF)/common/board.c \
 	   $(HWDEF)/common/usbcfg.c \
 	   $(HWDEF)/common/flash.c \
 	   $(HWDEF)/common/malloc.c \
@@ -176,12 +180,6 @@ INCDIR = $(CHIBIOS)/os/license \
 # Project, sources and paths
 ##############################################################################
 
-##############################################################################
-# Compiler settings
-#
-
-MCU  = cortex-m4
-
 #TRGT = arm-elf-
 TRGT = arm-none-eabi-
 CC   = $(TRGT)gcc
@@ -220,7 +218,7 @@ CPPWARN = -Wall -Wextra -Wundef
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = $(FATFS_FLAGS) -DHAL_BOARD_NAME=\"$(HAL_BOARD_NAME)\"
+UDEFS = $(FATFS_FLAGS) -DHAL_BOARD_NAME=\"$(HAL_BOARD_NAME)\" -DSTM32_DMA_REQUIRED
 
 # Define ASM defines here
 UADEFS =

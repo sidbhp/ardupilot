@@ -46,15 +46,15 @@
 #ifndef CH_CFG_ST_RESOLUTION
 #define CH_CFG_ST_RESOLUTION                32
 #endif
-
 /**
  * @brief   System tick frequency.
  * @details Frequency of the system timer that drives the system ticks. This
  *          setting also defines the system tick time unit. We set this to 1000000
  *          in ArduPilot so we get maximum resolution for timing of delays
  */
+#ifndef CH_CFG_ST_FREQUENCY
 #define CH_CFG_ST_FREQUENCY                 1000000
-
+#endif
 /**
  * @brief   Time delta constant for the tick-less mode.
  * @note    If this value is zero then the system uses the classic
@@ -63,8 +63,9 @@
  *          The value one is not valid, timeouts are rounded up to
  *          this value.
  */
+#ifndef CH_CFG_ST_TIMEDELTA
 #define CH_CFG_ST_TIMEDELTA                 2
-
+#endif
 /*
   default to a large interrupt stack for now. We may trim this later
   if we become confident of our interrupt handler requirements. Note
@@ -319,8 +320,9 @@
  * @note    Requires @p CH_CFG_USE_WAITEXIT.
  * @note    Requires @p CH_CFG_USE_HEAP and/or @p CH_CFG_USE_MEMPOOLS.
  */
+#ifndef CH_CFG_USE_DYNAMIC
 #define CH_CFG_USE_DYNAMIC                  TRUE
-
+#endif
 /** @} */
 
 /*===========================================================================*/
@@ -420,8 +422,9 @@
  * @note    This debug option is not currently compatible with the
  *          tickless mode.
  */
+#ifndef CH_DBG_THREADS_PROFILING
 #define CH_DBG_THREADS_PROFILING            FALSE
-
+#endif
 /** @} */
 
 /*===========================================================================*/

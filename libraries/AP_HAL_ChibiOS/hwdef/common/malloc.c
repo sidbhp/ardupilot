@@ -40,6 +40,18 @@ static memory_heap_t ccm_heap;
 static bool ccm_heap_initialised = false;
 #endif
 
+size_t get_thd_free_stack(void *wsp, size_t size)
+{
+  size_t n = 0;
+#if CH_DBG_FILL_THREADS
+  uint8_t *startp = (uint8_t *)wsp + sizeof(thread_t);
+  uint8_t *endp = (uint8_t *)wsp + size;
+  while (startp < endp)
+    if(*startp++ == CH_DBG_STACK_FILL_VALUE) ++n;
+#endif
+  return n;
+}
+
 void *malloc_ccm(size_t size)
 {
     void *p = NULL;
@@ -71,6 +83,45 @@ void *malloc(size_t size)
         p = malloc_ccm(size);
     }
     return p;
+}
+
+void *malloc_ccm_aligned(size_t size, size_t align)
+{
+    void *p = NULL;
+#if defined(CCM_RAM_SIZE)
+    if (!ccm_heap_initialised) {
+        ccm_heap_initialised = true;
+        chHeapObjectInit(&ccm_heap, (void *)CCM_BASE_ADDRESS, CCM_RAM_SIZE*1024);
+    }
+    p = chHeapAllocAligned(&ccm_heap, size, align);
+    if (p != NULL) {
+        memset(p, 0, size);
+    }
+#else
+    (void)size;
+    (void)align;
+#endif
+    return p;
+}
+
+void *malloc_aligned(size_t size, size_t align)
+{
+    if (size == 0) {
+        return NULL;
+    }
+    void *p = chHeapAllocAligned(NULL, size, align);
+    if (p) {
+        memset(p, 0, size);
+    } else {
+        // fall back to CCM memory when main memory full
+        p = malloc_ccm_aligned(size, align);
+    }
+    return p;
+}
+
+void *calloc_aligned(size_t nmemb, size_t size, size_t align)
+{
+    return malloc_aligned(nmemb * size, align);
 }
 
 void *calloc(size_t nmemb, size_t size)
