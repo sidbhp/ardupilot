@@ -32,7 +32,11 @@ uint64_t hrt_micros()
      */
 	syssts_t sts = chSysGetStatusAndLockX();
 	uint64_t micros;
+#if CH_CFG_ST_FREQUENCY == 1000000
 	micros = timer_base + (uint64_t)chVTGetSystemTimeX();
+#else
+	micros = timer_base + (uint64_t)ST2US(chVTGetSystemTimeX());
+#endif
 	// we are doing this to avoid an additional interupt routing
 	// since we are definitely going to get called atleast once in
 	// a full timer period
