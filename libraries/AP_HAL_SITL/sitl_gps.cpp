@@ -27,6 +27,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <AP_UAVCAN/AP_UAVCAN.h>
+#include <uavcan/Timestamp.hpp>
+#include <uavcan/equipment/gnss/Fix2.hpp>
 
 #pragma GCC diagnostic ignored "-Wunused-result"
 
@@ -1155,11 +1158,33 @@ void SITL_State::_update_gps_file(uint8_t instance)
     }
 }
 
-/*
+void SITL_State::_update_gps_can(const struct gps_data *d, uint8_t instance)
+{
+    //printf("trying to update gps\n");
+    //printf("number of filters: %d\n", hal.can_mgr[0]->is_initialized());
+    AP_HAL::CANManager *mgr = hal.can_mgr[0];
+    AP_UAVCAN *uavc = mgr->get_UAVCAN();
+    uint8_t *frame_data;
+    uavcan::CanFrame frame;
+    uavc->update_gps_state(255);
+    uavcan::equipment::gnss::Fix2 fix;
+    fix.longitude_deg_1e8 = d->longitude * 1E8;
+    fix.latitude_deg_1e8 = d->latitude * 1E8;
+    fix.status = 3;
+    fix.mode = 0;
+    //fix.submode = 0;
+    fix.gnss_time_standard = 3;
+    frame.id = 0;
+    frame.dlc = sizeof(fix);
+    memcpy(frame.data, frame_data, sizeof(frame_data));
+    _gps_write((const uint8_t *)&frame, sizeof(frame), instance);
+}
+
+    /*
   possibly send a new GPS packet
  */
-void SITL_State::_update_gps(double latitude, double longitude, float altitude,
-                             double speedN, double speedE, double speedD, bool have_lock)
+    void SITL_State::_update_gps(double latitude, double longitude, float altitude,
+                                 double speedN, double speedE, double speedD, bool have_lock)
 {
     struct gps_data d;
     char c;
@@ -1284,7 +1309,8 @@ void SITL_State::_update_gps(double latitude, double longitude, float altitude,
     d2.altitude += glitch_offsets.z;
 
     if (gps_state.gps_fd != 0) {
-        _update_gps_instance((SITL::SITL::GPSType)_sitl->gps_type.get(), &d, 0);
+        _update_gps_instance(SITL::SITL::GPS_TYPE_CAN, &d, 0);
+        //_update_gps_instance((SITL::SITL::GPSType)_sitl->gps_type.get(), &d, 0);
     }
     if (gps2_state.gps_fd != 0) {
         _update_gps_instance((SITL::SITL::GPSType)_sitl->gps2_type.get(), &d2, 1);
@@ -1327,6 +1353,10 @@ void SITL_State::_update_gps_instance(SITL::SITL::GPSType gps_type, const struct
 
         case SITL::SITL::GPS_TYPE_NOVA:
             _update_gps_nova(data, instance);
+            break;
+
+        case SITL::SITL::GPS_TYPE_CAN:
+            _update_gps_can(data, instance);
             break;
 
         case SITL::SITL::GPS_TYPE_FILE:

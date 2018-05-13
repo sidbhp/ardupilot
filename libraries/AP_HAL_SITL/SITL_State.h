@@ -117,6 +117,7 @@ private:
     void _update_gps_mtk(const struct gps_data *d, uint8_t instance);
     void _update_gps_mtk16(const struct gps_data *d, uint8_t instance);
     void _update_gps_mtk19(const struct gps_data *d, uint8_t instance);
+    void _update_gps_can(const struct gps_data *d, uint8_t instance);
     uint16_t _gps_nmea_checksum(const char *s);
     void _gps_nmea_printf(uint8_t instance, const char *fmt, ...);
     void _update_gps_nmea(const struct gps_data *d, uint8_t instance);
@@ -167,6 +168,9 @@ private:
     uint16_t _rcin_port;
     uint16_t _fg_view_port;
     uint16_t _irlock_port;
+    //char _uavcan_iface[5] = "vcan0";
+    uint8_t  _uavcan_node;// = atoi("vcan0".c_str());
+    //std::vector<std::string> iface_names(argv + 2, argv + argc);
     float _current;
 
     bool _synthetic_clock_mode;
