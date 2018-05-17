@@ -849,6 +849,7 @@ uint8_t AP_UAVCAN::register_gps_listener_to_node(AP_GPS_Backend* new_listener, u
 
     if (sel_place != UINT8_MAX) {
         for (uint8_t i = 0; i < AP_UAVCAN_MAX_GPS_NODES; i++) {
+            printf("_gps_nodes[%d]=%d", i, _gps_nodes[i]);
             if (_gps_nodes[i] == node) {
                 _gps_listeners[sel_place] = new_listener;
                 _gps_listener_to_node[sel_place] = i;
@@ -906,6 +907,7 @@ void AP_UAVCAN::update_gps_state(uint8_t node)
     // Go through all listeners of specified node and call their's update methods
     for (uint8_t i = 0; i < AP_UAVCAN_MAX_GPS_NODES; i++) {
         if (_gps_nodes[i] == node) {
+            
             for (uint8_t j = 0; j < AP_UAVCAN_MAX_LISTENERS; j++) {
                 if (_gps_listener_to_node[j] == i) {
                     _gps_listeners[j]->handle_gnss_msg(_gps_node_state[i]);

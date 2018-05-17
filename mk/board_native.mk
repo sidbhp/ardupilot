@@ -40,7 +40,7 @@ WARNFLAGSCXX    = \
         -Wno-trigraphs
 DEPFLAGS        =   -MD -MP -MT $@
 
-CXXOPTS         =   -ffunction-sections -fdata-sections -fno-exceptions -fsigned-char
+CXXOPTS         =   -ffunction-sections -fdata-sections -fexceptions -fsigned-char
 COPTS           =   -ffunction-sections -fdata-sections -fsigned-char
 
 ASOPTS          =   -x assembler-with-cpp 

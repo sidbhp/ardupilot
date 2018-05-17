@@ -31,7 +31,7 @@ class Board:
     abstract = True
 
     def __init__(self):
-        self.with_uavcan = False
+        self.with_uavcan = True
 
     def configure(self, cfg):
         cfg.env.TOOLCHAIN = self.toolchain
@@ -110,7 +110,7 @@ class Board:
 
             '-fdata-sections',
             '-ffunction-sections',
-            '-fno-exceptions',
+            '-fexceptions',
             '-fsigned-char',
 
             '-Wall',
@@ -165,6 +165,7 @@ class Board:
             ]
 
         if self.with_uavcan:
+            print("WITH UAVCAN\n")
             env.AP_LIBRARIES += [
                 'AP_UAVCAN',
                 'modules/uavcan/libuavcan/src/**/*.cpp'
@@ -235,13 +236,16 @@ def get_board(ctx):
 # identify opportunities to simplify common flags. In the future might
 # be worthy to keep board definitions in files of their own.
 
+
 class sitl(Board):
+    def __init__(self):
+        self.with_uavcan = True
     def configure_env(self, cfg, env):
         super(sitl, self).configure_env(cfg, env)
-
+        self.with_uavcan = True
         env.DEFINES.update(
             CONFIG_HAL_BOARD = 'HAL_BOARD_SITL',
-            CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_NONE',
+            CONFIG_HAL_BOARD_SUBTYPE = 'HAL_WITH_UAVCAN',
         )
 
         if not cfg.env.DEBUG:
@@ -259,6 +263,10 @@ class sitl(Board):
         env.AP_LIBRARIES += [
             'AP_HAL_SITL',
             'SITL',
+        ]
+
+        env.GIT_SUBMODULES += [
+            'uavcan',
         ]
 
         if sys.platform == 'cygwin':
@@ -307,7 +315,7 @@ class chibios(Board):
             '-Wno-error=undef',
             '-Wno-error=cpp',
             '-Wno-cast-align',
-            '-fno-exceptions',
+            '-fexceptions',
             '-fno-rtti',
             '-fno-threadsafe-statics',
             '-Wall',

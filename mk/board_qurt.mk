@@ -43,7 +43,7 @@ DEFINES        +=   -DCONFIG_HAL_BOARD=$(HAL_BOARD) -DCONFIG_HAL_BOARD_SUBTYPE=$
 
 DEPFLAGS        =   -MD -MP -MT $@
 
-CXXOPTS         =   -ffunction-sections -fdata-sections -fno-exceptions -fsigned-char $(DSP_CFLAGS) $(WARNFLAGSCXX)
+CXXOPTS         =   -ffunction-sections -fdata-sections -fexceptions -fsigned-char $(DSP_CFLAGS) $(WARNFLAGSCXX)
 COPTS           =   -ffunction-sections -fdata-sections -fsigned-char $(DSP_CFLAGS)
 
 # DSP build flags

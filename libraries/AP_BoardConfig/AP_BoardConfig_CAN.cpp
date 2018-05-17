@@ -33,6 +33,8 @@
 #include <AP_HAL_Linux/CAN.h>
 #elif CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
 #include <AP_HAL_ChibiOS/CAN.h>
+#elif CONFIG_HAL_BOARD == HAL_BOARD_SITL
+#include <AP_HAL_SITL/CAN.h>
 #endif
 
 #include <AP_UAVCAN/AP_UAVCAN.h>
@@ -91,7 +93,7 @@ void AP_BoardConfig_CAN::init()
         _st_driver_number[i] = (int8_t) _var_info_can[i]._driver_number;
         _st_can_debug[i] = (int8_t) _var_info_can[i]._can_debug;
     }
-
+    printf("AP_BoardConfig_CAN::init()\n");
     setup_canbus();
 }
 
@@ -101,16 +103,16 @@ void AP_BoardConfig_CAN::setup_canbus(void)
     bool initret = true;
     for (uint8_t i = 0; i < MAX_NUMBER_OF_CAN_INTERFACES; i++) {
         uint8_t drv_num = _var_info_can[i]._driver_number;
-
         if (drv_num != 0 && drv_num <= MAX_NUMBER_OF_CAN_DRIVERS) {
             if (hal.can_mgr[drv_num - 1] == nullptr) {
-                
                 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
                     const_cast <AP_HAL::HAL&> (hal).can_mgr[drv_num - 1] = new PX4::PX4CANManager;
                 #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
                     const_cast <AP_HAL::HAL&> (hal).can_mgr[drv_num - 1] = new Linux::CANManager;
                 #elif CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
                     const_cast <AP_HAL::HAL&> (hal).can_mgr[drv_num - 1] = new ChibiOS::CANManager;
+                #elif CONFIG_HAL_BOARD == HAL_BOARD_SITL
+                    const_cast <AP_HAL::HAL&> (hal).can_mgr[drv_num - 1] = new SITL::CANManager;
                 #endif
                 
             }
@@ -124,7 +126,6 @@ void AP_BoardConfig_CAN::setup_canbus(void)
     }
 
     bool any_uavcan_present = false;
-
     if (initret) {
         for (uint8_t i = 0; i < MAX_NUMBER_OF_CAN_DRIVERS; i++) {
             if (hal.can_mgr[i] != nullptr) {
