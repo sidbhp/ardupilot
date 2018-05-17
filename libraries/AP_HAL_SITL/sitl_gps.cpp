@@ -30,6 +30,11 @@
 #include <AP_UAVCAN/AP_UAVCAN.h>
 #include <uavcan/Timestamp.hpp>
 #include <uavcan/equipment/gnss/Fix2.hpp>
+#include <string>
+#include <uavcan_linux/uavcan_linux.hpp>
+#include <uavcan_linux/helpers.hpp>
+#include <uavcan/protocol/debug/KeyValue.hpp>
+#include <uavcan/protocol/param/ExecuteOpcode.hpp>
 
 #pragma GCC diagnostic ignored "-Wunused-result"
 
@@ -1158,11 +1163,90 @@ void SITL_State::_update_gps_file(uint8_t instance)
     }
 }
 
+static uavcan_linux::NodePtr initNode(const std::vector<std::string> &ifaces, uavcan::NodeID nid,
+                                      const std::string &name)
+{
+    auto node = uavcan_linux::makeNode(ifaces);
+
+    node->setNodeID(nid);
+    node->setName(name.c_str());
+
+    {
+        const auto app_id = uavcan_linux::makeApplicationID(uavcan_linux::MachineIDReader().read(), name, nid.get());
+
+        uavcan::protocol::HardwareVersion hwver;
+        std::copy(app_id.begin(), app_id.end(), hwver.unique_id.begin());
+        std::cout << hwver << std::endl;
+
+        node->setHardwareVersion(hwver);
+    }
+
+    /*
+     * Starting the node
+     */
+    if (0 != node->start())
+    {
+        throw std::runtime_error("Bad luck");
+    }
+
+    return node;
+}
+
+static void runForever(const uavcan_linux::NodePtr &node)
+{
+    /*
+     * Switching to the Operational mode to inform other nodes that we're ready to work now
+     */
+    node->setModeOperational();
+
+    /*
+     * Subscribing to the logging message just for fun
+     */
+    auto log_sub = node->makeSubscriber<uavcan::protocol::debug::LogMessage>(
+        [](const uavcan::ReceivedDataStructure<uavcan::protocol::debug::LogMessage> &msg) {
+            std::cout << msg << std::endl;
+        });
+
+    /*
+     * Key Value publisher
+     */
+    auto keyvalue_pub = node->makePublisher<uavcan::protocol::debug::KeyValue>();
+    /*
+     * Timer that uses the above publisher once a minute
+     */
+    auto timer = node->makeTimer(uavcan::MonotonicDuration::fromMSec(60000), [&](const uavcan::TimerEvent &) {
+        uavcan::protocol::debug::KeyValue msg;
+        msg.key = "the_great_answer";
+        msg.value = 42;
+        (void)keyvalue_pub->broadcast(msg);
+    });
+
+    /*
+     * A useless server that just prints the request and responds with a default-initialized response data structure
+     */
+    auto server = node->makeServiceServer<uavcan::protocol::param::ExecuteOpcode>(
+        [](const uavcan::protocol::param::ExecuteOpcode::Request &req,
+           uavcan::protocol::param::ExecuteOpcode::Response &) {
+            std::cout << req << std::endl;
+        });
+    /*
+     * Spinning forever
+     */
+    while (true)
+    {
+        const int res = node->spin(uavcan::MonotonicDuration::getInfinite());
+        if (res < 0)
+        {
+            node->logError("spin", "Error %*", res);
+        }
+    }
+}
+
 void SITL_State::_update_gps_can(const struct gps_data *d, uint8_t instance)
 {
     //printf("trying to update gps\n");
     //printf("number of filters: %d\n", hal.can_mgr[0]->is_initialized());
-    AP_HAL::CANManager *mgr = hal.can_mgr[0];
+    /*AP_HAL::CANManager *mgr = hal.can_mgr[0];
     AP_UAVCAN *uavc = mgr->get_UAVCAN();
     uint8_t *frame_data;
     uavcan::CanFrame frame;
@@ -1177,8 +1261,12 @@ void SITL_State::_update_gps_can(const struct gps_data *d, uint8_t instance)
     frame.id = 0;
     frame.dlc = sizeof(fix);
     memcpy(frame.data, frame_data, sizeof(frame_data));
-    _gps_write((const uint8_t *)&frame, sizeof(frame), instance);
-}
+    _gps_write((const uint8_t *)&frame, sizeof(frame), instance);*/
+    const int self_node_id = 69;
+    std::vector<std::string> iface_names(10, "");
+    auto node = initNode(iface_names, self_node_id, "org.ardupilot.UAVCANt");
+    std::cout << "Initialized" << std::endl;
+    }
 
     /*
   possibly send a new GPS packet

@@ -83,7 +83,7 @@ void SITL_State::_sitl_setup(const char *home_str)
 #if AP_TERRAIN_AVAILABLE
     _terrain = (AP_Terrain *)AP_Param::find_object("TERRAIN_");
 #endif
-
+    
     if (_sitl != nullptr) {
         // setup some initial values
 #ifndef HIL_MODE

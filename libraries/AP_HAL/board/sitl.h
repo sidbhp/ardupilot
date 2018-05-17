@@ -17,6 +17,7 @@
 #define HAL_GPIO_C_LED_PIN        117
 #define HAL_GPIO_LED_ON           0
 #define HAL_GPIO_LED_OFF          1
-
+#define HAL_WITH_UAVCAN        1
 #define HAL_HAVE_BOARD_VOLTAGE 1
 #define HAL_HAVE_SAFETY_SWITCH 1
+#define HAL_BOARD_CAN_IFACE_NAME "vcan0"
