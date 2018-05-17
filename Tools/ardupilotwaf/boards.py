@@ -242,7 +242,6 @@ class sitl(Board):
         self.with_uavcan = True
     def configure_env(self, cfg, env):
         super(sitl, self).configure_env(cfg, env)
-        self.with_uavcan = True
         env.DEFINES.update(
             CONFIG_HAL_BOARD = 'HAL_BOARD_SITL',
             CONFIG_HAL_BOARD_SUBTYPE = 'HAL_WITH_UAVCAN',
@@ -268,14 +267,20 @@ class sitl(Board):
         env.GIT_SUBMODULES += [
             'uavcan',
         ]
-
+        if self.with_uavcan:
+            env.INCLUDES += [
+                cfg.srcnode.find_dir('modules/uavcan/libuavcan_drivers/linux/include/').abspath(),
+                cfg.srcnode.find_dir('modules/uavcan/libuavcan/include/').abspath()
+            ]
         if sys.platform == 'cygwin':
             env.LIB += [
                 'winmm',
             ]
             env.CXXFLAGS += ['-DCYGWIN_BUILD']
-
-
+        if self.with_uavcan:
+            env.DEFINES.update(
+                    UAVCAN_CPP_VERSION = 'UAVCAN_CPP11'
+            )
         if 'clang++' in cfg.env.COMPILER_CXX:
             print("Disabling SLP for clang++")
             env.CXXFLAGS += [
