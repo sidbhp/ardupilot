@@ -18,6 +18,7 @@
 
 /* Default board subtype is -1 */
 #define HAL_BOARD_SUBTYPE_NONE -1
+#define HAL_BOARD_SUBTYPE_SITL_CAN -2
 
 /* HAL Linux sub-types, starting at 1000 */
 #define HAL_BOARD_SUBTYPE_LINUX_NONE       1000
@@ -164,8 +165,6 @@
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     #include <AP_HAL/board/sitl.h>
-#elif CONFIG_HAL_BOARD == HAL_BOARD_SITL_CAN
-    #include <AP_HAL/board/sitl_can.h>
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
     #include <AP_HAL/board/px4.h>
 #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX

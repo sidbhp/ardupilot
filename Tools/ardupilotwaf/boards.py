@@ -287,17 +287,14 @@ class sitlcan(sitl):
         self.with_uavcan = True
     def configure_env(self, cfg, env):
         super(sitlcan, self).configure_env(cfg, env)
+
+        env.DEFINES.update(
+            CONFIG_HAL_BOARD = 'HAL_BOARD_SITL',
+            CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_SITL_CAN',
+        )
         env.DEFINES.update(
             UAVCAN_CPP_VERSION='UAVCAN_CPP11',
         )
-
-        if self.with_uavcan:
-            cfg.define('UAVCAN_EXCEPTIONS', 0)
-            env.INCLUDES += [cfg.srcnode.find_dir(
-                'modules/uavcan/libuavcan_drivers/linux/include/').abspath()]
-            env.GIT_SUBMODULES += [
-                'uavcan'
-            ]
 
 
 class chibios(Board):
