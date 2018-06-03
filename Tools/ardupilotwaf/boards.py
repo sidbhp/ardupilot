@@ -181,12 +181,7 @@ class Board:
             )
 
             env.INCLUDES += [
-                cfg.srcnode.find_dir('modules/uavcan/libuavcan/include').abspath(),
-                cfg.srcnode.find_dir('modules/uavcan/libuavcan_drivers/linux/include/').abspath()
-            ]
-
-            env.GIT_SUBMODULES += [
-                'uavcan',
+                cfg.srcnode.find_dir('modules/uavcan/libuavcan/include').abspath()
             ]
 
         # We always want to use PRI format macros
@@ -284,6 +279,10 @@ class sitl(Board):
         if self.with_uavcan:
             cfg.define('UAVCAN_EXCEPTIONS', 0)
             env.CXXFLAGS = ['-fexceptions' if x == '-fno-exceptions' else x for x in env.CXXFLAGS]
+            env.INCLUDES += [cfg.srcnode.find_dir('modules/uavcan/libuavcan_drivers/linux/include/').abspath()]
+            env.GIT_SUBMODULES += [
+                'uavcan'
+            ]
 
 
 class chibios(Board):
