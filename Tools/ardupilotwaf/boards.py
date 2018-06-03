@@ -181,7 +181,12 @@ class Board:
             )
 
             env.INCLUDES += [
-                cfg.srcnode.find_dir('modules/uavcan/libuavcan/include').abspath()
+                cfg.srcnode.find_dir('modules/uavcan/libuavcan/include').abspath(),
+                cfg.srcnode.find_dir('modules/uavcan/libuavcan_drivers/linux/include/').abspath()
+            ]
+
+            env.GIT_SUBMODULES += [
+                'uavcan',
             ]
 
         # We always want to use PRI format macros
@@ -236,12 +241,14 @@ def get_board(ctx):
 # be worthy to keep board definitions in files of their own.
 
 class sitl(Board):
+    def __init__(self):
+        self.with_uavcan = True
     def configure_env(self, cfg, env):
         super(sitl, self).configure_env(cfg, env)
-
         env.DEFINES.update(
-            CONFIG_HAL_BOARD = 'HAL_BOARD_SITL',
+            CONFIG_HAL_BOARD='HAL_BOARD_SITL',
             CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_NONE',
+            UAVCAN_CPP_VERSION='UAVCAN_CPP11',
         )
 
         if not cfg.env.DEBUG:
@@ -273,6 +280,10 @@ class sitl(Board):
             env.CXXFLAGS += [
                 '-fno-slp-vectorize' # compiler bug when trying to use SLP
             ]
+        
+        if self.with_uavcan:
+            cfg.define('UAVCAN_EXCEPTIONS', 0)
+            env.CXXFLAGS = ['-fexceptions' if x == '-fno-exceptions' else x for x in env.CXXFLAGS]
 
 
 class chibios(Board):
@@ -287,6 +298,7 @@ class chibios(Board):
             CONFIG_HAL_BOARD = 'HAL_BOARD_CHIBIOS',
             HAVE_OCLOEXEC = 0,
             HAVE_STD_NULLPTR_T = 0,
+            UAVCAN_CPP_VERSION='UAVCAN_CPP11',
         )
 
         env.AP_LIBRARIES += [

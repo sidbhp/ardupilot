@@ -19,13 +19,13 @@
 #include "Util.h"
 #include "OpticalFlow.h"
 
-#if HAL_WITH_UAVCAN
-#include "CAN.h"
-#endif
-
 #include "utility/BetterStream.h"
 
 /* HAL Class definition */
 #include "HAL.h"
+
+#if HAL_WITH_UAVCAN
+#include "CAN.h"
+#endif
 
 #include "system.h"

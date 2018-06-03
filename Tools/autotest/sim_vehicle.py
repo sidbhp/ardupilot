@@ -566,6 +566,9 @@ def start_vehicle(binary, autotest, opts, stuff, loc):
     path = None
     if "default_params_filename" in stuff:
         paths = stuff["default_params_filename"]
+        if opts.uavcan:
+            suffix = paths.find(".")
+            paths = paths[:suffix]+"-uavcan"+paths[suffix:]
         if not isinstance(paths, list):
             paths = [paths]
         paths = [os.path.join(autotest, x) for x in paths]
@@ -577,6 +580,8 @@ def start_vehicle(binary, autotest, opts, stuff, loc):
             sys.exit(1)
         path += "," + str(opts.add_param_file)
         progress("Adding parameters from (%s)" % (str(opts.add_param_file),))
+    if opts.uavcan > 1:
+        cmd.extend(["--uavcan", opts.uavcan])
     if path is not None:
         cmd.extend(["--defaults", path])
 
@@ -871,6 +876,11 @@ group_sim.add_option("", "--no-extra-ports",
                      dest='no_extra_ports',
                      default=False,
                      help="Disable setup of UDP 14550 and 14551 output")
+group_sim.add_option("-u", "--uavcan",
+                     type='string',
+                     dest='uavcan',
+                     default=None,
+                     help="Set UAVCAN interface")
 parser.add_option_group(group_sim)
 
 

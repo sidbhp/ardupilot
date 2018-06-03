@@ -576,7 +576,22 @@ void Compass::_detect_backends(void)
     } while (0)
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+#if HAL_WITH_UAVCAN
+    if (_driver_enabled(DRIVER_UAVCAN))
+    {
+        bool added;
+        do
+        {
+            added = _add_backend(AP_Compass_UAVCAN::probe(*this), "UAVCAN", true);
+            if (_backend_count == COMPASS_MAX_BACKEND || _compass_count == COMPASS_MAX_INSTANCES)
+            {
+                return;
+            }
+        } while (added);
+    }
+#else
     ADD_BACKEND(DRIVER_SITL, new AP_Compass_SITL(*this), nullptr, false);
+#endif
     return;
 #endif
     
@@ -985,7 +1000,7 @@ Compass::read(void)
     uint32_t time = AP_HAL::millis();
     for (uint8_t i=0; i < COMPASS_MAX_INSTANCES; i++) {
         _state[i].healthy = (time - _state[i].last_update_ms < 500);
-    }
+    }    
     return healthy();
 }
 

@@ -9,6 +9,7 @@
 #endif
 #if HAL_WITH_UAVCAN
 #define UAVCAN_PROTOCOL_ENABLE  1
+#include <AP_UAVCAN/AP_UAVCAN.h>
 
 class AP_BoardConfig_CAN {
 public:

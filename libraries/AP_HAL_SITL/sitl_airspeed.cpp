@@ -15,16 +15,35 @@
 #include "SITL_State.h"
 #include <SITL/SITL.h>
 #include <AP_Math/AP_Math.h>
+#if HAL_WITH_UAVCAN
+#include <uavcan/equipment/air_data/IndicatedAirspeed.hpp>
+#endif
 
 extern const AP_HAL::HAL& hal;
 
 using namespace HALSITL;
+#if HAL_WITH_UAVCAN
+uavcan_linux::NodePtr can_node_airspeed;
+
+void SITL_State::_update_airspeed(float airspeed, uavcan_linux::NodePtr *node)
+{
+    can_node_airspeed = *node;
+    _update_airspeed(airspeed);
+}
+#endif
 
 /*
   convert airspeed in m/s to an airspeed sensor value
  */
 void SITL_State::_update_airspeed(float airspeed)
 {
+#if HAL_WITH_UAVCAN
+    auto airspeed_pub = can_node_airspeed->makePublisher<uavcan::equipment::air_data::IndicatedAirspeed>();
+    uavcan::equipment::air_data::IndicatedAirspeed as;
+    as.indicated_airspeed = airspeed;
+    //as.indicated_airspeed_variance
+    (void)airspeed_pub->broadcast(as);
+#else
     const float airspeed_ratio = 1.9936f;
     const float airspeed_offset = 2013.0f;
     
@@ -49,6 +68,7 @@ void SITL_State::_update_airspeed(float airspeed)
         float tube_pressure = abs(_sitl->arspd2_fail_pressure - _barometer->get_pressure() + _sitl->arspd2_fail_pitot_pressure);
         airspeed2 = 340.29409348 * sqrt(5 * (pow((tube_pressure / SSL_AIR_PRESSURE + 1), 2.0/7.0) - 1.0));
     }
+
 
     float airspeed_pressure = (airspeed * airspeed) / airspeed_ratio;
     float airspeed2_pressure = (airspeed2 * airspeed2) / airspeed_ratio;
@@ -105,6 +125,7 @@ void SITL_State::_update_airspeed(float airspeed)
 
     airspeed_pin_value = airspeed_raw / 4;
     airspeed_2_pin_value = airspeed2_raw / 4;
+#endif
 }
 
 #endif

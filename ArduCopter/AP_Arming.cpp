@@ -96,12 +96,14 @@ bool AP_Arming_Copter::compass_checks(bool display_failure)
     if ((checks_to_perform == ARMING_CHECK_ALL) || (checks_to_perform & ARMING_CHECK_COMPASS)) {
         // check compass offsets have been set.  AP_Arming only checks
         // this if learning is off; Copter *always* checks.
+#if !HAL_WITH_UAVCAN
         if (!_compass.configured()) {
             if (display_failure) {
                 gcs().send_text(MAV_SEVERITY_CRITICAL,"PreArm: Compass not calibrated");
             }
             ret = false;
         }
+#endif
     }
 
     return ret;

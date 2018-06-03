@@ -22,10 +22,11 @@
 #include <assert.h>
 #include <cmath>
 
-#if HAL_WITH_UAVCAN
-
 #include "AP_HAL_Namespace.h"
 #include "utility/functor.h"
+
+#if HAL_WITH_UAVCAN
+
 #include <uavcan/driver/can.hpp>
 #include <uavcan/time.hpp>
 

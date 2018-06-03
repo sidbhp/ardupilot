@@ -17,7 +17,7 @@ public:
 
     void read(void);
 
-private:
+  private:
     uint8_t _compass_instance[SITL_NUM_COMPASSES];
     SITL::SITL *_sitl;
 

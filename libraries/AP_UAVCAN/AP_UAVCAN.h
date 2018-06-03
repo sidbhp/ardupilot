@@ -2,6 +2,7 @@
  *
  *      Author: Eugene Shamaev
  */
+#if HAL_WITH_UAVCAN
 #ifndef AP_UAVCAN_H_
 #define AP_UAVCAN_H_
 
@@ -14,11 +15,14 @@
 
 #include <AP_GPS/GPS_Backend.h>
 #include <AP_Baro/AP_Baro_Backend.h>
+#include <AP_Airspeed/AP_Airspeed_Backend.h>
 #include <AP_Compass/AP_Compass.h>
 #include <AP_BattMonitor/AP_BattMonitor_Backend.h>
 
 #include <uavcan/helpers/heap_based_pool_allocator.hpp>
 #include <uavcan/equipment/indication/RGB565.hpp>
+
+#include <uavcan/protocol/debug/KeyValue.hpp>
 
 #ifndef UAVCAN_NODE_POOL_SIZE
 #define UAVCAN_NODE_POOL_SIZE 8192
@@ -36,6 +40,7 @@
 #define AP_UAVCAN_MAX_GPS_NODES 4
 #define AP_UAVCAN_MAX_MAG_NODES 4
 #define AP_UAVCAN_MAX_BARO_NODES 4
+#define AP_UAVCAN_MAX_AIRSPEED_NODES 4
 #define AP_UAVCAN_MAX_BI_NUMBER 4
 
 #define AP_UAVCAN_SW_VERS_MAJOR 1
@@ -118,6 +123,19 @@ public:
     uint8_t find_smallest_free_bi_id();
     void update_bi_state(uint8_t id);
 
+    struct Airspeed_Info
+    {
+        float indicated_airspeed;
+        float indicated_airspeed_variance;
+    };
+
+    uint8_t register_airspeed_listener(AP_Airspeed_Backend *new_listener, uint8_t preferred_channel);
+    uint8_t register_airspeed_listener_to_node(AP_Airspeed_Backend *new_listener, uint8_t node);
+    void remove_airspeed_listener(AP_Airspeed_Backend *rem_listener);
+    Airspeed_Info *find_airspeed_node(uint8_t node);
+    uint8_t find_smallest_free_airspeed_node();
+    void update_airspeed_state(uint8_t node);
+
     // synchronization for RC output
     void SRV_sem_take();
     void SRV_sem_give();
@@ -130,6 +148,8 @@ public:
     // output from do_cyclic
     void SRV_send_servos();
     void SRV_send_esc();
+
+    void make_sub();
 
 private:
     // ------------------------- GPS
@@ -167,6 +187,13 @@ private:
     BatteryInfo_Info _bi_id_state[AP_UAVCAN_MAX_BI_NUMBER];
     uint16_t _bi_BM_listener_to_id[AP_UAVCAN_MAX_LISTENERS];
     AP_BattMonitor_Backend* _bi_BM_listeners[AP_UAVCAN_MAX_LISTENERS];
+
+    // ------------------------- AIRSPEED
+    uint8_t _airspeed_nodes[AP_UAVCAN_MAX_AIRSPEED_NODES];
+    uint8_t _airspeed_node_taken[AP_UAVCAN_MAX_AIRSPEED_NODES];
+    Airspeed_Info _airspeed_node_state[AP_UAVCAN_MAX_AIRSPEED_NODES];
+    uint8_t _airspeed_listener_to_node[AP_UAVCAN_MAX_LISTENERS];
+    AP_Airspeed_Backend *_airspeed_listeners[AP_UAVCAN_MAX_LISTENERS];
 
     struct {
         uint16_t pulse;
@@ -280,5 +307,7 @@ public:
         _parent_can_mgr = parent_can_mgr;
     }
 };
+
+#endif
 
 #endif /* AP_UAVCAN_H_ */

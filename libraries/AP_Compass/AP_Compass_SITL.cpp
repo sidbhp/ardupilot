@@ -103,8 +103,8 @@ void AP_Compass_SITL::read()
 
         for (uint8_t i=0; i<SITL_NUM_COMPASSES; i++) {
             publish_filtered_field(field, _compass_instance[i]);
-        }
 
+        }
         _has_sample = false;
         _sem->give();
     }

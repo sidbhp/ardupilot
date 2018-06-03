@@ -163,7 +163,11 @@ void AP_Compass_UAVCAN::handle_mag_msg(Vector3f &mag)
 
     if (_mag_baro->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
         // accumulate into averaging filter
+#if HAL_WITH_UAVCAN
+        _sum += mag;
+#else
         _sum += raw_field;
+#endif
         _count++;
         _mag_baro->give();
     }

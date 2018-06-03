@@ -23,6 +23,7 @@
 #include <uavcan/equipment/ahrs/MagneticFieldStrength2.hpp>
 #include <uavcan/equipment/air_data/StaticPressure.hpp>
 #include <uavcan/equipment/air_data/StaticTemperature.hpp>
+#include <uavcan/equipment/air_data/IndicatedAirspeed.hpp>
 
 #include <uavcan/equipment/actuator/ArrayCommand.hpp>
 #include <uavcan/equipment/actuator/Command.hpp>
@@ -349,6 +350,37 @@ static void battery_info_st_cb1(const uavcan::ReceivedDataStructure<uavcan::equi
 static void (*battery_info_st_cb_arr[2])(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo>& msg)
         = { battery_info_st_cb0, battery_info_st_cb1 };
 
+static void air_data_ia_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::IndicatedAirspeed> &msg, uint8_t mgr)
+{
+    if (hal.can_mgr[mgr] != nullptr)
+    {
+        AP_UAVCAN *ap_uavcan = hal.can_mgr[mgr]->get_UAVCAN();
+        if (ap_uavcan != nullptr)
+        {
+            AP_UAVCAN::Airspeed_Info *state = ap_uavcan->find_airspeed_node(msg.getSrcNodeID().get());
+
+            if (state != nullptr)
+            {
+                state->indicated_airspeed = msg.indicated_airspeed;
+                state->indicated_airspeed_variance = msg.indicated_airspeed_variance;
+
+                // after all is filled, update all listeners with new data
+                ap_uavcan->update_airspeed_state(msg.getSrcNodeID().get());
+            }
+        }
+    }
+}
+
+static void air_data_ia_cb0(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::IndicatedAirspeed> &msg)
+{
+    air_data_ia_cb(msg, 0);
+}
+static void air_data_ia_cb1(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::IndicatedAirspeed> &msg)
+{
+    air_data_ia_cb(msg, 1);
+}
+static void (*air_data_ia_cb_arr[2])(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::IndicatedAirspeed> &msg) = {air_data_ia_cb0, air_data_ia_cb1};
+
 // publisher interfaces
 static uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand>* act_out_array[MAX_NUMBER_OF_CAN_DRIVERS];
 static uavcan::Publisher<uavcan::equipment::esc::RawCommand>* esc_raw[MAX_NUMBER_OF_CAN_DRIVERS];
@@ -391,6 +423,9 @@ AP_UAVCAN::AP_UAVCAN() :
         _mag_listener_to_node[i] = UINT8_MAX;
         _mag_listeners[i] = nullptr;
         _mag_listener_sensor_ids[i] = 0;
+
+        _airspeed_listener_to_node[i] = UINT8_MAX;
+        _airspeed_listeners[i] = nullptr;
     }
 
     for (uint8_t i = 0; i < AP_UAVCAN_MAX_BI_NUMBER; i++) {
@@ -484,7 +519,8 @@ bool AP_UAVCAN::try_init(void)
                     uavcan::Subscriber<uavcan::equipment::ahrs::MagneticFieldStrength2> *magnetic2;
                     magnetic2 = new uavcan::Subscriber<uavcan::equipment::ahrs::MagneticFieldStrength2>(*node);
                     const int magnetic_start_res_2 = magnetic2->start(magnetic_cb_2_arr[_uavcan_i]);
-                    if (magnetic_start_res_2 < 0) {
+                    if (magnetic_start_res_2 < 0)
+                    {
                         debug_uavcan(1, "UAVCAN Compass for multiple mags subscriber start problem\n\r");
                         return false;
                     }
@@ -510,6 +546,15 @@ bool AP_UAVCAN::try_init(void)
                     const int battery_info_start_res = battery_info_st->start(battery_info_st_cb_arr[_uavcan_i]);
                     if (battery_info_start_res < 0) {
                         debug_uavcan(1, "UAVCAN BatteryInfo subscriber start problem\n\r");
+                        return false;
+                    }
+
+                    uavcan::Subscriber<uavcan::equipment::air_data::IndicatedAirspeed> *air_data_ia;
+                    air_data_ia = new uavcan::Subscriber<uavcan::equipment::air_data::IndicatedAirspeed>(*node);
+                    const int air_data_ia_start_res = air_data_ia->start(air_data_ia_cb_arr[_uavcan_i]);
+                    if (air_data_ia_start_res < 0)
+                    {
+                        debug_uavcan(1, "UAVCAN Airspeed subscriber start problem\n\r");
                         return false;
                     }
 
@@ -665,7 +710,8 @@ void AP_UAVCAN::do_cyclic(void)
 
     auto *node = get_node();
 
-    const int error = node->spin(uavcan::MonotonicDuration::fromMSec(1));
+    //const int error = node->spin(uavcan::MonotonicDuration::fromMSec(1));
+    const int error = node->spinOnce();
 
     if (error < 0) {
         hal.scheduler->delay_microseconds(100);
@@ -1129,6 +1175,7 @@ uint8_t AP_UAVCAN::register_mag_listener(AP_Compass_Backend* new_listener, uint8
 
 uint8_t AP_UAVCAN::register_mag_listener_to_node(AP_Compass_Backend* new_listener, uint8_t node)
 {
+    printf("THE NODE IS %d\n", node);
     uint8_t sel_place = UINT8_MAX, ret = 0;
 
     for (uint8_t i = 0; i < AP_UAVCAN_MAX_LISTENERS; i++) {
@@ -1140,9 +1187,11 @@ uint8_t AP_UAVCAN::register_mag_listener_to_node(AP_Compass_Backend* new_listene
 
     if (sel_place != UINT8_MAX) {
         for (uint8_t i = 0; i < AP_UAVCAN_MAX_MAG_NODES; i++) {
+            printf("_mag_nodes[%d]=%d\n", i, _mag_nodes[i]);
             if (_mag_nodes[i] == node) {
                 _mag_listeners[sel_place] = new_listener;
                 _mag_listener_to_node[sel_place] = i;
+                printf("registered %d at %d\n", i, sel_place);
                 _mag_listener_sensor_ids[sel_place] = 0;
                 _mag_node_taken[i]++;
                 ret = i + 1;
@@ -1202,7 +1251,7 @@ AP_UAVCAN::Mag_Info *AP_UAVCAN::find_mag_node(uint8_t node, uint8_t sensor_id)
 /*
  * Find discovered mag node with smallest node ID and which is taken N times,
  * where N is less than its maximum sensor id.
- * This allows multiple AP_Compass_UAVCAN instanses listening multiple compasses
+ * This allows multiple AP_Compass_UAVCAN instances listening multiple compasses
  * that are on one node.
  */
 uint8_t AP_UAVCAN::find_smallest_free_mag_node()
@@ -1211,6 +1260,13 @@ uint8_t AP_UAVCAN::find_smallest_free_mag_node()
 
     for (uint8_t i = 0; i < AP_UAVCAN_MAX_MAG_NODES; i++) {
         if (_mag_node_taken[i] < _mag_node_max_sensorid_count[i]) {
+            if (_mag_nodes[i] == UINT8_MAX)
+            {
+                _mag_nodes[i] = 20;
+                _mag_node_max_sensorid_count[i] = 0;
+                debug_uavcan(2, "AP_UAVCAN: Compass: register sensor id %d on node %d\n\r", 0, 20);
+                return _mag_nodes[i];
+            }
             ret = MIN(ret, _mag_nodes[i]);
         }
     }
@@ -1225,7 +1281,6 @@ void AP_UAVCAN::update_mag_state(uint8_t node, uint8_t sensor_id)
         if (_mag_nodes[i] == node) {
             for (uint8_t j = 0; j < AP_UAVCAN_MAX_LISTENERS; j++) {
                 if (_mag_listener_to_node[j] == i) {
-                    
                     /*If the current listener has default sensor_id,
                       while our sensor_id is not default, we have
                       to assign our sensor_id to this listener*/ 
@@ -1252,6 +1307,168 @@ void AP_UAVCAN::update_mag_state(uint8_t node, uint8_t sensor_id)
             }
         }
     }
+}
+
+uint8_t AP_UAVCAN::register_airspeed_listener(AP_Airspeed_Backend *new_listener, uint8_t preferred_channel)
+{
+    uint8_t sel_place = UINT8_MAX, ret = 0;
+
+    for (uint8_t i = 0; i < AP_UAVCAN_MAX_LISTENERS; i++)
+    {
+        if (_airspeed_listeners[i] == nullptr)
+        {
+            sel_place = i;
+            break;
+        }
+    }
+
+    if (sel_place != UINT8_MAX)
+    {
+        if (preferred_channel != 0)
+        {
+            if (preferred_channel < AP_UAVCAN_MAX_AIRSPEED_NODES)
+            {
+                _airspeed_listeners[sel_place] = new_listener;
+                _airspeed_listener_to_node[sel_place] = preferred_channel - 1;
+                _airspeed_node_taken[_airspeed_listener_to_node[sel_place]]++;
+                ret = preferred_channel;
+
+                debug_uavcan(2, "reg_Airspeed place:%d, chan: %d\n\r", sel_place, preferred_channel);
+            }
+        }
+        else
+        {
+            for (uint8_t i = 0; i < AP_UAVCAN_MAX_AIRSPEED_NODES; i++)
+            {
+                if (_airspeed_node_taken[i] == 0)
+                {
+                    _airspeed_listeners[sel_place] = new_listener;
+                    _airspeed_listener_to_node[sel_place] = i;
+                    _airspeed_node_taken[i]++;
+                    ret = i + 1;
+
+                    debug_uavcan(2, "reg_AIRSPEED place:%d, chan: %d\n\r", sel_place, i);
+                    break;
+                }
+            }
+        }
+    }
+
+    return ret;
+}
+
+uint8_t AP_UAVCAN::register_airspeed_listener_to_node(AP_Airspeed_Backend *new_listener, uint8_t node)
+{
+    uint8_t sel_place = UINT8_MAX, ret = 0;
+
+    for (uint8_t i = 0; i < AP_UAVCAN_MAX_LISTENERS; i++)
+    {
+        if (_airspeed_listeners[i] == nullptr)
+        {
+            sel_place = i;
+            break;
+        }
+    }
+
+    if (sel_place != UINT8_MAX)
+    {
+        for (uint8_t i = 0; i < AP_UAVCAN_MAX_AIRSPEED_NODES; i++)
+        {
+            if (_airspeed_nodes[i] == node)
+            {
+                _airspeed_listeners[sel_place] = new_listener;
+                _airspeed_listener_to_node[sel_place] = i;
+                _airspeed_node_taken[i]++;
+                ret = i + 1;
+
+                debug_uavcan(2, "reg_AIRSPEED place:%d, chan: %d\n\r", sel_place, i);
+                break;
+            }
+        }
+    }
+
+    return ret;
+}
+
+void AP_UAVCAN::remove_airspeed_listener(AP_Airspeed_Backend *rem_listener)
+{
+    // Check for all listeners and compare pointers
+    for (uint8_t i = 0; i < AP_UAVCAN_MAX_LISTENERS; i++)
+    {
+        if (_airspeed_listeners[i] == rem_listener)
+        {
+            _airspeed_listeners[i] = nullptr;
+
+            // Also decrement usage counter and reset listening node
+            if (_airspeed_node_taken[_airspeed_listener_to_node[i]] > 0)
+            {
+                _airspeed_node_taken[_airspeed_listener_to_node[i]]--;
+            }
+            _airspeed_listener_to_node[i] = UINT8_MAX;
+        }
+    }
+}
+
+AP_UAVCAN::Airspeed_Info *AP_UAVCAN::find_airspeed_node(uint8_t node)
+{
+    // Check if such node is already defined
+    for (uint8_t i = 0; i < AP_UAVCAN_MAX_AIRSPEED_NODES; i++)
+    {
+        if (_airspeed_nodes[i] == node)
+        {
+            return &_airspeed_node_state[i];
+        }
+    }
+
+    // If not - try to find free space for it
+    for (uint8_t i = 0; i < AP_UAVCAN_MAX_AIRSPEED_NODES; i++)
+    {
+        if (_airspeed_nodes[i] == UINT8_MAX)
+        {
+
+            _airspeed_nodes[i] = node;
+            return &_airspeed_node_state[i];
+        }
+    }
+
+    // If no space is left - return nullptr
+    return nullptr;
+}
+
+void AP_UAVCAN::update_airspeed_state(uint8_t node)
+{
+    // Go through all listeners of specified node and call their's update methods
+    for (uint8_t i = 0; i < AP_UAVCAN_MAX_AIRSPEED_NODES; i++)
+    {
+        if (_airspeed_nodes[i] == node)
+        {
+            for (uint8_t j = 0; j < AP_UAVCAN_MAX_LISTENERS; j++)
+            {
+                if (_airspeed_listener_to_node[j] == i)
+                {
+                    _airspeed_listeners[j]->handle_airspeed_msg(_airspeed_node_state[i].indicated_airspeed, _airspeed_node_state[i].indicated_airspeed_variance);
+                }
+            }
+        }
+    }
+}
+
+/*
+ * Find discovered not taken airspeed node with smallest node ID
+ */
+uint8_t AP_UAVCAN::find_smallest_free_airspeed_node()
+{
+    uint8_t ret = UINT8_MAX;
+
+    for (uint8_t i = 0; i < AP_UAVCAN_MAX_AIRSPEED_NODES; i++)
+    {
+        if (_airspeed_node_taken[i] == 0)
+        {
+            ret = MIN(ret, _airspeed_nodes[i]);
+        }
+    }
+
+    return ret;
 }
 
 uint8_t AP_UAVCAN::register_BM_bi_listener_to_id(AP_BattMonitor_Backend* new_listener, uint8_t id)

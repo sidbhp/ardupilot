@@ -6,6 +6,7 @@
 #include <sys/time.h>
 
 #define SITL_SCHEDULER_MAX_TIMER_PROCS 4
+#define SITL_CAN_PRIORITY 179
 
 /* Scheduler implementation: */
 class HALSITL::Scheduler : public AP_HAL::Scheduler {
@@ -27,7 +28,7 @@ public:
     void resume_timer_procs();
 
     void register_timer_failsafe(AP_HAL::Proc, uint32_t period_us);
-
+    void _timer_task();
     bool in_main_thread() const override { return !_in_timer_proc && !_in_io_proc; };
     void system_initialized();
 

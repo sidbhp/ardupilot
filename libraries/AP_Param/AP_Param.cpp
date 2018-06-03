@@ -484,6 +484,7 @@ const struct AP_Param::Info *AP_Param::find_var_info_group(const struct GroupInf
                 return nullptr;
             }
             group_nesting.group_ret[group_nesting.level++] = &group_info[i];
+            //printf("GROUP_INFO[%d] = %s\n", i, group_info[i].name);
             info = find_var_info_group(ginfo, vindex,
                                        group_id(group_info, group_base, i, group_shift),
                                        group_shift + _group_level_shift,
@@ -1143,6 +1144,7 @@ bool AP_Param::configured_in_storage(void) const
     struct GroupNesting group_nesting {};
     uint8_t idx;
     const struct AP_Param::Info *info = find_var_info(&group_element, ginfo, group_nesting, &idx);
+    //printf("name of INFO: %s\n", info->name);
     if (info == nullptr) {
         // we don't have any info on how to load it
         return false;
