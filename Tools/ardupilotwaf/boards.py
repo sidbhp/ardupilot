@@ -236,8 +236,6 @@ def get_board(ctx):
 # be worthy to keep board definitions in files of their own.
 
 class sitl(Board):
-    def __init__(self):
-        self.with_uavcan = False
     def configure_env(self, cfg, env):
         super(sitl, self).configure_env(cfg, env)
         env.DEFINES.update(
@@ -284,51 +282,17 @@ class sitl(Board):
             ]
 
 
-class sitlcan(Board):
+class sitlcan(sitl):
     def __init__(self):
         self.with_uavcan = True
-
     def configure_env(self, cfg, env):
         super(sitlcan, self).configure_env(cfg, env)
         env.DEFINES.update(
-            CONFIG_HAL_BOARD='HAL_BOARD_SITL',
-            CONFIG_HAL_BOARD_SUBTYPE='HAL_BOARD_SUBTYPE_NONE',
             UAVCAN_CPP_VERSION='UAVCAN_CPP11',
         )
 
-        if not cfg.env.DEBUG:
-            env.CXXFLAGS += [
-                '-O3',
-            ]
-
-        env.LIB += [
-            'm',
-        ]
-
-        cfg.check_librt(env)
-
-        env.LINKFLAGS += ['-pthread', ]
-        env.AP_LIBRARIES += [
-            'AP_HAL_SITL',
-            'SITL',
-        ]
-
-        if sys.platform == 'cygwin':
-            env.LIB += [
-                'winmm',
-            ]
-            env.CXXFLAGS += ['-DCYGWIN_BUILD']
-
-        if 'clang++' in cfg.env.COMPILER_CXX:
-            print("Disabling SLP for clang++")
-            env.CXXFLAGS += [
-                '-fno-slp-vectorize'  # compiler bug when trying to use SLP
-            ]
-
         if self.with_uavcan:
             cfg.define('UAVCAN_EXCEPTIONS', 0)
-            env.CXXFLAGS = ['-fexceptions' if x ==
-                            '-fno-exceptions' else x for x in env.CXXFLAGS]
             env.INCLUDES += [cfg.srcnode.find_dir(
                 'modules/uavcan/libuavcan_drivers/linux/include/').abspath()]
             env.GIT_SUBMODULES += [

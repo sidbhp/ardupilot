@@ -1038,7 +1038,10 @@ else:
         do_build_parameters(cmd_opts.vehicle)
 
     if cmd_opts.build_system == "waf":
-        binary_basedir = "build/sitl"
+        if cmd_opts.uavcan:
+            binary_basedir = "build/sitlcan"
+        else:
+            binary_basedir = "build/sitl"
         vehicle_binary = os.path.join(find_root_dir(),
                                       binary_basedir,
                                       frame_infos["waf_target"])
