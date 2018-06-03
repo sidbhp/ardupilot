@@ -1172,7 +1172,7 @@ void SITL_State::_update_gps_file(uint8_t instance)
 void SITL_State::_update_gps_can(const struct gps_data *d, uint8_t instance)
 {
 #if HAL_WITH_UAVCAN
-    auto fix_pub = can_node_gps->makePublisher<uavcan::equipment::gnss::Fix>();
+    auto fix_pub = node->makePublisher<uavcan::equipment::gnss::Fix>();
     uavcan::equipment::gnss::Fix fix;
     //fix.gnss_timestamp
     fix.gnss_time_standard = 0;
@@ -1329,16 +1329,6 @@ void SITL_State::_update_gps(double latitude, double longitude, float altitude,
         _update_gps_instance((SITL::SITL::GPSType)_sitl->gps2_type.get(), &d2, 1);
     }
 }
-
-#if HAL_WITH_UAVCAN
-void SITL_State::_update_gps(double latitude, double longitude, float altitude,
-                             double speedN, double speedE, double speedD, bool have_lock,
-                             uavcan_linux::NodePtr* node)
-{
-    can_node_gps = *node;
-    _update_gps(latitude, longitude, altitude, speedN, speedE, speedD, have_lock);
-}
-#endif
 
     void SITL_State::_update_gps_instance(SITL::SITL::GPSType gps_type, const struct gps_data *data, uint8_t instance)
 {

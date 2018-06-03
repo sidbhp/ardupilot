@@ -111,13 +111,8 @@ void SITL_State::_sitl_setup(const char *home_str)
     if (_sitl != nullptr) {
         // setup some initial values
 #ifndef HIL_MODE
-#if HAL_WITH_UAVCAN
-        _update_airspeed(0, &node);
-        _update_gps(0, 0, 0, 0, 0, 0, false, &node);
-#else
         _update_airspeed(0);
         _update_gps(0, 0, 0, 0, 0, 0, false);
-#endif
         _update_rangefinder(0);
 #endif
         if (enable_gimbal) {
@@ -198,7 +193,6 @@ void SITL_State::_fdm_input_step(void)
                     _sitl->state.speedN, _sitl->state.speedE, _sitl->state.speedD,
                     !_sitl->gps_disable);
 #if HAL_WITH_UAVCAN
-    _update_airspeed(_sitl->state.airspeed, &node);
     auto mfs2_pub = node->makePublisher<uavcan::equipment::ahrs::MagneticFieldStrength2>();
     uavcan::equipment::ahrs::MagneticFieldStrength2 mfs2;
     Vector3f noise = rand_vec3f() * _sitl->mag_noise;
@@ -208,15 +202,14 @@ void SITL_State::_fdm_input_step(void)
     mfs2.magnetic_field_ga[1] = (double)new_mag_data.y;
     mfs2.magnetic_field_ga[2] = (double)new_mag_data.z;
     (void)mfs2_pub->broadcast(mfs2);
-#else
-        _update_airspeed(_sitl->state.airspeed);
 #endif
-            _update_rangefinder(_sitl->state.range);
+    _update_airspeed(_sitl->state.airspeed);
+    _update_rangefinder(_sitl->state.range);
 
-            if (_sitl->adsb_plane_count >= 0 &&
-                adsb == nullptr)
-            {
-                adsb = new SITL::ADSB(_sitl->state, _home_str);
+    if (_sitl->adsb_plane_count >= 0 &&
+        adsb == nullptr)
+    {
+        adsb = new SITL::ADSB(_sitl->state, _home_str);
         } else if (_sitl->adsb_plane_count == -1 &&
                    adsb != nullptr) {
             delete adsb;
