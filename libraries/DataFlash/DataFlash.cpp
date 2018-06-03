@@ -340,10 +340,12 @@ void DataFlash_Class::validate_structures(const struct LogStructure *logstructur
 {
     Debug("Validating structures");
     bool passed = true;
-
+    
     for (uint16_t i=0; i<num_types; i++) {
         const struct LogStructure *logstructure = &logstructures[i];
+        Debug("before validating\n");
         passed = validate_structure(logstructure, i) && passed;
+        Debug("after validating\n");
     }
     if (!passed) {
         Debug("Log structures are invalid");

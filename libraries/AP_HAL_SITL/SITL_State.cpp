@@ -95,6 +95,7 @@ void SITL_State::_sitl_setup(const char *home_str)
     _setup_fdm();
 #endif
     fprintf(stdout, "Starting SITL input\n");
+    fprintf(stdout, "HELLO?!\n");
 
     // find the barometer object if it exists
     _sitl = (SITL::SITL *)AP_Param::find_object("SIM_");

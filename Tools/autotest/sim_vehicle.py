@@ -314,7 +314,10 @@ def do_build_waf(opts, frame_options):
 
     waf_light = os.path.join(root_dir, "modules/waf/waf-light")
 
-    cmd_configure = [waf_light, "configure", "--board", "sitl"]
+    if opts.uavcan:
+        cmd_configure = [waf_light, "configure", "--board", "sitlcan"]
+    else:
+        cmd_configure = [waf_light, "configure", "--board", "sitl"]
     if opts.debug:
         cmd_configure.append("--debug")
     pieces = [shlex.split(x) for x in opts.waf_configure_args]
@@ -876,7 +879,7 @@ group_sim.add_option("", "--no-extra-ports",
                      dest='no_extra_ports',
                      default=False,
                      help="Disable setup of UDP 14550 and 14551 output")
-group_sim.add_option("-u", "--uavcan",
+group_sim.add_option("", "--uavcan",
                      type='string',
                      dest='uavcan',
                      default=None,
