@@ -35,7 +35,30 @@ extern "C" {
 
 struct boardinfo board_info;
 
-int main(void)
+volatile unsigned timer[NTIMERS];
+/*
+  1ms timer tick callback
+ */
+THD_WORKING_AREA(wasys_tick_handler, 128);
+static THD_FUNCTION(sys_tick_handler, arg)
+{
+    uint8_t i;
+    while (true) {
+        for (i = 0; i < NTIMERS; i++)
+            if (timer[i] > 0) {
+                timer[i]--;
+            }
+
+        if ((led_state == LED_BLINK) && (timer[TIMER_LED] == 0)) {
+            led_toggle(LED_BOOTLOADER);
+            timer[TIMER_LED] = 50;
+        }
+        chThdSleep(MS2ST(1));
+    }
+}
+
+THD_WORKING_AREA(wabootloader_main, 1024);
+static THD_FUNCTION(bootloader_main, arg)
 {
     init_uarts();
 
@@ -54,4 +77,21 @@ int main(void)
     }
 }
 
+THD_WORKING_AREA(wausb_lld_pump, 8192);
+static THD_FUNCTION(usb_lld_pump_redir, arg)
+{
+    usb_lld_pump(arg);
+}
 
+THD_TABLE_BEGIN
+THD_TABLE_ENTRY(wasys_tick_handler, "SysTick_Handler", sys_tick_handler, NULL)
+THD_TABLE_ENTRY(wabootloader_main, "BL_Main", bootloader_main, NULL)
+THD_TABLE_ENTRY(wausb_lld_pump, "USB_Pump", usb_lld_pump_redir, (void*)&USBD1)
+THD_TABLE_END
+
+int main()
+{
+    //This is the idle thread for NIL
+    while(true) {
+    }
+}

@@ -1,6 +1,15 @@
 void jump_to_app(void);
 void bootloader(unsigned timeout);
 
+static enum led_state {LED_BLINK, LED_ON, LED_OFF} led_state;
+/*
+  millisecond timer array
+ */
+#define NTIMERS		    2
+#define TIMER_BL_WAIT	0
+#define TIMER_LED	    1
+
+extern volatile unsigned timer[NTIMERS];
 #define BL_WAIT_MAGIC	0x19710317		/* magic number in PWR regs to wait in bootloader */
 
 /*****************************************************************************

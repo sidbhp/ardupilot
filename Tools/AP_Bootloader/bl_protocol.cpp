@@ -112,41 +112,6 @@
 // interrupt vector table for STM32
 #define SCB_VTOR 0xE000ED08
 
-/*
-  millisecond timer array
- */
-#define NTIMERS		    2
-#define TIMER_BL_WAIT	0
-#define TIMER_LED	    1
-
-static enum led_state {LED_BLINK, LED_ON, LED_OFF} led_state;
-
-volatile unsigned timer[NTIMERS];
-/*
-  1ms timer tick callback
- */
-THD_WORKING_AREA(wasys_tick_handler, 128);
-static THD_FUNCTION(sys_tick_handler, arg)
-{
-    uint8_t i;
-    while (true) {
-        for (i = 0; i < NTIMERS; i++)
-            if (timer[i] > 0) {
-                timer[i]--;
-            }
-
-        if ((led_state == LED_BLINK) && (timer[TIMER_LED] == 0)) {
-            led_toggle(LED_BOOTLOADER);
-            timer[TIMER_LED] = 50;
-        }
-        chThdSleep(MS2ST(1));
-    }
-}
-
-
-THD_TABLE_BEGIN
-THD_TABLE_ENTRY(wasys_tick_handler, "SysTick_Handler", sys_tick_handler, NULL)
-THD_TABLE_END
 
 static void delay(unsigned msec)
 {
