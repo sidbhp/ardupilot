@@ -714,7 +714,7 @@ bootloader(unsigned timeout)
             // returning the response...
             continue;
         }
-            
+
         default:
             continue;
         }

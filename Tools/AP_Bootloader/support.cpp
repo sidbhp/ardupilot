@@ -29,9 +29,16 @@ int16_t cin(unsigned timeout_ms)
     uint8_t b = 0;
     for (uint8_t i=0; i<ARRAY_SIZE_SIMPLE(uarts); i++) {
         if (locked_uart == -1 || locked_uart == i) {
-            if (chnReadTimeout(uarts[i], &b, 1, MS2ST(timeout_ms)) == 1) {
-                last_uart = i;
-                return b;
+            if (timeout_ms != 0) {
+                if (chnReadTimeout(uarts[i], &b, 1, MS2ST(timeout_ms)) == 1) {
+                    last_uart = i;
+                    return b;
+                }
+            } else {
+                if (chnReadTimeout(uarts[i], &b, 1, TIME_IMMEDIATE) == 1) {
+                    last_uart = i;
+                    return b;
+                }
             }
         }
     }
