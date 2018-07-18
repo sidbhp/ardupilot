@@ -23,7 +23,8 @@
 #include "GPS_detect_state.h"
 #include <AP_SerialManager/AP_SerialManager.h>
 #include <AP_RTC/AP_RTC.h>
-
+#include <AP_HAL/CAN.h>
+#include <AP_UAVCAN/AP_UAVCAN.h>
 /**
    maximum number of GPS instances available on this platform. If more
    than 1 then redundant sensors may be available
@@ -61,6 +62,7 @@ class AP_GPS
     friend class AP_GPS_SBP2;
     friend class AP_GPS_SIRF;
     friend class AP_GPS_UBLOX;
+    friend class AP_GPS_UAVCAN;
     friend class AP_GPS_Backend;
 
 public:
@@ -465,6 +467,11 @@ private:
     GPS_State state[GPS_MAX_RECEIVERS+1];
     AP_GPS_Backend *drivers[GPS_MAX_RECEIVERS];
     AP_HAL::UARTDriver *_port[GPS_MAX_RECEIVERS];
+
+#if HAL_WITH_UAVCAN
+    uint8_t get_uavcan_backend(uavcan::NodeID node_id, uint8_t manager);
+    uavcan::NodeID uavcan_node_ids[GPS_MAX_RECEIVERS] = {INT8_MAX};
+#endif
 
     /// primary GPS instance
     uint8_t primary_instance:2;

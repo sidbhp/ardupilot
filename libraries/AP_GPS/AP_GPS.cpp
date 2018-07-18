@@ -284,7 +284,10 @@ void AP_GPS::init(const AP_SerialManager& serial_manager)
     _port[0] = serial_manager.find_serial(AP_SerialManager::SerialProtocol_GPS, 0);
     _port[1] = serial_manager.find_serial(AP_SerialManager::SerialProtocol_GPS, 1);
     _last_instance_swap_ms = 0;
-
+#if HAL_WITH_UAVCAN
+    //Subscribe to GPS messages
+    AP_GPS_UAVCAN::subscribe_gps_uavcan_messages();
+#endif
     // Initialise class variables used to do GPS blending
     _omega_lpf = 1.0f / constrain_float(_blend_tc, 5.0f, 30.0f);
 
@@ -423,39 +426,6 @@ void AP_GPS::detect_instance(uint8_t instance)
         new_gps = new AP_GPS_MAV(*this, state[instance], nullptr);
         goto found_gps;
         break;
-
-#if HAL_WITH_UAVCAN
-    // user has to explicitly set the UAVCAN type, do not use AUTO
-    case GPS_TYPE_UAVCAN:
-        dstate->auto_detected_baud = false; // specified, not detected
-        if (AP_BoardConfig_CAN::get_can_num_ifaces() == 0) {
-            return;
-        }
-        for (uint8_t i = 0; i < MAX_NUMBER_OF_CAN_DRIVERS; i++) {
-            AP_UAVCAN *ap_uavcan = AP_UAVCAN::get_uavcan(i);
-            if (ap_uavcan == nullptr) {
-                continue;
-            }
-            
-            uint8_t gps_node = ap_uavcan->find_gps_without_listener();
-            if (gps_node == UINT8_MAX) {
-                continue;
-            }
-
-            new_gps = new AP_GPS_UAVCAN(*this, state[instance], nullptr);
-            ((AP_GPS_UAVCAN*) new_gps)->set_uavcan_manager(i);
-            if (ap_uavcan->register_gps_listener_to_node(new_gps, gps_node)) {
-                if (AP_BoardConfig_CAN::get_can_debug() >= 2) {
-                    printf("AP_GPS_UAVCAN registered\n\r");
-                }
-                goto found_gps;
-            } else {
-                delete new_gps;
-            }
-        }
-        return;
-#endif
-
     default:
         break;
     }
@@ -1551,6 +1521,41 @@ bool AP_GPS::prepare_for_arming(void) {
     return all_passed;
 }
 
+#if HAL_WITH_UAVCAN
+
+uint8_t AP_GPS::get_uavcan_backend(uavcan::NodeID node_id, uint8_t manager)
+{
+    uint8_t driver_id = UINT8_MAX;
+    for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+        if (node_id == uavcan_node_ids[i]) {
+            if (((AP_GPS_UAVCAN*)(&drivers[i]))->get_uavcan_manager() == manager) {
+                driver_id = i;
+                break;
+            }
+        }
+    }
+    if (driver_id == UINT8_MAX) {
+        hal.console->printf("Detected UAVCAN GPS...");
+        if (num_instances >= 2) {
+            return driver_id;
+        }
+        for (uint8_t instance = num_instances; instance < GPS_MAX_RECEIVERS; instance++) {
+            if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_UAVCAN) && uavcan_node_ids[instance] == UINT8_MAX){
+                drivers[instance] = new AP_GPS_UAVCAN(*this, state[instance], nullptr);
+                if (drivers[instance] != nullptr) {
+                    ((AP_GPS_UAVCAN*)&drivers[instance])->set_uavcan_manager(manager);
+                    state[instance].status = NO_FIX;
+                    timing[instance].last_message_time_ms = AP_HAL::millis();
+                    timing[instance].delta_time_ms = GPS_TIMEOUT_MS;
+                    drivers[instance]->broadcast_gps_type();
+                }
+                return instance;
+            }
+        }
+    }
+    return driver_id;
+}
+#endif
 namespace AP {
 
 AP_GPS &gps()
