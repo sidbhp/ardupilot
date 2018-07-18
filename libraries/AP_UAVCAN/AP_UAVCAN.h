@@ -12,7 +12,6 @@
 #include <AP_GPS/AP_GPS.h>
 #include <AP_Param/AP_Param.h>
 
-#include <AP_GPS/GPS_Backend.h>
 #include <AP_Baro/AP_Baro_Backend.h>
 #include <AP_Compass/AP_Compass.h>
 #include <AP_BattMonitor/AP_BattMonitor_Backend.h>
@@ -33,7 +32,6 @@
 #endif
 
 #define AP_UAVCAN_MAX_LISTENERS 4
-#define AP_UAVCAN_MAX_GPS_NODES 4
 #define AP_UAVCAN_MAX_MAG_NODES 4
 #define AP_UAVCAN_MAX_BARO_NODES 4
 #define AP_UAVCAN_MAX_BI_NUMBER 4
@@ -56,27 +54,6 @@ public:
 
     // Return uavcan from @iface or nullptr if it's not ready or doesn't exist
     static AP_UAVCAN *get_uavcan(uint8_t iface);
-
-    // this function will register the listening class on a first free channel or on the specified channel
-    // if preferred_channel = 0 then free channel will be searched for
-    // if preferred_channel > 0 then listener will be added to specific channel
-    // return value is the number of assigned channel or 0 if fault
-    // channel numbering starts from 1
-    uint8_t register_gps_listener(AP_GPS_Backend* new_listener, uint8_t preferred_channel);
-
-    uint8_t register_gps_listener_to_node(AP_GPS_Backend* new_listener, uint8_t node);
-
-    uint8_t find_gps_without_listener(void);
-
-    // Removes specified listener from all nodes
-    void remove_gps_listener(AP_GPS_Backend* rem_listener);
-
-    // Returns pointer to GPS state connected with specified node.
-    // If node is not found and there are free space, locate a new one
-    AP_GPS::GPS_State *find_gps_node(uint8_t node);
-
-    // Updates all listeners of specified node
-    void update_gps_state(uint8_t node);
 
     struct Baro_Info {
         float pressure;
@@ -131,19 +108,9 @@ public:
     void SRV_send_servos();
     void SRV_send_esc();
 
+    uavcan::Node<0>* get_node();
+    uint8_t get_uavcan_id() { return _uavcan_i; }
 private:
-    // ------------------------- GPS
-    // 255 - means free node
-    uint8_t _gps_nodes[AP_UAVCAN_MAX_GPS_NODES];
-    // Counter of how many listeners are connected to this source
-    uint8_t _gps_node_taken[AP_UAVCAN_MAX_GPS_NODES];
-    // GPS data of the sources
-    AP_GPS::GPS_State _gps_node_state[AP_UAVCAN_MAX_GPS_NODES];
-
-    // 255 - means no connection
-    uint8_t _gps_listener_to_node[AP_UAVCAN_MAX_LISTENERS];
-    // Listeners with callbacks to be updated
-    AP_GPS_Backend* _gps_listeners[AP_UAVCAN_MAX_LISTENERS];
 
     // ------------------------- BARO
     uint8_t _baro_nodes[AP_UAVCAN_MAX_BARO_NODES];
@@ -236,7 +203,6 @@ private:
 
     uavcan::ISystemClock& get_system_clock();
     uavcan::ICanDriver* get_can_driver();
-    uavcan::Node<0>* get_node();
 
     // This will be needed to implement if UAVCAN is used with multithreading
     // Such cases will be firmware update, etc.

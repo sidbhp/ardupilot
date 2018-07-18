@@ -15,10 +15,7 @@
 #include <AP_BoardConfig/AP_BoardConfig.h>
 #include <AP_BoardConfig/AP_BoardConfig_CAN.h>
 
-// Zubax GPS and other GPS, baro, magnetic sensors
-#include <uavcan/equipment/gnss/Fix.hpp>
-#include <uavcan/equipment/gnss/Auxiliary.hpp>
-
+// baro, magnetic sensors
 #include <uavcan/equipment/ahrs/MagneticFieldStrength.hpp>
 #include <uavcan/equipment/ahrs/MagneticFieldStrength2.hpp>
 #include <uavcan/equipment/air_data/StaticPressure.hpp>
@@ -85,144 +82,6 @@ const AP_Param::GroupInfo AP_UAVCAN::var_info[] = {
 // this is the timeout in milliseconds for periodic message types. We
 // set this to 1 to minimise resend of stale msgs
 #define CAN_PERIODIC_TX_TIMEOUT_MS 2
-
-static void gnss_fix_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix>& msg, uint8_t mgr)
-{
-    AP_UAVCAN *ap_uavcan = AP_UAVCAN::get_uavcan(mgr);
-    if (ap_uavcan == nullptr) {
-        return;
-    }
-    
-    AP_GPS::GPS_State *state = ap_uavcan->find_gps_node(msg.getSrcNodeID().get());
-    if (state == nullptr) {
-        return;
-    }
-
-    bool process = false;
-
-    if (msg.status == uavcan::equipment::gnss::Fix::STATUS_NO_FIX) {
-        state->status = AP_GPS::GPS_Status::NO_FIX;
-    } else {
-        if (msg.status == uavcan::equipment::gnss::Fix::STATUS_TIME_ONLY) {
-            state->status = AP_GPS::GPS_Status::NO_FIX;
-        } else if (msg.status == uavcan::equipment::gnss::Fix::STATUS_2D_FIX) {
-            state->status = AP_GPS::GPS_Status::GPS_OK_FIX_2D;
-            process = true;
-        } else if (msg.status == uavcan::equipment::gnss::Fix::STATUS_3D_FIX) {
-            state->status = AP_GPS::GPS_Status::GPS_OK_FIX_3D;
-            process = true;
-        }
-
-        if (msg.gnss_time_standard == uavcan::equipment::gnss::Fix::GNSS_TIME_STANDARD_UTC) {
-            uint64_t epoch_ms = uavcan::UtcTime(msg.gnss_timestamp).toUSec();
-            epoch_ms /= 1000;
-            uint64_t gps_ms = epoch_ms - UNIX_OFFSET_MSEC;
-            state->time_week = (uint16_t)(gps_ms / AP_MSEC_PER_WEEK);
-            state->time_week_ms = (uint32_t)(gps_ms - (state->time_week) * AP_MSEC_PER_WEEK);
-        }
-    }
-
-    if (process) {
-        Location loc = { };
-        loc.lat = msg.latitude_deg_1e8 / 10;
-        loc.lng = msg.longitude_deg_1e8 / 10;
-        loc.alt = msg.height_msl_mm / 10;
-        state->location = loc;
-        state->location.options = 0;
-
-        if (!uavcan::isNaN(msg.ned_velocity[0])) {
-            Vector3f vel(msg.ned_velocity[0], msg.ned_velocity[1], msg.ned_velocity[2]);
-            state->velocity = vel;
-            state->ground_speed = norm(vel.x, vel.y);
-            state->ground_course = wrap_360(degrees(atan2f(vel.y, vel.x)));
-            state->have_vertical_velocity = true;
-        } else {
-            state->have_vertical_velocity = false;
-        }
-
-        float pos_cov[9];
-        msg.position_covariance.unpackSquareMatrix(pos_cov);
-        if (!uavcan::isNaN(pos_cov[8])) {
-            if (pos_cov[8] > 0) {
-                state->vertical_accuracy = sqrtf(pos_cov[8]);
-                state->have_vertical_accuracy = true;
-            } else {
-                state->have_vertical_accuracy = false;
-            }
-        } else {
-            state->have_vertical_accuracy = false;
-        }
-
-        const float horizontal_pos_variance = MAX(pos_cov[0], pos_cov[4]);
-        if (!uavcan::isNaN(horizontal_pos_variance)) {
-            if (horizontal_pos_variance > 0) {
-                state->horizontal_accuracy = sqrtf(horizontal_pos_variance);
-                state->have_horizontal_accuracy = true;
-            } else {
-                state->have_horizontal_accuracy = false;
-            }
-        } else {
-            state->have_horizontal_accuracy = false;
-        }
-
-        float vel_cov[9];
-        msg.velocity_covariance.unpackSquareMatrix(vel_cov);
-        if (!uavcan::isNaN(vel_cov[0])) {
-            state->speed_accuracy = sqrtf((vel_cov[0] + vel_cov[4] + vel_cov[8]) / 3.0);
-            state->have_speed_accuracy = true;
-        } else {
-            state->have_speed_accuracy = false;
-        }
-
-        state->num_sats = msg.sats_used;
-    } else {
-        state->have_vertical_velocity = false;
-        state->have_vertical_accuracy = false;
-        state->have_horizontal_accuracy = false;
-        state->have_speed_accuracy = false;
-        state->num_sats = 0;
-    }
-
-    state->last_gps_time_ms = AP_HAL::millis();
-
-    // after all is filled, update all listeners with new data
-    ap_uavcan->update_gps_state(msg.getSrcNodeID().get());
-}
-
-static void gnss_fix_cb0(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix>& msg)
-{   gnss_fix_cb(msg, 0); }
-static void gnss_fix_cb1(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix>& msg)
-{   gnss_fix_cb(msg, 1); }
-static void (*gnss_fix_cb_arr[2])(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix>& msg)
-        = { gnss_fix_cb0, gnss_fix_cb1 };
-
-static void gnss_aux_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary>& msg, uint8_t mgr)
-{
-    AP_UAVCAN *ap_uavcan = AP_UAVCAN::get_uavcan(mgr);
-    if (ap_uavcan == nullptr) {
-        return;
-    }
-    
-    AP_GPS::GPS_State *state = ap_uavcan->find_gps_node(msg.getSrcNodeID().get());
-    if (state == nullptr) {
-        return;
-    }
-
-    if (!uavcan::isNaN(msg.hdop)) {
-        state->hdop = msg.hdop * 100.0;
-    }
-
-    if (!uavcan::isNaN(msg.vdop)) {
-        state->vdop = msg.vdop * 100.0;
-    }
-}
-
-static void gnss_aux_cb0(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary>& msg)
-{   gnss_aux_cb(msg, 0); }
-static void gnss_aux_cb1(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary>& msg)
-{   gnss_aux_cb(msg, 1); }
-static void (*gnss_aux_cb_arr[2])(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary>& msg)
-        = { gnss_aux_cb0, gnss_aux_cb1 };
 
 static void magnetic_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength>& msg, uint8_t mgr)
 {
@@ -374,11 +233,6 @@ AP_UAVCAN::AP_UAVCAN() :
         _SRV_conf[i].servo_pending = false;
     }
 
-    for (uint8_t i = 0; i < AP_UAVCAN_MAX_GPS_NODES; i++) {
-        _gps_nodes[i] = UINT8_MAX;
-        _gps_node_taken[i] = 0;
-    }
-
     for (uint8_t i = 0; i < AP_UAVCAN_MAX_BARO_NODES; i++) {
         _baro_nodes[i] = UINT8_MAX;
         _baro_node_taken[i] = 0;
@@ -391,9 +245,6 @@ AP_UAVCAN::AP_UAVCAN() :
     }
 
     for (uint8_t i = 0; i < AP_UAVCAN_MAX_LISTENERS; i++) {
-        _gps_listener_to_node[i] = UINT8_MAX;
-        _gps_listeners[i] = nullptr;
-
         _baro_listener_to_node[i] = UINT8_MAX;
         _baro_listeners[i] = nullptr;
 
@@ -478,23 +329,6 @@ bool AP_UAVCAN::try_init(void)
     const int node_start_res = node->start();
     if (node_start_res < 0) {
         debug_uavcan(1, "UAVCAN: node start problem\n\r");
-    }
-
-    uavcan::Subscriber<uavcan::equipment::gnss::Fix> *gnss_fix;
-    gnss_fix = new uavcan::Subscriber<uavcan::equipment::gnss::Fix>(*node);
-
-    const int gnss_fix_start_res = gnss_fix->start(gnss_fix_cb_arr[_uavcan_i]);
-    if (gnss_fix_start_res < 0) {
-        debug_uavcan(1, "UAVCAN GNSS subscriber start problem\n\r");
-        return false;
-    }
-
-    uavcan::Subscriber<uavcan::equipment::gnss::Auxiliary> *gnss_aux;
-    gnss_aux = new uavcan::Subscriber<uavcan::equipment::gnss::Auxiliary>(*node);
-    const int gnss_aux_start_res = gnss_aux->start(gnss_aux_cb_arr[_uavcan_i]);
-    if (gnss_aux_start_res < 0) {
-        debug_uavcan(1, "UAVCAN GNSS Aux subscriber start problem\n\r");
-        return false;
     }
 
     uavcan::Subscriber<uavcan::equipment::ahrs::MagneticFieldStrength> *magnetic;
@@ -837,136 +671,6 @@ void AP_UAVCAN::SRV_push_servos()
         SRV_arm_actuators(true);
     } else {
         SRV_arm_actuators(false);
-    }
-}
-
-uint8_t AP_UAVCAN::find_gps_without_listener(void)
-{
-    for (uint8_t i = 0; i < AP_UAVCAN_MAX_LISTENERS; i++) {
-        if (_gps_listeners[i] == nullptr && _gps_nodes[i] != UINT8_MAX) {
-            return _gps_nodes[i];
-        }
-    }
-
-    return UINT8_MAX;
-}
-
-uint8_t AP_UAVCAN::register_gps_listener(AP_GPS_Backend* new_listener, uint8_t preferred_channel)
-{
-    uint8_t sel_place = UINT8_MAX, ret = 0;
-    for (uint8_t i = 0; i < AP_UAVCAN_MAX_LISTENERS; i++) {
-        if (_gps_listeners[i] == nullptr) {
-            sel_place = i;
-            break;
-        }
-    }
-
-    if (sel_place == UINT8_MAX) {
-        return 0;
-    }
-
-    if (preferred_channel != 0 && preferred_channel <= AP_UAVCAN_MAX_GPS_NODES) {
-        _gps_listeners[sel_place] = new_listener;
-        _gps_listener_to_node[sel_place] = preferred_channel - 1;
-        _gps_node_taken[_gps_listener_to_node[sel_place]]++;
-        ret = preferred_channel;
-
-        debug_uavcan(2, "reg_GPS place:%d, chan: %d\n\r", sel_place, preferred_channel);
-    } else {
-        for (uint8_t i = 0; i < AP_UAVCAN_MAX_GPS_NODES; i++) {
-            if (_gps_node_taken[i] == 0) {
-                _gps_listeners[sel_place] = new_listener;
-                _gps_listener_to_node[sel_place] = i;
-                _gps_node_taken[i]++;
-                ret = i + 1;
-
-                debug_uavcan(2, "reg_GPS place:%d, chan: %d\n\r", sel_place, i);
-                break;
-            }
-        }
-    }
-
-    return ret;
-}
-
-uint8_t AP_UAVCAN::register_gps_listener_to_node(AP_GPS_Backend* new_listener, uint8_t node)
-{
-    uint8_t sel_place = UINT8_MAX, ret = 0;
-
-    for (uint8_t i = 0; i < AP_UAVCAN_MAX_LISTENERS; i++) {
-        if (_gps_listeners[i] == nullptr) {
-            sel_place = i;
-            break;
-        }
-    }
-
-    if (sel_place == UINT8_MAX) {
-        return 0;
-    }
-    for (uint8_t i = 0; i < AP_UAVCAN_MAX_GPS_NODES; i++) {
-        if (_gps_nodes[i] == node) {
-            _gps_listeners[sel_place] = new_listener;
-            _gps_listener_to_node[sel_place] = i;
-            _gps_node_taken[i]++;
-            ret = i + 1;
-
-            debug_uavcan(2, "reg_GPS place:%d, chan: %d\n\r", sel_place, i);
-            break;
-        }
-    }
-
-    return ret;
-}
-
-void AP_UAVCAN::remove_gps_listener(AP_GPS_Backend* rem_listener)
-{
-    // Check for all listeners and compare pointers
-    for (uint8_t i = 0; i < AP_UAVCAN_MAX_LISTENERS; i++) {
-        if (_gps_listeners[i] == rem_listener) {
-            _gps_listeners[i] = nullptr;
-
-            // Also decrement usage counter and reset listening node
-            if (_gps_node_taken[_gps_listener_to_node[i]] > 0) {
-                _gps_node_taken[_gps_listener_to_node[i]]--;
-            }
-            _gps_listener_to_node[i] = UINT8_MAX;
-        }
-    }
-}
-
-AP_GPS::GPS_State *AP_UAVCAN::find_gps_node(uint8_t node)
-{
-    // Check if such node is already defined
-    for (uint8_t i = 0; i < AP_UAVCAN_MAX_GPS_NODES; i++) {
-        if (_gps_nodes[i] == node) {
-            return &_gps_node_state[i];
-        }
-    }
-
-    // If not - try to find free space for it
-    for (uint8_t i = 0; i < AP_UAVCAN_MAX_GPS_NODES; i++) {
-        if (_gps_nodes[i] == UINT8_MAX) {
-            _gps_nodes[i] = node;
-            return &_gps_node_state[i];
-        }
-    }
-
-    // If no space is left - return nullptr
-    return nullptr;
-}
-
-void AP_UAVCAN::update_gps_state(uint8_t node)
-{
-    // Go through all listeners of specified node and call their's update methods
-    for (uint8_t i = 0; i < AP_UAVCAN_MAX_GPS_NODES; i++) {
-        if (_gps_nodes[i] != node) {
-            continue;
-        }
-        for (uint8_t j = 0; j < AP_UAVCAN_MAX_LISTENERS; j++) {
-            if (_gps_listener_to_node[j] == i) {
-                _gps_listeners[j]->handle_gnss_msg(_gps_node_state[i]);
-            }
-        }
     }
 }
 
