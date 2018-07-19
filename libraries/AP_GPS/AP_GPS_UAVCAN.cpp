@@ -28,25 +28,6 @@ extern const AP_HAL::HAL& hal;
 
 #define debug_gps_uavcan(level, fmt, args...) do { if ((level) <= AP_BoardConfig_CAN::get_can_debug()) { printf(fmt, ##args); }} while (0)
 
-//Static Methods for UAVCAN GPS module detection, msg handling and registration
-void AP_GPS_UAVCAN::uavcan_gps_fix_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg, uint8_t manager)
-{
-    uint8_t driver_id = AP::gps().get_uavcan_backend(msg.getSrcNodeID(), manager);
-
-    if (driver_id != UINT8_MAX) {
-        ((AP_GPS_UAVCAN*)(&AP::gps().drivers[driver_id]))->handle_fix_msg(msg);
-    }
-}
-
-void AP_GPS_UAVCAN::uavcan_gps_aux_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &msg, uint8_t manager)
-{
-    uint8_t driver_id = AP::gps().get_uavcan_backend(msg.getSrcNodeID(), manager);
-
-    if (driver_id != UINT8_MAX) {
-        ((AP_GPS_UAVCAN*)(&AP::gps().drivers[driver_id]))->handle_aux_msg(msg);
-    }
-}
-
 void AP_GPS_UAVCAN::subscribe_gps_uavcan_messages()
 {
     for (uint8_t i = 0; i < MAX_NUMBER_OF_CAN_DRIVERS; i++) {
@@ -58,20 +39,20 @@ void AP_GPS_UAVCAN::subscribe_gps_uavcan_messages()
             continue;
         }
         auto* node = ap_uavcan->get_node();
-        uavcan::Subscriber<uavcan::equipment::gnss::Fix> *gnss_fix;
-        gnss_fix = new uavcan::Subscriber<uavcan::equipment::gnss::Fix>(*node);
 
-        const int gnss_fix_start_res = gnss_fix->start(uavcan_gps_fix_cb(ap_uavcan->get_uavcan_id()));
+        uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCb> *gnss_fix;
+        gnss_fix = new uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCb>(*node);
+        const int gnss_fix_start_res = gnss_fix->start(FixCb(ap_uavcan, &AP_GPS_UAVCAN::handle_fix_msg, &AP_GPS::get_uavcan_backend, &AP::gps()));
         if (gnss_fix_start_res < 0) {
             AP_HAL::panic("UAVCAN GNSS subscriber start problem\n\r");
             return;
         }
 
-        uavcan::Subscriber<uavcan::equipment::gnss::Auxiliary> *gnss_aux;
-        gnss_aux = new uavcan::Subscriber<uavcan::equipment::gnss::Auxiliary>(*node);
-        const int gnss_aux_start_res = gnss_aux->start(uavcan_gps_aux_cb(ap_uavcan->get_uavcan_id()));
+        uavcan::Subscriber<uavcan::equipment::gnss::Auxiliary, AuxCb> *gnss_aux;
+        gnss_aux = new uavcan::Subscriber<uavcan::equipment::gnss::Auxiliary, AuxCb>(*node);
+        const int gnss_aux_start_res = gnss_aux->start(AuxCb(ap_uavcan, &AP_GPS_UAVCAN::handle_aux_msg, &AP_GPS::get_uavcan_backend, &AP::gps()));
         if (gnss_aux_start_res < 0) {
-            AP_HAL::panic("UAVCAN GNSS Aux subscriber start problem\n\r");
+            AP_HAL::panic("UAVCAN GNSS subscriber start problem\n\r");
             return;
         }
     }
@@ -82,9 +63,9 @@ AP_GPS_UAVCAN::AP_GPS_UAVCAN(AP_GPS &_gps, AP_GPS::GPS_State &_state, AP_HAL::UA
     AP_GPS_Backend(_gps, _state, _port)
 {}
 
-void AP_GPS_UAVCAN::set_uavcan_manager(uint8_t mgr)
+void AP_GPS_UAVCAN::set_uavcan_manager(AP_UAVCAN* uavcan)
 {
-    _manager = mgr;
+    _uavcan = uavcan;
 }
 
 // Consume new data and mark it received

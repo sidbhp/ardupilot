@@ -279,10 +279,13 @@ AP_GPS::AP_GPS()
 void AP_GPS::init(const AP_SerialManager& serial_manager)
 {
     primary_instance = 0;
-
+    uint8_t serial_line = 0;
     // search for serial ports with gps protocol
-    _port[0] = serial_manager.find_serial(AP_SerialManager::SerialProtocol_GPS, 0);
-    _port[1] = serial_manager.find_serial(AP_SerialManager::SerialProtocol_GPS, 1);
+    for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+        if (_type[i] != GPS_TYPE_UAVCAN) {
+            _port[i] = serial_manager.find_serial(AP_SerialManager::SerialProtocol_GPS, serial_line++);
+        }
+    }
     _last_instance_swap_ms = 0;
 #if HAL_WITH_UAVCAN
     //Subscribe to GPS messages
@@ -1523,37 +1526,45 @@ bool AP_GPS::prepare_for_arming(void) {
 
 #if HAL_WITH_UAVCAN
 
-uint8_t AP_GPS::get_uavcan_backend(uavcan::NodeID node_id, uint8_t manager)
+AP_GPS_UAVCAN* AP_GPS::get_uavcan_backend(AP_UAVCAN* ap_uavcan, uint8_t node_id)
 {
-    uint8_t driver_id = UINT8_MAX;
+    AP_GPS_UAVCAN* driver = nullptr;
     for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
         if (node_id == uavcan_node_ids[i]) {
-            if (((AP_GPS_UAVCAN*)(&drivers[i]))->get_uavcan_manager() == manager) {
-                driver_id = i;
+            if (((AP_GPS_UAVCAN*)(&drivers[i]))->get_uavcan_manager() == ap_uavcan) {
+                driver = (AP_GPS_UAVCAN*)drivers[i];
                 break;
             }
         }
     }
-    if (driver_id == UINT8_MAX) {
-        hal.console->printf("Detected UAVCAN GPS...");
-        if (num_instances >= 2) {
-            return driver_id;
+    if (driver == nullptr) {
+        if (num_instances >= GPS_MAX_RECEIVERS) {
+            return driver;
         }
+
         for (uint8_t instance = num_instances; instance < GPS_MAX_RECEIVERS; instance++) {
-            if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_UAVCAN) && uavcan_node_ids[instance] == UINT8_MAX){
+            hal.console->printf("Trying %d/%d %d %d\n", instance, num_instances, _type[instance], uavcan_node_ids[instance]);
+            if ((_type[instance] == GPS_TYPE_AUTO || _type[instance] == GPS_TYPE_UAVCAN) && uavcan_node_ids[instance] == UINT8_MAX) {
                 drivers[instance] = new AP_GPS_UAVCAN(*this, state[instance], nullptr);
                 if (drivers[instance] != nullptr) {
-                    ((AP_GPS_UAVCAN*)&drivers[instance])->set_uavcan_manager(manager);
+                    uavcan_node_ids[instance] = node_id;
+                    ((AP_GPS_UAVCAN*)&drivers[instance])->set_uavcan_manager(ap_uavcan);
                     state[instance].status = NO_FIX;
                     timing[instance].last_message_time_ms = AP_HAL::millis();
                     timing[instance].delta_time_ms = GPS_TIMEOUT_MS;
                     drivers[instance]->broadcast_gps_type();
+                    _port[instance] = nullptr;
+                    driver = (AP_GPS_UAVCAN*)drivers[instance];
+                    hal.console->printf("Registered to register UAVCAN GPS Node %d\n", node_id);
+                    return driver;
                 }
-                return instance;
             }
         }
     }
-    return driver_id;
+    if (driver == nullptr) {
+        hal.console->printf("Failed to register UAVCAN GPS Node %d\n", node_id);
+    }
+    return driver;
 }
 #endif
 namespace AP {

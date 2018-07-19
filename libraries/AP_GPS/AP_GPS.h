@@ -44,7 +44,7 @@
 #define UNIX_OFFSET_MSEC (17000ULL * 86400ULL + 52ULL * 10ULL * AP_MSEC_PER_WEEK - GPS_LEAPSECONDS_MILLIS)
 
 class AP_GPS_Backend;
-
+class AP_GPS_UAVCAN;
 /// @class AP_GPS
 /// GPS driver main class
 class AP_GPS
@@ -469,8 +469,8 @@ private:
     AP_HAL::UARTDriver *_port[GPS_MAX_RECEIVERS];
 
 #if HAL_WITH_UAVCAN
-    uint8_t get_uavcan_backend(uavcan::NodeID node_id, uint8_t manager);
-    uavcan::NodeID uavcan_node_ids[GPS_MAX_RECEIVERS] = {INT8_MAX};
+    AP_GPS_UAVCAN* get_uavcan_backend(AP_UAVCAN* ap_uavcan, uint8_t node_id);
+    uint8_t uavcan_node_ids[GPS_MAX_RECEIVERS] = {UINT8_MAX};
 #endif
 
     /// primary GPS instance

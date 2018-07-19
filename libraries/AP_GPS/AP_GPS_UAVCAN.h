@@ -30,8 +30,8 @@ public:
     AP_GPS_UAVCAN(AP_GPS &_gps, AP_GPS::GPS_State &_state, AP_HAL::UARTDriver *_port);
 
     bool read() override;
-    void set_uavcan_manager(uint8_t mgr);
-    uint8_t get_uavcan_manager() { return _manager; }
+    void set_uavcan_manager(AP_UAVCAN* uavcan);
+    AP_UAVCAN* get_uavcan_manager() { return _uavcan; }
     const char *name() const override { return "UAVCAN"; }
     static void subscribe_gps_uavcan_messages();
 
@@ -41,34 +41,9 @@ private:
 
     void handle_fix_msg(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
     void handle_aux_msg(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &msg);
+    AP_UAVCAN* _uavcan;
 
-    //Static Methods for UAVCAN GPS module detection, msg handling and registration
-    typedef void (*fix_cb)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
-    typedef void (*aux_cb)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &msg);
-    
-    static void uavcan_gps_fix_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg, uint8_t manager);
-    static void uavcan_gps_aux_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &msg, uint8_t manager);
-
-    static void uavcan_gps_fix_cb1(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg) { uavcan_gps_fix_cb(msg, 0); }
-    static void uavcan_gps_fix_cb2(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg) { uavcan_gps_fix_cb(msg, 1); }
-
-    static void uavcan_gps_aux_cb1(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &msg) { uavcan_gps_aux_cb(msg, 0); }
-    static void uavcan_gps_aux_cb2(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &msg) { uavcan_gps_aux_cb(msg, 1); }
-    static inline fix_cb uavcan_gps_fix_cb(uint8_t i)
-    {
-        if (i == 0) {
-           return uavcan_gps_fix_cb1;
-        } else {
-            return uavcan_gps_fix_cb2;
-        }
-    }
-
-    static inline aux_cb uavcan_gps_aux_cb(uint8_t i)
-    {
-        if (i == 0) {
-           return uavcan_gps_aux_cb1;
-        } else {
-            return uavcan_gps_aux_cb2;
-        }
-    }
+    //global callbacks
+    typedef AP_UAVCAN::Callback<uavcan::equipment::gnss::Fix, AP_GPS_UAVCAN, AP_GPS> FixCb;
+    typedef AP_UAVCAN::Callback<uavcan::equipment::gnss::Auxiliary, AP_GPS_UAVCAN, AP_GPS> AuxCb;
 };
