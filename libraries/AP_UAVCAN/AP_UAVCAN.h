@@ -245,6 +245,34 @@ public:
     {
         _parent_can_mgr = parent_can_mgr;
     }
+
+    template <typename DataType_, typename Backend_, typename Frontend_>
+    class Callback {
+        AP_UAVCAN* _uc;
+        void (Backend_::*_bfunc)(const uavcan::ReceivedDataStructure<DataType_> &);
+        Backend_* (Frontend_::*_ffunc)(AP_UAVCAN*, uint8_t); 
+        Frontend_* _frontend;       
+
+        public:
+            Callback()
+                : _uc(),
+                _bfunc(),
+                _ffunc(),
+                _frontend() {}
+            Callback(AP_UAVCAN* uc, void (Backend_::*bfunc)(const uavcan::ReceivedDataStructure<DataType_> &), 
+                    Backend_* (Frontend_::*ffunc)(AP_UAVCAN*, uint8_t), Frontend_ *frontend):
+                _uc(uc),
+                _bfunc(bfunc),
+                _ffunc(ffunc),
+                _frontend(frontend) {}
+
+            void operator()(const uavcan::ReceivedDataStructure<DataType_> & msg) {
+                Backend_* bk = (_frontend->*_ffunc)(_uc, msg.getSrcNodeID().get());
+                if (bk != nullptr) {
+                    (bk->*_bfunc)(msg);
+                }
+            }
+    };
 };
 
 #endif /* AP_UAVCAN_H_ */
