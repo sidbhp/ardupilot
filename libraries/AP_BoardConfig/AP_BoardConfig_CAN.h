@@ -6,6 +6,10 @@
 
 #include <AP_Param/AP_Param.h>
 
+#ifndef AP_CAN_DEBUG
+  #define AP_CAN_DEBUG 0
+#endif
+
 class AP_BoardConfig_CAN {
 public:
     AP_BoardConfig_CAN();
@@ -42,9 +46,11 @@ public:
     // return debug level for interface i
     int8_t get_debug_level(uint8_t i)
     {
+#if AP_CAN_DEBUG
         if (i < MAX_NUMBER_OF_CAN_INTERFACES) {
             return _interfaces[i]._driver_number_cache ? _interfaces[i]._debug_level : 0;
         }
+#endif
         return 0;
     }
 
@@ -52,10 +58,12 @@ public:
     int8_t get_debug_level(void)
     {
         uint8_t ret = 0;
+#if AP_CAN_DEBUG
         for (uint8_t i = 0; i < MAX_NUMBER_OF_CAN_INTERFACES; i++) {
             uint8_t dbg = get_debug_level(i);
             ret = (dbg > ret) ? dbg : ret;
         }
+#endif
         return ret;
     }
     
@@ -63,12 +71,14 @@ public:
     int8_t get_debug_level_driver(uint8_t i)
     {
         uint8_t ret = 0;
+#if AP_CAN_DEBUG
         for (uint8_t j = 0; j < MAX_NUMBER_OF_CAN_INTERFACES; j++) {
             if (_interfaces[j]._driver_number_cache == i) {
                 uint8_t dbg = get_debug_level(j);
                 ret = (dbg > ret) ? dbg : ret;
             }
         }
+#endif
         return ret;
     }
 
@@ -105,7 +115,9 @@ private:
         AP_Int8 _driver_number;
         uint8_t _driver_number_cache;
         AP_Int32 _bitrate;
+#if AP_CAN_DEBUG
         AP_Int8 _debug_level;
+#endif
     };
 
     class Driver {
