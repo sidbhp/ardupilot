@@ -13,7 +13,7 @@ public:
     Scheduler() {}
     virtual void     init() = 0;
     virtual void     delay(uint16_t ms) = 0;
-
+    virtual void     get_stats(void) { }
     /*
       delay for the given number of microseconds. This needs to be as
       accurate as possible - preferably within 100 microseconds.

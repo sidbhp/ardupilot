@@ -62,6 +62,7 @@ public:
 
 
     void     init();
+    void     get_stats() override;
     void     delay(uint16_t ms) override;
     void     delay_microseconds(uint16_t us) override;
     void     delay_microseconds_boost(uint16_t us) override;
@@ -95,6 +96,7 @@ public:
     bool thread_create(AP_HAL::MemberProc, const char *name, uint32_t stack_size, priority_base base, int8_t priority) override;
     
 private:
+    float _busy_percent; 
     bool _initialized;
     volatile bool _hal_initialized;
     AP_HAL::Proc _failsafe;
