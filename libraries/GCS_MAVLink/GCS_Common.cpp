@@ -2387,9 +2387,58 @@ void GCS_MAVLINK::handle_common_message(mavlink_message_t *msg)
     case MAVLINK_MSG_ID_SYSTEM_TIME:
         handle_system_time_message(msg);
         break;
+
+    case MAVLINK_MSG_ID_OTP_READ:
+        handle_otp_read(msg);
+        break;
+
+    case MAVLINK_MSG_ID_OTP_WRITE:
+        handle_otp_write(msg);
+        break;
+
+    case MAVLINK_MSG_ID_OTP_LOCK:
+        handle_otp_lock(msg);
+        break;
     }
 
 }
+
+void GCS_MAVLINK::handle_otp_read(mavlink_message_t *msg)
+{
+    mavlink_otp_read_t packet;
+    uint8_t data[32];
+    mavlink_msg_otp_read_decode(msg, &packet);
+    uint8_t lock = hal.storage->read_otp(data, packet.region, packet.size);
+    mavlink_msg_otp_read_response_send(
+        chan,
+        packet.region,
+        packet.size,
+        lock,
+        data);
+}
+
+void GCS_MAVLINK::handle_otp_write(mavlink_message_t *msg)
+{
+    mavlink_otp_write_t packet;
+    mavlink_msg_otp_write_decode(msg, &packet);
+    if (hal.storage->write_otp(packet.data, packet.region, packet.size)) {
+        mavlink_msg_command_ack_send_buf(msg, chan, MAVLINK_MSG_ID_OTP_WRITE, MAV_RESULT_ACCEPTED);
+    } else {
+        mavlink_msg_command_ack_send_buf(msg, chan, MAVLINK_MSG_ID_OTP_WRITE, MAV_RESULT_FAILED);
+    }
+}
+
+void GCS_MAVLINK::handle_otp_lock(mavlink_message_t *msg)
+{
+    mavlink_otp_lock_t packet;
+    mavlink_msg_otp_lock_decode(msg, &packet);
+    if (hal.storage->lock_otp(packet.region)) {
+        mavlink_msg_command_ack_send_buf(msg, chan, MAVLINK_MSG_ID_OTP_LOCK, MAV_RESULT_ACCEPTED);
+    } else {
+        mavlink_msg_command_ack_send_buf(msg, chan, MAVLINK_MSG_ID_OTP_LOCK, MAV_RESULT_FAILED);
+    }
+}
+
 
 void GCS_MAVLINK::handle_common_mission_message(mavlink_message_t *msg)
 {
