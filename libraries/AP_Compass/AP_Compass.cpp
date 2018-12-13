@@ -834,7 +834,10 @@ void Compass::_detect_backends(void)
                                                               false, ROTATION_YAW_90));
         ADD_BACKEND(DRIVER_LSM303D, AP_Compass_LSM303D::probe(hal.spi->get_device(HAL_INS_LSM9DS0_A_NAME), ROTATION_PITCH_180_YAW_270));
         break;
-        
+    case AP_BoardConfig::PX4_BOARD_DLSUFC:
+        ADD_BACKEND(DRIVER_IST8310, AP_Compass_IST8310::probe(GET_I2C_DEVICE(1, HAL_COMPASS_IST8310_I2C_ADDR),
+                                                                  false, ROTATION_NONE));
+        break;
     default:
         break;
     }
@@ -898,9 +901,6 @@ void Compass::_detect_backends(void)
     ADD_BACKEND(DRIVER_LIS3MDL, AP_Compass_LIS3MDL::probe(hal.spi->get_device(HAL_COMPASS_LIS3MDL_NAME), false, ROTATION_ROLL_180_YAW_90));
 #elif HAL_COMPASS_DEFAULT == HAL_COMPASS_MAG3110                
     ADD_BACKEND(DRIVER_MAG3110, AP_Compass_MAG3110::probe(GET_I2C_DEVICE(HAL_MAG3110_I2C_BUS, HAL_MAG3110_I2C_ADDR), ROTATION_NONE));
-#elif HAL_COMPASS_DEFAULT == HAL_COMPASS_IST8310
-    ADD_BACKEND(DRIVER_IST8310, AP_Compass_IST8310::probe(GET_I2C_DEVICE(HAL_COMPASS_IST8310_I2C_BUS, HAL_COMPASS_IST8310_I2C_ADDR),
-                                                           true, ROTATION_PITCH_180_YAW_90));
 #elif HAL_COMPASS_DEFAULT == HAL_COMPASS_QMC5883L
     ADD_BACKEND(DRIVER_QMC5883, AP_Compass_QMC5883L::probe(GET_I2C_DEVICE(1, HAL_COMPASS_QMC5883L_I2C_ADDR),
                                                            true, HAL_COMPASS_QMC5883L_ORIENTATION_EXTERNAL));

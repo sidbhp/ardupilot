@@ -9,7 +9,7 @@
 #include <AP_Param_Helper/AP_Param_Helper.h>
 #endif
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN || defined(HAL_CHIBIOS_ARCH_FMUV3) || defined(HAL_CHIBIOS_ARCH_FMUV4) || defined(HAL_CHIBIOS_ARCH_FMUV5) || defined(HAL_CHIBIOS_ARCH_MINDPXV2) || defined(HAL_CHIBIOS_ARCH_FMUV4PRO)
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN || defined(HAL_CHIBIOS_ARCH_FMUV3) || defined(HAL_CHIBIOS_ARCH_FMUV4) || defined(HAL_CHIBIOS_ARCH_FMUV5) || defined(HAL_CHIBIOS_ARCH_MINDPXV2) || defined(HAL_CHIBIOS_ARCH_FMUV4PRO) || defined(HAL_CHIBIOS_ARCH_DLSUFC)
 #define AP_FEATURE_BOARD_DETECT 1
 #else
 #define AP_FEATURE_BOARD_DETECT 0
@@ -48,13 +48,13 @@ public:
     static AP_BoardConfig *get_instance(void) {
         return instance;
     }
-    
+
     void init(void);
     void init_safety(void);
 
     static const struct AP_Param::GroupInfo var_info[];
 
-    // notify user of a fatal startup error related to available sensors. 
+    // notify user of a fatal startup error related to available sensors.
     static void sensor_config_error(const char *reason);
 
     // permit other libraries (in particular, GCS_MAVLink) to detect
@@ -84,6 +84,7 @@ public:
         PX4_BOARD_MINDPXV2 = 22,
         PX4_BOARD_SP01     = 23,
         PX4_BOARD_FMUV5    = 24,
+        PX4_BOARD_DLSUFC   = 25,
         VRX_BOARD_BRAIN51  = 30,
         VRX_BOARD_BRAIN52  = 32,
         VRX_BOARD_BRAIN52E = 33,
@@ -156,13 +157,13 @@ public:
         return instance?instance->_vservo_min.get():0;
     }
 #endif
-    
+
 private:
     static AP_BoardConfig *instance;
-    
+
     AP_Int16 vehicleSerialNumber;
     AP_Int8 pwm_count;
-    
+
 #if AP_FEATURE_BOARD_DETECT || defined(AP_FEATURE_BRD_PWM_COUNT_PARAM) || HAL_HAVE_SAFETY_SWITCH
     struct {
         AP_Int8 safety_enable;
@@ -188,7 +189,7 @@ private:
     void px4_setup_px4io(void);
     void px4_setup_peripherals(void);
 #endif
-    
+
 
     void board_setup_drivers(void);
     bool spi_check_register(const char *devname, uint8_t regnum, uint8_t value, uint8_t read_flag = 0x80);
@@ -212,7 +213,7 @@ private:
     // direct attached radio
     AP_Radio _radio;
 #endif
-    
+
 #if defined(HAL_NEEDS_PARAM_HELPER)
     // HAL specific parameters
     AP_Param_Helper param_helper{false};

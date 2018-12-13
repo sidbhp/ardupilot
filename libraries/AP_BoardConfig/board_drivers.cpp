@@ -105,6 +105,7 @@ void AP_BoardConfig::board_setup_drivers(void)
     case PX4_BOARD_PIXHAWK_PRO:
     case PX4_BOARD_PCNC1:
     case PX4_BOARD_MINDPXV2:
+    case PX4_BOARD_DLSUFC:
         break;
     default:
         sensor_config_error("Unknown board type");
@@ -176,7 +177,7 @@ void AP_BoardConfig::validate_board_type(void)
         // configured for PIXHAWK1
 #if !defined(CONFIG_ARCH_BOARD_PX4FMU_V3) && !defined(HAL_CHIBIOS_ARCH_FMUV3)
         // force user to load the right firmware
-        sensor_config_error("Pixhawk2 requires FMUv3 firmware");        
+        sensor_config_error("Pixhawk2 requires FMUv3 firmware");
 #endif
         state.board_type.set(PX4_BOARD_PIXHAWK2);
         hal.console->printf("Forced PIXHAWK2\n");
@@ -244,13 +245,16 @@ void AP_BoardConfig::board_autodetect(void)
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V4PRO) || defined(HAL_CHIBIOS_ARCH_FMUV4PRO)
     // only one choice
     state.board_type.set_and_notify(PX4_BOARD_PIXHAWK_PRO);
-    hal.console->printf("Detected Pixhawk Pro\n");	
+    hal.console->printf("Detected Pixhawk Pro\n");
 #elif defined(CONFIG_ARCH_BOARD_AEROFC_V1)
     state.board_type.set_and_notify(PX4_BOARD_AEROFC);
     hal.console->printf("Detected Aero FC\n");
 #elif defined(HAL_CHIBIOS_ARCH_FMUV5)
     state.board_type.set_and_notify(PX4_BOARD_FMUV5);
     hal.console->printf("Detected FMUv5\n");
+#elif defined(HAL_CHIBIOS_ARCH_DLSUFC)
+    state.board_type.set_and_notify(PX4_BOARD_DLSUFC);
+    hal.console->printf("Detected DLSUFC\n");
 #elif defined(CONFIG_ARCH_BOARD_VRBRAIN_V51)
     state.board_type.set_and_notify(VRX_BOARD_BRAIN51);
     hal.console->printf("Detected VR Brain 5.1\n");
@@ -345,4 +349,3 @@ void AP_BoardConfig::board_setup()
     board_setup_drivers();
 #endif
 }
-
