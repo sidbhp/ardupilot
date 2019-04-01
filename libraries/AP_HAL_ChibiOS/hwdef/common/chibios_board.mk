@@ -109,6 +109,8 @@ include $(CHIBIOS)/os/various/cpp_wrappers/chcpp.mk
 include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
 endif
 
+include $(CHIBIOS)/os/various/wolfssl_bindings/wolfssl.mk
+
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 

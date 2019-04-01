@@ -225,6 +225,16 @@ class Board:
                 cfg.srcnode.find_dir('modules/uavcan/libuavcan/include').abspath()
             ]
 
+        if cfg.options.with_libnpnt:
+            env.AP_LIBRARIES += [
+                'modules/libnpnt/jsmn/*.c',
+                'modules/libnpnt/src/*.c',
+                'modules/libnpnt/mxml/mxml-*.c'
+                ]
+            env.INCLUDES += [
+                cfg.srcnode.find_dir('modules/libnpnt/').abspath(),
+                cfg.srcnode.find_dir('modules/libnpnt/inc').abspath()
+            ]
         # We always want to use PRI format macros
         cfg.define('__STDC_FORMAT_MACROS', 1)
 

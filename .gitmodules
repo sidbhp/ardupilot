@@ -16,3 +16,6 @@
 [submodule "modules/ChibiOS"]
 	path = modules/ChibiOS
 	url = git://github.com/ArduPilot/ChibiOS.git
+[submodule "modules/libnpnt"]
+	path = modules/libnpnt
+	url = https://github.com/iSPIRT/libnpnt

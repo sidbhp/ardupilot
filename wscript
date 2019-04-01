@@ -101,6 +101,11 @@ def options(opt):
         default=False,
         help='Configure for building a bootloader.')
 
+    g.add_option('--with-libnpnt',
+        action='store_true',
+        default=False,
+        help='Configure for building with libnpnt.')
+
     g.add_option('--no-autoconfig',
         dest='autoconfig',
         action='store_false',
