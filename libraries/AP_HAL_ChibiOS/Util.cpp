@@ -25,6 +25,10 @@
 #include <AP_ROMFS/AP_ROMFS.h>
 #include "sdcard.h"
 
+#include <wolfssl_chibios.h>
+#include <wolfssl/wolfcrypt/ecc.h>
+#include <wolfssl/wolfcrypt/rsa.h>
+
 #if HAL_WITH_IO_MCU
 #include <AP_BoardConfig/AP_BoardConfig.h>
 #include <AP_IOMCU/AP_IOMCU.h>
@@ -223,6 +227,71 @@ uint64_t Util::get_hw_rtc() const
 }
 
 #ifndef HAL_NO_FLASH_SUPPORT
+
+bool Util::erase_flash_region(void *addr, uint32_t count)
+{
+    return stm32_flash_eraseregion((unsigned int)addr, count) > 0;
+}
+
+static ecc_key security_key;
+bool Util::generate_ecc_key(uint8_t* priv_key, uint32_t &length)
+{
+    WC_RNG rng;
+    int ret;
+    unsigned int keylen = length;
+    wc_InitRng(&rng);
+    wc_ecc_init(&security_key);
+    ret = wc_ecc_make_key(&rng, 32, &security_key);
+    if ( ret != 0) {
+        hal.console->printf("Error making ECC key\n, ret = %d\n", ret);
+        return false;
+    }
+    ret = wc_ecc_export_x963_ex(&security_key, priv_key, &keylen, 1);
+    if ( ret != 0) {
+        hal.console->printf("Error exporting private key, ret = %d\n", ret);
+        return false;
+    }
+    length = keylen;
+    return true;
+}
+
+static RsaKey rsa_public_key;
+bool Util::validate_package(uint8_t* package, uint32_t &length)
+{
+    (void)rsa_public_key;
+    return true;
+}
+
+bool Util::init_key_from_raw(uint8_t* priv_key, uint32_t length)
+{
+    int ret = wc_ecc_import_x963(priv_key, length, &security_key);
+    if (ret != 0) {
+        hal.console->printf("Key Import failed, ret = %d\n", ret);
+        return false;
+    }
+    return true;
+}
+
+bool Util::write_flash_region(void *addr, uint8_t* data, uint32_t count)
+{
+    hal.console->printf("Flashing @%08x\n", (unsigned int)addr);
+    const uint8_t max_attempts = 10;
+    for (uint8_t i=0; i < max_attempts; i++) {
+        void *context = hal.scheduler->disable_interrupts_save();
+        const int32_t written = stm32_flash_write((unsigned int)addr, data, count);
+        hal.scheduler->restore_interrupts(context);
+        if (written == -1 || written < count) {
+            hal.console->printf("Flash failed! (attempt=%u/%u)\n",
+                                i+1,
+                                max_attempts);
+            hal.scheduler->delay(1000);
+            continue;
+        }
+        hal.console->printf("Flash OK\n");
+        return true;
+    }
+    return false;
+}
 
 bool Util::flash_bootloader()
 {

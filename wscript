@@ -136,6 +136,14 @@ submodules at specific revisions.
                  default=False,
                  help="Enable checking of math indexes")
 
+    g.add_option('--add-rsa-cert',
+            dest='add_rsa_cert',
+            action='store_true',
+            default=False,
+            help='''Embed RSA certificate for authentications. The
+    file should be in X509 format and stored in rsa.cer file.
+    ''')
+
     g.add_option('--enable-scripting', action='store_true',
                  default=False,
                  help="Enable onboard scripting engine")

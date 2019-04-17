@@ -54,6 +54,8 @@ ifeq ($(USE_FATFS),yes)
 include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
 endif
 
+include $(CHIBIOS)/os/various/wolfssl_bindings/wolfssl.mk
+
 #
 # Build global options
 ##############################################################################
@@ -210,7 +212,7 @@ CPPWARN = -Wall -Wextra -Wundef
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = $(ENV_UDEFS) $(FATFS_FLAGS) -DHAL_BOARD_NAME=\"$(HAL_BOARD_NAME)\"
+UDEFS = $(ENV_UDEFS) $(FATFS_FLAGS)  -DWOLFSSL_USER_SETTINGS -DSKIP_WOLFSSL_BINDINGS -DHAL_BOARD_NAME=\"$(HAL_BOARD_NAME)\"
 
 ifeq ($(ENABLE_ASSERTS),yes)
  UDEFS += -DHAL_CHIBIOS_ENABLE_ASSERTS

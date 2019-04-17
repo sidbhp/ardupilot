@@ -233,6 +233,14 @@ void __early_init(void) {
 void __late_init(void) {
   halInit();
   chSysInit();
+
+  /*
+   * Initialize RNG
+   */
+  rccEnableAHB2(RCC_AHB2ENR_RNGEN, 0);
+  RNG->CR |= RNG_CR_IE;
+  RNG->CR |= RNG_CR_RNGEN;
+
 #if CH_CFG_USE_HEAP == TRUE
   malloc_init();
 #endif

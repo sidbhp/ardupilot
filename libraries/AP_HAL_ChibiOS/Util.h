@@ -99,6 +99,11 @@ private:
     uint64_t get_hw_rtc() const override;
 #ifndef HAL_NO_FLASH_SUPPORT
     bool flash_bootloader() override;
+    bool write_flash_region(void *addr, uint8_t* data, uint32_t count) override;
+    bool erase_flash_region(void *addr, uint32_t count) override;
+    bool generate_ecc_key(uint8_t* priv_key, uint32_t &length) override;
+    bool validate_package(uint8_t* package, uint32_t &length) override;
+    bool init_key_from_raw(uint8_t* priv_key, uint32_t length) override;
 #endif
 
 #ifdef ENABLE_HEAP

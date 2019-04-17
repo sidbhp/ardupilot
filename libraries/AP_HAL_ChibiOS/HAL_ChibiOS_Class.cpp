@@ -26,7 +26,7 @@
 #include "sdcard.h"
 #include "hwdef/common/usbcfg.h"
 #include "hwdef/common/stm32_util.h"
-
+#include <AP_Security/AP_Security.h>
 #include <hwdef.h>
 
 #ifndef HAL_NO_UARTDRIVER
@@ -240,6 +240,7 @@ void HAL_ChibiOS::run(int argc, char * const argv[], Callbacks* callbacks) const
     sdStart((SerialDriver*)&HAL_STDOUT_SERIAL, &stdoutcfg);
 #endif
 
+    AP::security().init();
     assert(callbacks);
     g_callbacks = callbacks;
 
