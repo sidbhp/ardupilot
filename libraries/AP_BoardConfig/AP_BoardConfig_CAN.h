@@ -90,7 +90,7 @@ public:
 #if !HAL_MINIMIZE_FEATURES
     int8_t get_slcan_serial() { return _slcan._ser_port; }
     uint8_t get_slcan_timeout() { return _slcan._timeout; }
-    void reset_slcan_serial() { _slcan._ser_port.set_and_save_ifchanged(-1); }
+    void reset_slcan_serial() { _slcan._ser_port.set_and_save_ifchanged(0); }
 #endif
 private:
     class Interface {

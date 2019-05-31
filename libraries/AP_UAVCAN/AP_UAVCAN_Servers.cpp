@@ -263,6 +263,7 @@ bool AP_UAVCAN_Servers::init(uavcan::Node<0> &node)
     if (_server_instance != nullptr) {
         return true;
     }
+    reset();
 
     int ret = 0;
 

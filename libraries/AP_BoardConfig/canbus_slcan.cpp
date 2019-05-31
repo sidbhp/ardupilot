@@ -32,7 +32,7 @@ const AP_Param::GroupInfo AP_BoardConfig_CAN::SLCAN_Interface::var_info[] = {
     // @Description: Serial Port ID to be used for temporary SLCAN iface, -1 means no temporary serial. This parameter is automatically reset on reboot or on timeout. See CAN_SLCAN_TIMOUT for timeout details
     // @Values: -1:Disabled,0:Serial0,1:Serial1,2:Serial2,3:Serial3,4:Serial4,5:Serial5,6:Serial6
     // @User: Standard
-    AP_GROUPINFO("SERNUM", 2, AP_BoardConfig_CAN::SLCAN_Interface, _ser_port, -1),
+    AP_GROUPINFO("SERNUM", 2, AP_BoardConfig_CAN::SLCAN_Interface, _ser_port, 0),
 
     // @Param: TIMOUT
     // @DisplayName: SLCAN Timeout
