@@ -98,16 +98,16 @@ void AP_Logger_File::Init()
     }
 
     // determine and limit file backend buffersize
-    uint32_t bufsize = _front._params.file_bufsize;
-    if (bufsize > 64) {
-        bufsize = 64; // PixHawk has DMA limitations.
+    _allocated_bufsize = _front._params.file_bufsize;
+    if (_allocated_bufsize > 64) {
+        _allocated_bufsize = 64; // PixHawk has DMA limitations.
     }
-    bufsize *= 1024;
+    _allocated_bufsize *= 1024;
 
     // If we can't allocate the full size, try to reduce it until we can allocate it
-    while (!_writebuf.set_size(bufsize) && bufsize >= _writebuf_chunk) {
-        hal.console->printf("AP_Logger_File: Couldn't set buffer size to=%u\n", (unsigned)bufsize);
-        bufsize >>= 1;
+    while (!_writebuf.set_size(_allocated_bufsize) && _allocated_bufsize >= _writebuf_chunk) {
+        hal.console->printf("AP_Logger_File: Couldn't set buffer size to=%u\n", (unsigned)_allocated_bufsize);
+        _allocated_bufsize >>= 1;
     }
 
     if (!_writebuf.get_size()) {
@@ -115,7 +115,7 @@ void AP_Logger_File::Init()
         return;
     }
 
-    hal.console->printf("AP_Logger_File: buffer size=%u\n", (unsigned)bufsize);
+    hal.console->printf("AP_Logger_File: buffer size=%u\n", (unsigned)_allocated_bufsize);
 
     _initialised = true;
     hal.scheduler->register_io_process(FUNCTOR_BIND_MEMBER(&AP_Logger_File::_io_timer, void));

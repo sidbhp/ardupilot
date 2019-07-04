@@ -31,6 +31,9 @@ public:
     bool logging_enabled() const override { return true; }
     bool logging_failed() const override { return false; }
     bool logging_started(void) const override { return log_write_started; }
+    bool log_buffer_fully_allocated() {
+        return ((_front._params.file_bufsize * 1024UL) <= _allocated_bufsize);
+    }
 
 protected:
     /* Write a block of data at current offset */
@@ -60,6 +63,9 @@ private:
     uint32_t df_Read_PageAdr;
     uint16_t df_FileNumber;
     uint32_t df_FilePage;
+
+    //Alocated Buffer Size
+    uint32_t _allocated_bufsize;
 
     // offset from adding FMT messages to log data
     bool adding_fmt_headers;

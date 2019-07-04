@@ -651,6 +651,15 @@ bool AP_Logger::logging_started(void) {
     return false;
 }
 
+bool AP_Logger::log_buffer_fully_allocated(void) {
+    for (uint8_t i=0; i< _next_backend; i++) {
+        if (!backends[i]->log_buffer_fully_allocated()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void AP_Logger::handle_mavlink_msg(GCS_MAVLINK &link, mavlink_message_t* msg)
 {
     switch (msg->msgid) {

@@ -37,6 +37,10 @@ public:
     // This stops calls to start_new_log from the vehicles
     bool logging_started() const override { return _initialised; }
 
+    bool log_buffer_fully_allocated() override {
+        return ((_front._params.file_bufsize * 1024UL) <= (_blockcount * sizeof(struct dm_block)));
+    }
+
     void stop_logging() override;
 
     /* Write a block of data at current offset */

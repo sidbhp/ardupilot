@@ -298,6 +298,9 @@ public:
 
     bool logging_started(void);
 
+    //return false if either of the backends failled to allocate set Log Buffer Size
+    bool log_buffer_fully_allocated(void);
+
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL || CONFIG_HAL_BOARD == HAL_BOARD_LINUX
     // currently only AP_Logger_File support this:
     void flush(void);

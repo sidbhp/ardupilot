@@ -31,16 +31,16 @@ void AP_Logger_Block::Init(void)
         df_NumPages -= df_PagePerSector;
 
         // determine and limit file backend buffersize
-        uint32_t bufsize = _front._params.file_bufsize;
-        if (bufsize > 64) {
-            bufsize = 64;
+        _allocated_bufsize = _front._params.file_bufsize;
+        if (_allocated_bufsize > 64) {
+            _allocated_bufsize = 64;
         }
-        bufsize *= 1024;
+        _allocated_bufsize *= 1024;
 
         // If we can't allocate the full size, try to reduce it until we can allocate it
-        while (!writebuf.set_size(bufsize) && bufsize >= df_PageSize * df_PagePerSector) {
-            hal.console->printf("AP_Logger_Block: Couldn't set buffer size to=%u\n", (unsigned)bufsize);
-            bufsize >>= 1;
+        while (!writebuf.set_size(_allocated_bufsize) && _allocated_bufsize >= df_PageSize * df_PagePerSector) {
+            hal.console->printf("AP_Logger_Block: Couldn't set buffer size to=%u\n", (unsigned)_allocated_bufsize);
+            _allocated_bufsize >>= 1;
         }
 
         if (!writebuf.get_size()) {
@@ -48,7 +48,7 @@ void AP_Logger_Block::Init(void)
             return;
         }
 
-        hal.console->printf("AP_Logger_Block: buffer size=%u\n", (unsigned)bufsize);
+        hal.console->printf("AP_Logger_Block: buffer size=%u\n", (unsigned)_allocated_bufsize);
         _initialised = true;
     }
 

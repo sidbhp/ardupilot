@@ -40,6 +40,7 @@ public:
     virtual void get_log_info(uint16_t log_num, uint32_t &size, uint32_t &time_utc) = 0;
     virtual int16_t get_log_data(uint16_t log_num, uint16_t page, uint32_t offset, uint16_t len, uint8_t *data) = 0;
     virtual uint16_t get_num_logs() = 0;
+    virtual bool log_buffer_fully_allocated() = 0;
 
     virtual bool logging_started(void) const = 0;
 

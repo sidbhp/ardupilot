@@ -58,6 +58,10 @@ public:
 
     virtual void PrepForArming() override;
 
+    bool log_buffer_fully_allocated() override {
+        return ((_front._params.file_bufsize * 1024UL) <= _allocated_bufsize);
+    }
+
 protected:
 
     bool WritesOK() const override;
@@ -74,6 +78,8 @@ private:
     uint32_t _write_offset;
     volatile bool _open_error;
     const char *_log_directory;
+    //Alocated Buffer Size
+    uint32_t _allocated_bufsize;
 
     uint32_t _io_timer_heartbeat;
     bool io_thread_alive() const;
