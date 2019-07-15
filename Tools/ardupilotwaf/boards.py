@@ -237,6 +237,7 @@ class Board:
             ]
         cfg.define('WOLFSSL_USER_SETTINGS', 1)
         cfg.define('SKIP_WOLFSSL_BINDINGS', 1)
+        cfg.define('SECURE', 1)
         # We always want to use PRI format macros
         cfg.define('__STDC_FORMAT_MACROS', 1)
 

@@ -102,6 +102,10 @@
 #define PROTO_DEBUG					0x31    // emit debug information - format not defined
 #define PROTO_SET_BAUD				0x33    // baud rate on uart
 
+#define PROTO_PROTECT0				0xF0
+#define PROTO_PROTECT1				0xF1
+#define PROTO_PROTECT2				0xF2
+
 #define PROTO_PROG_MULTI_MAX    64	// maximum PROG_MULTI size
 #define PROTO_READ_MULTI_MAX    255	// size of the size field
 
@@ -448,6 +452,30 @@ static void test_flash()
         loop++;
     }
 }
+#endif
+
+
+#if defined(SECURE) && SECURE==1
+#include <string.h>
+#include "uECC.h"
+//#include <wolfssl/options.h>
+//#include <wolfssl/wolfcrypt/settings.h>
+#include <wolfssl_chibios.h>
+#include <wolfssl/wolfcrypt/sha256.h>
+#include <wolfssl/wolfcrypt/random.h>
+#include <wolfssl/wolfcrypt/ecc.h>
+#include <wolfssl/wolfcrypt/asn_public.h>
+
+Sha256 sha;
+uint8_t firstPage[128];
+uint8_t hash[64];
+uint8_t signature[64];
+uint8_t publicKey[64] = {0x4c, 0x05, 0xd5, 0x94, 0xeb, 0x0e, 0x49, 0x2a, 0x15, 0xc4, 0x1c, 0x89,
+  0x26, 0x1a, 0x87, 0xbd, 0x03, 0xd6, 0xbf, 0xd0, 0x6d, 0xe3, 0x38, 0x50,
+  0xf9, 0xbf, 0xce, 0x1e, 0xda, 0xc9, 0xeb, 0xca, 0x54, 0xb5, 0x69, 0x04,
+  0xdb, 0xcf, 0xfe, 0x3a, 0xea, 0xf9, 0x0a, 0x96, 0xf9, 0x65, 0x20, 0xcf,
+  0x7f, 0xa7, 0xc7, 0x96, 0xb5, 0x25, 0xd5, 0xf1, 0xe0, 0xa9, 0x6f, 0x70,
+  0x04, 0x13, 0xe8, 0x1f};
 #endif
 
 void
@@ -842,6 +870,32 @@ bootloader(unsigned timeout)
         break;
 #endif
 
+#if defined(SECURE) && SECURE==1
+		case PROTO_PROTECT0:
+			// expect EOC
+			if (!wait_for_eoc(1000)) {
+				goto cmd_bad;
+			}
+			flash_func_protect(0);
+			break;
+
+		case PROTO_PROTECT1:
+			// expect EOC
+			if (!wait_for_eoc(1000)) {
+				goto cmd_bad;
+			}
+			flash_func_protect(1);
+			break;
+
+		case PROTO_PROTECT2:
+			// expect EOC
+			if (!wait_for_eoc(1000)) {
+				goto cmd_bad;
+			}
+			flash_func_protect(2);
+			break;
+#endif
+
         // finalise programming and boot the system
         //
         // command:			BOOT/EOC
@@ -860,6 +914,20 @@ bootloader(unsigned timeout)
 
             // program the deferred first word
             if (first_words[0] != 0xffffffff) {
+#if defined(SECURE) && SECURE==1
+				//verify signature
+				memcpy(firstPage, (void*)APP_START_ADDRESS, 128);
+				//*(uint32_t*)firstPage = first_word;
+                memcpy(firstPage, first_words, sizeof(first_words));
+				memcpy(signature, (void*)(APP_START_ADDRESS + address - 64), 64);
+				wc_InitSha256(&sha);
+				wc_Sha256Update(&sha, firstPage, 128);
+				wc_Sha256Update(&sha, (uint8_t*)(APP_START_ADDRESS + 128), address - 64 - 128);
+				wc_Sha256Final(&sha, hash);
+				if(uECC_verify(publicKey, hash, signature) != 1) {
+					goto cmd_fail;
+				}
+#endif
                 if (!flash_write_buffer(0, first_words, RESERVE_LEAD_WORDS)) {
                     goto cmd_fail;
                 }
