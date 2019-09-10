@@ -225,9 +225,6 @@ def write_dma_header(f, peripheral_list, mcu_type, dma_exclude=[],
     # form a list of DMA priorities
     priority_list = dma_priority.split()
 
-    # sort by priority
-    peripheral_list = sorted(peripheral_list, key=lambda x: get_list_index(x, priority_list))
-
     # form a list of peripherals that can't share
     noshare_list = dma_noshare.split()
 
@@ -248,6 +245,20 @@ def write_dma_header(f, peripheral_list, mcu_type, dma_exclude=[],
     print("Writing DMA map")
     unassigned = []
     curr_dict = {}
+
+    dma_num_stream = {}
+
+    for periph in peripheral_list:
+        if not periph in dma_map:
+            print("Unknown peripheral function %s in DMA map for %s" %
+                  (periph, mcu_type))
+            sys.exit(1)
+        dma_num_stream[periph] = len(dma_map[periph])
+
+    peripheral_list = sorted(peripheral_list, key=lambda x: dma_num_stream[x])
+
+    # sort by priority
+    peripheral_list = sorted(peripheral_list, key=lambda x: get_list_index(x, priority_list))
 
     for periph in peripheral_list:
         if periph in dma_exclude:
