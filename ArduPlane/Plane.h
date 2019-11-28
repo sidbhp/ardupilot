@@ -86,6 +86,10 @@
 #include <AP_Landing/AP_Landing.h>
 #include <AP_LandingGear/AP_LandingGear.h>     // Landing Gear library
 
+#ifdef HAL_IS_REGISTERED_FLIGHT_MODULE
+#include <AP_Security/AP_Security.h>
+#endif
+
 #include "GCS_Mavlink.h"
 #include "GCS_Plane.h"
 #include "quadplane.h"
@@ -184,6 +188,10 @@ private:
     RC_Channel *channel_pitch;
     RC_Channel *channel_throttle;
     RC_Channel *channel_rudder;
+
+#ifdef HAL_IS_REGISTERED_FLIGHT_MODULE
+    AP_Security security;
+#endif
 
     AP_Logger logger;
 
