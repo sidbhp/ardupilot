@@ -67,7 +67,9 @@
 #include <AP_TempCalibration/AP_TempCalibration.h>
 #include <AC_AutoTune/AC_AutoTune.h>
 #include <AP_Common/AP_FWVersion.h>
-
+#ifdef HAL_IS_REGISTERED_FLIGHT_MODULE
+#include <AP_Security/AP_Security.h>
+#endif
 // Configuration
 #include "defines.h"
 #include "config.h"
@@ -905,6 +907,10 @@ private:
 
 #if OSD_ENABLED == ENABLED
     void publish_osd_info();
+#endif
+
+#ifdef HAL_IS_REGISTERED_FLIGHT_MODULE
+    void npnt_update();
 #endif
 
     Mode *flightmode;
