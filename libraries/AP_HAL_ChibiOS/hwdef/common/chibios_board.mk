@@ -109,6 +109,8 @@ include $(CHIBIOS)/os/various/cpp_wrappers/chcpp.mk
 include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
 endif
 
+#include $(HWDEF)/common/wolfssl.mk
+
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 
@@ -122,9 +124,10 @@ CSRC += $(HWDEF)/common/stubs.c \
 	   $(HWDEF)/common/flash.c \
 	   $(HWDEF)/common/malloc.c \
 	   $(HWDEF)/common/hrt.c \
-       $(HWDEF)/common/stm32_util.c \
-       $(HWDEF)/common/bouncebuffer.c \
-       $(HWDEF)/common/watchdog.c
+     $(HWDEF)/common/stm32_util.c \
+     $(HWDEF)/common/bouncebuffer.c \
+     $(HWDEF)/common/watchdog.c \
+     $(HWDEF)/common/hwrng.c
 
 #	   $(TESTSRC) \
 #	   test.c
@@ -217,7 +220,7 @@ endif
 UADEFS =
 
 # List all user directories here
-UINCDIR =
+UINCDIR = $(HWDEF)/common/wolfssl/include
 
 # List the user directory to look for the libraries here
 ULIBDIR =

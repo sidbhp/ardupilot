@@ -29,6 +29,7 @@
 #include "hwdef/common/watchdog.h"
 #include <AP_BoardConfig/AP_BoardConfig.h>
 #include <AP_InternalError/AP_InternalError.h>
+#include <AP_Security/KeyManager.h>
 #ifndef HAL_BOOTLOADER_BUILD
 #include <AP_Logger/AP_Logger.h>
 #endif
@@ -239,6 +240,11 @@ static void main_loop()
     schedulerInstance.watchdog_pat();
 
     hal.scheduler->system_initialized();
+
+#ifdef HAL_IS_REGISTERED_FLIGHT_MODULE
+    //Initialise Key Manager
+    AP::keymgr().init();
+#endif
 
     thread_running = true;
     chRegSetThreadName(SKETCHNAME);
