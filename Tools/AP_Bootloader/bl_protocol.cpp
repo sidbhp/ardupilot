@@ -45,13 +45,13 @@
 #include "ch.h"
 #include "hal.h"
 #include "hwdef.h"
-#include <AP_ROMFS/AP_ROMFS.h>
 #include "bl_protocol.h"
 #include "support.h"
 #include "can.h"
 #include <AP_HAL_ChibiOS/hwdef/common/watchdog.h>
 
 #if defined(SECURE) && SECURE==1
+#include <AP_ROMFS/AP_ROMFS.h>
 #include <string.h>
 #include "uECC.h"
 #include <wolfssl/options.h>

@@ -1,6 +1,7 @@
 /* Copyright 2014, Kenneth MacKay. Licensed under the BSD 2-clause license. */
 
 #include "uECC.h"
+#if defined(SECURE) && SECURE==1
 
 #ifndef uECC_PLATFORM
     #if defined(__AVR__)
@@ -2741,3 +2742,4 @@ int uECC_verify(const uint8_t public_key[uECC_BYTES*2],
     /* Accept only if v == r. */
     return vli_equal(rx, r);
 }
+#endif //#if defined(SECURE) && SECURE==1
