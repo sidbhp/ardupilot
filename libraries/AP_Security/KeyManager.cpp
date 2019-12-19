@@ -74,7 +74,7 @@ void KeyManager::init() {
         //Generate new key in case of failure
         //Run private keygen thread
         hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&KeyManager::_generate_private_key, void), 
-                                                         "KEYGEN", 1024, AP_HAL::Scheduler::PRIORITY_IO, 1);
+                                                         "KEYGEN", 1024, AP_HAL::Scheduler::PRIORITY_KEYMGR, 0);
     }
     // Load Server's Public Key for Verification
     load_server_pubkey();

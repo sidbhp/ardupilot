@@ -17,6 +17,7 @@
 
 #include <AP_HAL/AP_HAL.h>
 #ifdef HAL_IS_REGISTERED_FLIGHT_MODULE
+#include <wolfssl/user_settings.h>
 #include <AP_Math/AP_Math.h>
 #include "AP_Security.h"
 #include "KeyManager.h"
@@ -255,6 +256,11 @@ bool record_lastloghash(uint8_t* data, uint8_t data_len)
         return false;
     }
     return lastloghash.write_block(0, data, data_len);
+}
+
+void show_gen_printf(const char* chr)
+{
+    hal.console->printf(chr);
 }
 
 } //extern "C"
