@@ -31,6 +31,7 @@
 #define APM_IO_PRIORITY          58
 #define APM_STARTUP_PRIORITY     10
 #define APM_SCRIPTING_PRIORITY  LOWPRIO
+#define APM_KEYMGR_PRIORITY     LOWPRIO
 
 /*
   boost priority handling
