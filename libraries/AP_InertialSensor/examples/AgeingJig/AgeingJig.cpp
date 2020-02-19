@@ -53,6 +53,7 @@ void setup(void)
     // setup any board specific drivers
     hal.uartA->begin(AP_SERIALMANAGER_CONSOLE_BAUD, 32, 128);
     hal.uartB->begin(115200, 32, 128);
+    hal.uartC->begin(9600, 32, 128);
 
     ins.init(100);
     // initialize the barometer
@@ -61,6 +62,8 @@ void setup(void)
     compass.init();
     hal.scheduler->delay(2000);
     hal.console->printf("Starting UAVCAN\n");
+    hal.uartC->printf("Testing firmware updated on 19/2/2020 1416\n");
+    hal.uartC->printf("Starting UAVCAN\n");
     hal.gpio->pinMode(0, HAL_GPIO_OUTPUT);
     UAVCAN_handler::init();
     g.load_parameters();
@@ -116,6 +119,7 @@ void loop()
         _led_blink_state = 0;
         _led_blink_ms = AP_HAL::millis();
         hal.console->printf("NUM_RUNS: %d NUM_FAILS: %d TEST_FLAGS: 0x%x\n", g.num_cycles.get(), g.num_fails.get(), g.sensor_health.get());
+        hal.uartC->printf("NUM_RUNS: %d NUM_FAILS: %d TEST_FLAGS: 0x%x\n", g.num_cycles.get(), g.num_fails.get(), g.sensor_health.get());
         //Write IMU Data to Log
         logger.Write_IMU();
     }
@@ -153,9 +157,24 @@ void loop()
 
     UAVCAN_handler::loop_all();
 
+    /**
+    // print console received bit
+    if (hal.console->available() > 0) {
+        buff[len_before_reboot] = hal.console->read();
+        len_before_reboot++;
+        hal.uartC->printf("Received bit: ");
+        hal.console->printf("Received bit: ");
+        hal.uartC->printf(buff);
+        hal.console->printf(buff);
+        hal.uartC->printf("\n");
+        hal.console->printf("\n");
+    }
+    **/
+    
     // auto-reboot for --upload
     if (hal.console->available() > 10) {
         hal.console->printf("rebooting\n");
+        hal.uartC->printf("rebooting\n");
         while (hal.console->available()) {
             hal.console->read();
         }
