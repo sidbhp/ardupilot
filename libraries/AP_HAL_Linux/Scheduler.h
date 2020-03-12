@@ -3,6 +3,8 @@
 #include <pthread.h>
 
 #include "AP_HAL_Linux.h"
+#include <AP_Vehicle/AP_Vehicle_Type.h>
+
 #include "Semaphores.h"
 #include "Thread.h"
 
@@ -39,7 +41,9 @@ public:
 
     void     reboot(bool hold_in_bootloader) override;
 
+#if APM_BUILD_TYPE(APM_BUILD_Replay)
     void     stop_clock(uint64_t time_usec) override;
+#endif
 
     uint64_t stopped_clock_usec() const { return _stopped_clock_usec; }
 
