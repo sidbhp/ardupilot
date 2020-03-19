@@ -196,7 +196,7 @@ void KeyManager::_generate_private_key()
         return;
     }
     //Generate Key in DER format
-    gcs().send_statustext(MAV_SEVERITY_ALERT, 0xFF, "KeyManager: Converting Raw Private Key to DER Format.\n");
+    gcs().send_statustext(MAV_SEVERITY_ALERT, 0xFF, "KeyManager: Creating DER Private Key.\n");
     hal.scheduler->delay(1);
     der = new uint8_t[dersize];
     if (der == nullptr) {
