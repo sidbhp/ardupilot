@@ -99,11 +99,8 @@ void setup(void)
     }
 
     if (_setup_sensor_health_mask != SENSOR_MASK) {
-        if (!fault_recorded) {
-            fault_recorded = true;
-            g.num_fails.set_and_save(g.num_fails.get()+1);
-            g.setup_sensor_health.set_and_save(g.setup_sensor_health.get()&_setup_sensor_health_mask);
-        }
+        g.num_fails.set_and_save(g.num_fails.get()+1);
+        g.setup_sensor_health.set_and_save(g.setup_sensor_health.get()&_setup_sensor_health_mask);
     }
 }
 
