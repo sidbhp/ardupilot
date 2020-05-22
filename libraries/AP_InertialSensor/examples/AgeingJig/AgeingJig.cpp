@@ -46,7 +46,8 @@ static AP_AHRS_DCM ahrs;
 void setup(void);
 void loop(void);
 
-static uint16_t _sensor_health_mask = SENSOR_MASK;
+static uint16_t _setup_sensor_health_mask = SENSOR_MASK;
+static uint16_t _loop_sensor_health_mask = SENSOR_MASK;
 static bool fault_recorded;
 
 void setup(void)
@@ -74,33 +75,34 @@ void setup(void)
     logger.Init(log_structure, ARRAY_SIZE(log_structure));
 
     //setup test
+    hal.scheduler->delay(3000);
     AP::ins().update();
     AP::baro().update();
     AP::compass().read();
     for (uint8_t i = 0; i < 3; i++) {
         if (!AP::ins().get_accel_health(i)) {
-            _sensor_health_mask &= ~((1 << com::hex::equipment::jig::Status::ACCEL_HEALTH_OFF) << i);
+            _setup_sensor_health_mask &= ~((1 << com::hex::equipment::jig::Status::ACCEL_HEALTH_OFF) << i);
         }
         if (!AP::ins().get_gyro_health(i)) {
-            _sensor_health_mask &= ~((1 << com::hex::equipment::jig::Status::GYRO_HEALTH_OFF) << i);
+            _setup_sensor_health_mask &= ~((1 << com::hex::equipment::jig::Status::GYRO_HEALTH_OFF) << i);
         }
     }
     for (uint8_t i = 0; i < 2; i++) {
         if (!AP::baro().healthy(i)) {
-            _sensor_health_mask &= ~((1 << com::hex::equipment::jig::Status::BARO_HEALTH_OFF) << i);
+            _setup_sensor_health_mask &= ~((1 << com::hex::equipment::jig::Status::BARO_HEALTH_OFF) << i);
         }
     }
     for (uint8_t i = 0; i < 2; i++) {
         if (!AP::compass().healthy(i)) {
-            _sensor_health_mask &= ~((1 << 8) << i);
+            _setup_sensor_health_mask &= ~((1 << 8) << i);
         }
     }
 
-    if (_sensor_health_mask != SENSOR_MASK) {
+    if (_setup_sensor_health_mask != SENSOR_MASK) {
         if (!fault_recorded) {
             fault_recorded = true;
             g.num_fails.set_and_save(g.num_fails.get()+1);
-            g.setup_sensor_health.set_and_save(g.setup_sensor_health.get()&_sensor_health_mask);
+            g.setup_sensor_health.set_and_save(g.setup_sensor_health.get()&_setup_sensor_health_mask);
         }
     }
 }
@@ -122,28 +124,28 @@ void loop()
     AP::compass().read();
     for (uint8_t i = 0; i < 3; i++) {
         if (!AP::ins().get_accel_health(i)) {
-            _sensor_health_mask &= ~((1 << com::hex::equipment::jig::Status::ACCEL_HEALTH_OFF) << i);
+            _loop_sensor_health_mask &= ~((1 << com::hex::equipment::jig::Status::ACCEL_HEALTH_OFF) << i);
         }
         if (!AP::ins().get_gyro_health(i)) {
-            _sensor_health_mask &= ~((1 << com::hex::equipment::jig::Status::GYRO_HEALTH_OFF) << i);
+            _loop_sensor_health_mask &= ~((1 << com::hex::equipment::jig::Status::GYRO_HEALTH_OFF) << i);
         }
     }
     for (uint8_t i = 0; i < 2; i++) {
         if (!AP::baro().healthy(i)) {
-            _sensor_health_mask &= ~((1 << com::hex::equipment::jig::Status::BARO_HEALTH_OFF) << i);
+            _loop_sensor_health_mask &= ~((1 << com::hex::equipment::jig::Status::BARO_HEALTH_OFF) << i);
         }
     }
     for (uint8_t i = 0; i < 2; i++) {
         if (!AP::compass().healthy(i)) {
-            _sensor_health_mask &= ~((1 << 8) << i);
+            _loop_sensor_health_mask &= ~((1 << 8) << i);
         }
     }
 
-    if (_sensor_health_mask != SENSOR_MASK) {
+    if (_loop_sensor_health_mask != SENSOR_MASK) {
         if (!fault_recorded) {
             fault_recorded = true;
             g.num_fails.set_and_save(g.num_fails.get()+1);
-            g.loop_sensor_health.set_and_save(g.loop_sensor_health.get()&_sensor_health_mask);
+            g.loop_sensor_health.set_and_save(g.loop_sensor_health.get()&_loop_sensor_health_mask);
         }
     }
 
@@ -182,10 +184,10 @@ void loop()
     // }
 
     BoardConfig.set_target_temp(_heater_target_temp);
-    if (_sensor_health_mask == SENSOR_MASK) {
+    if ((_setup_sensor_health_mask & _loop_sensor_health_mask) == SENSOR_MASK) {
         UAVCAN_handler::set_sensor_states(0x3FF, _heater_state);
     } else {
-        UAVCAN_handler::set_sensor_states(_sensor_health_mask, _heater_state);
+        UAVCAN_handler::set_sensor_states((_setup_sensor_health_mask & _loop_sensor_health_mask), _heater_state);
     }
 
     UAVCAN_handler::loop_all();
