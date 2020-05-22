@@ -46,6 +46,9 @@ static AP_AHRS_DCM ahrs;
 void setup(void);
 void loop(void);
 
+static uint16_t _sensor_health_mask = SENSOR_MASK;
+static bool fault_recorded;
+
 void setup(void)
 {
     unused = -1;
@@ -62,28 +65,15 @@ void setup(void)
     compass.init();
     hal.scheduler->delay(2000);
     hal.console->printf("Starting UAVCAN\n");
-    hal.uartC->printf("Testing firmware updated on 19/2/2020 1416\n");
+    hal.uartC->printf("Testing firmware updated on 22/5/2020 1122\n");
     hal.uartC->printf("Starting UAVCAN\n");
     hal.gpio->pinMode(0, HAL_GPIO_OUTPUT);
     UAVCAN_handler::init();
     g.load_parameters();
     g.num_cycles.set_and_save(g.num_cycles.get()+1);
     logger.Init(log_structure, ARRAY_SIZE(log_structure));
-}
 
-#define IMU_HIGH_TEMP 70
-// #define IMU_LOW_TEMP  55
-
-static uint16_t _sensor_health_mask = SENSOR_MASK;
-static int8_t _heater_target_temp = IMU_HIGH_TEMP;
-static uint32_t _hold_start_ms;
-static uint8_t _heater_state;
-static bool fault_recorded;
-static uint32_t _led_blink_ms;
-static uint32_t _led_blink_state;
-
-void loop()
-{
+    //setup test
     AP::ins().update();
     AP::baro().update();
     AP::compass().read();
@@ -110,7 +100,50 @@ void loop()
         if (!fault_recorded) {
             fault_recorded = true;
             g.num_fails.set_and_save(g.num_fails.get()+1);
-            g.sensor_health.set_and_save(g.sensor_health.get()&_sensor_health_mask);
+            g.setup_sensor_health.set_and_save(g.setup_sensor_health.get()&_sensor_health_mask);
+        }
+    }
+}
+
+#define IMU_HIGH_TEMP 70
+// #define IMU_LOW_TEMP  55
+
+static int8_t _heater_target_temp = IMU_HIGH_TEMP;
+static uint32_t _hold_start_ms;
+static uint8_t _heater_state;
+static uint32_t _led_blink_ms;
+static uint32_t _led_blink_state;
+
+void loop()
+{
+    //loop test
+    AP::ins().update();
+    AP::baro().update();
+    AP::compass().read();
+    for (uint8_t i = 0; i < 3; i++) {
+        if (!AP::ins().get_accel_health(i)) {
+            _sensor_health_mask &= ~((1 << com::hex::equipment::jig::Status::ACCEL_HEALTH_OFF) << i);
+        }
+        if (!AP::ins().get_gyro_health(i)) {
+            _sensor_health_mask &= ~((1 << com::hex::equipment::jig::Status::GYRO_HEALTH_OFF) << i);
+        }
+    }
+    for (uint8_t i = 0; i < 2; i++) {
+        if (!AP::baro().healthy(i)) {
+            _sensor_health_mask &= ~((1 << com::hex::equipment::jig::Status::BARO_HEALTH_OFF) << i);
+        }
+    }
+    for (uint8_t i = 0; i < 2; i++) {
+        if (!AP::compass().healthy(i)) {
+            _sensor_health_mask &= ~((1 << 8) << i);
+        }
+    }
+
+    if (_sensor_health_mask != SENSOR_MASK) {
+        if (!fault_recorded) {
+            fault_recorded = true;
+            g.num_fails.set_and_save(g.num_fails.get()+1);
+            g.loop_sensor_health.set_and_save(g.loop_sensor_health.get()&_sensor_health_mask);
         }
     }
 
@@ -118,8 +151,8 @@ void loop()
     if ((AP_HAL::millis() - _led_blink_ms) > 2000) {
         _led_blink_state = 0;
         _led_blink_ms = AP_HAL::millis();
-        hal.console->printf("NUM_RUNS: %d NUM_FAILS: %d TEST_FLAGS: 0x%x\n", g.num_cycles.get(), g.num_fails.get(), g.sensor_health.get());
-        hal.uartC->printf("NUM_RUNS: %d NUM_FAILS: %d TEST_FLAGS: 0x%x\n", g.num_cycles.get(), g.num_fails.get(), g.sensor_health.get());
+        hal.console->printf("SENSOR_MASK: 0x%x NUM_RUNS: %d NUM_FAILS: %d LOOP_TEST_FLAGS: 0x%x SETUP_TEST_FLAGS: 0x%x\n", SENSOR_MASK, g.num_cycles.get(), g.num_fails.get(), g.loop_sensor_health.get(), g.setup_sensor_health.get());
+        hal.uartC->printf("SENSOR_MASK: 0x%x NUM_RUNS: %d NUM_FAILS: %d LOOP_TEST_FLAGS: 0x%x SETUP_TEST_FLAGS: 0x%x\n", SENSOR_MASK, g.num_cycles.get(), g.num_fails.get(), g.loop_sensor_health.get(), g.setup_sensor_health.get());
         //Write IMU Data to Log
         logger.Write_IMU();
     }
