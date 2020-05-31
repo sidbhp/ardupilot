@@ -218,6 +218,10 @@ static Empty::OpticalFlow opticalFlow;
 static Empty::DSP dspDriver;
 static Empty::Flash flashDriver;
 
+#if HAL_NUM_CAN_IFACES
+static HALSITL::CANIface* canDrivers[HAL_NUM_CAN_IFACES];
+#endif
+
 HAL_Linux::HAL_Linux() :
     AP_HAL::HAL(
         &uartADriver,
@@ -241,7 +245,12 @@ HAL_Linux::HAL_Linux() :
         &opticalFlow,
         &flashDriver,
         &dspDriver,
-        nullptr)
+#if HAL_NUM_CAN_IFACES
+        (AP_HAL::CANIface**)canDrivers
+#else
+        nullptr
+#endif
+        )
 {}
 
 void _usage(void)
