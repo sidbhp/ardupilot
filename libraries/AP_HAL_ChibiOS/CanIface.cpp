@@ -75,6 +75,8 @@ extern const AP_HAL::HAL& hal;
 
 using namespace ChibiOS;
 
+constexpr bxcan::CanType* const CANIface::Can[];
+
 static inline void handleTxInterrupt(uint8_t iface_index)
 {
     if (iface_index > HAL_NUM_CAN_IFACES) {
@@ -117,14 +119,10 @@ CANIface::CANIface(uint8_t index) :
     self_index_(index),
     rx_queue_(HAL_CAN_RX_QUEUE_SIZE)
 {
-    if (index == 0) {
-        can_ = Can[0];
-#if HAL_NUM_CAN_IFACES > 1
-    } else if (index == 1) {
-        can_ = Can[1];
-#endif
-    } else {
+    if (index >= HAL_NUM_CAN_IFACES) {
         AP_HAL::panic("Bad CANIface index.");
+    } else {
+        can_ = Can[index];
     }
 }
 
@@ -283,8 +281,6 @@ int16_t CANIface::send(const AP_HAL::CANFrame& frame, uint64_t tx_deadline,
         return 0;       // No transmission for you.
     }
 
-    peak_tx_mailbox_index_ = MAX(peak_tx_mailbox_index_, txmailbox);    // Statistics
-
     /*
      * Setting up the mailbox
      */
@@ -401,10 +397,10 @@ bool CANIface::configureFilters(const CanFilterConfig* filter_configs,
 
         can_->FMR &= ~bxcan::FMR_FINIT;
 
-        return 0;
+        return true;
     }
 
-    return -1;
+    return false;
 }
 
 bool CANIface::waitMsrINakBitStateChange(bool target_state)
@@ -546,7 +542,7 @@ void CANIface::pollErrorFlagsFromISR()
         error_cnt_++;
 
         // Serving abort requests
-        for (int i = 0; i < NumTxMailboxes; i++) {  // Dear compiler, may I suggest you to unroll this loop please.
+        for (int i = 0; i < NumTxMailboxes; i++) {
             CanTxItem& txi = pending_tx_[i];
             if (txi.aborted && txi.abort_on_error) {
                 can_->TSR = TSR_ABRQx[i];
@@ -611,7 +607,7 @@ bool CANIface::canAcceptNewTxFrame(const AP_HAL::CANFrame& frame) const
     CriticalSectionLocker lock;
 
     for (int mbx = 0; mbx < NumTxMailboxes; mbx++) {
-        if ((pending_tx_[mbx].pushed || pending_tx_[mbx].aborted) && !frame.priorityHigherThan(pending_tx_[mbx].frame)) {
+        if (!(pending_tx_[mbx].pushed || pending_tx_[mbx].aborted) && !frame.priorityHigherThan(pending_tx_[mbx].frame)) {
             return false;       // There's a mailbox whose priority is higher or equal the priority of the new frame.
         }
     }
@@ -665,7 +661,7 @@ bool CANIface::select(bool &read, bool &write,
 
     if (!read && !write) {
         //invalid request
-        return -1;
+        return false;
     }
 
     discardTimedOutTxMailboxes(time);              // Check TX timeouts - this may release some TX slots
@@ -673,7 +669,7 @@ bool CANIface::select(bool &read, bool &write,
 
     checkAvailable(read, write, pending_tx);          // Check if we already have some of the requested events
     if ((read && in_read) || (write && in_write)) {
-        return 1;
+        return true;
     }
     while (time < blocking_deadline) {
         if (event_handle_ == nullptr) {
@@ -682,11 +678,11 @@ bool CANIface::select(bool &read, bool &write,
         event_handle_->wait(blocking_deadline - time); // Block until timeout expires or any iface updates
         checkAvailable(read, write, pending_tx);  // Check what we got
         if ((read && in_read) || (write && in_write)) {
-            return 1;
+            return true;
         }
         time = AP_HAL::micros();
     }
-    return 1; // Return value doesn't matter as long as it is non-negative
+    return false;
 }
 
 void CANIface::initOnce(bool enable_irq)
@@ -786,15 +782,13 @@ bool CANIface::init(const uint32_t bitrate, const CANIface::OperatingMode mode)
     for (uint32_t i=0; i < NumTxMailboxes; i++) {
         pending_tx_[i] = CanTxItem();
     }
-    peak_tx_mailbox_index_ = 0;
     had_activity_ = false;
 
     /*
      * CAN timings for this bitrate
      */
     Timings timings;
-    const int timings_res = computeTimings(bitrate, timings);
-    if (timings_res < 0) {
+    if (!computeTimings(bitrate, timings)) {
         can_->MCR = bxcan::MCR_RESET;
         return false;
     }

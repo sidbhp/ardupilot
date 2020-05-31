@@ -99,7 +99,6 @@ class ChibiOS::CANIface : public AP_HAL::CANIface
     uint64_t error_cnt_;
     ObjectBuffer<CanRxItem> rx_queue_;
     CanTxItem pending_tx_[NumTxMailboxes];
-    uint8_t peak_tx_mailbox_index_;
     bool irq_init_;
     bool initialised_;
     bool had_activity_;

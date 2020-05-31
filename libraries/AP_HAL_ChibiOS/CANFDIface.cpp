@@ -71,7 +71,9 @@ using namespace ChibiOS;
 
 #define Debug(fmt, args...) do { AP::can().log_text(AP_CANManager::LOG_DEBUG, "CANFDIface", fmt, ##args); } while (0)
 
-static inline bool driver_inititialised(uint8_t iface_index)
+constexpr CANIface::CanType* const CANIface::Can[];
+
+static inline bool driver_initialised(uint8_t iface_index)
 {
     if (iface_index >= HAL_NUM_CAN_IFACES) {
         return false;
@@ -84,7 +86,7 @@ static inline bool driver_inititialised(uint8_t iface_index)
 
 static inline void handleCANInterrupt(uint8_t iface_index, uint8_t line_index)
 {
-    if (!driver_inititialised(iface_index)) {
+    if (!driver_initialised(iface_index)) {
         //Just reset all the interrupts and return
         CANIface::Can[iface_index]->IR = FDCAN_IR_RF0N;
         CANIface::Can[iface_index]->IR = FDCAN_IR_RF1N;
@@ -126,14 +128,10 @@ CANIface::CANIface(uint8_t index) :
     self_index_(index),
     rx_queue_(HAL_CAN_RX_QUEUE_SIZE)
 {
-    if (index == 0) {
-        can_ = Can[0];
-#if HAL_NUM_CAN_IFACES > 1
-    } else if (index == 1) {
-        can_ = Can[1];
-#endif
+    if (index >= HAL_NUM_CAN_IFACES) {
+         AP_HAL::panic("Bad CANIface index.");
     } else {
-        AP_HAL::panic("Bad CANIface index.");
+        can_ = Can[index];
     }
 }
 
@@ -539,7 +537,7 @@ bool CANIface::init(const uint32_t bitrate, const OperatingMode mode)
                 FDCAN_IE_RF0FE |  // Rx FIFO 1 FIFO Full
                 FDCAN_IE_RF1NE |  // RX FIFO 1 new message
                 FDCAN_IE_RF1FE;   // Rx FIFO 1 FIFO Full
-    can_->ILS = FDCAN_ILS_TCL | FDCAN_ILS_BOE;  //Set Line 1 for Transmit Complete Event Interrupt
+    can_->ILS = FDCAN_ILS_TCL | FDCAN_ILS_BOE;  //Set Line 1 for Transmit Complete Event Interrupt and Bus Off Interrupt
     // And Busoff error
     can_->TXBTIE = 0xFFFFFFFF;
     can_->ILE = 0x3;
@@ -834,7 +832,7 @@ bool CANIface::select(bool &read, bool &write,
 
     if (!read && !write) {
         //invalid request
-        return -1;
+        return false;
     }
 
     discardTimedOutTxMailboxes(time);              // Check TX timeouts - this may release some TX slots
@@ -843,7 +841,7 @@ bool CANIface::select(bool &read, bool &write,
 
     checkAvailable(read, write, pending_tx);          // Check if we already have some of the requested events
     if ((read && in_read) || (write && in_write)) {
-        return 1;
+        return true;
     }
     while (time < blocking_deadline) {
         if (event_handle_ == nullptr) {
@@ -852,11 +850,11 @@ bool CANIface::select(bool &read, bool &write,
         event_handle_->wait(blocking_deadline - time); // Block until timeout expires or any iface updates
         checkAvailable(read, write, pending_tx);  // Check what we got
         if ((read && in_read) || (write && in_write)) {
-            return 1;
+            return true;
         }
         time = AP_HAL::micros();
     }
-    return 1; // Return value doesn't matter as long as it is non-negative
+    return true; // Return value doesn't matter as long as it is non-negative
 }
 
 uint32_t CANIface::get_stats(char* data, uint32_t max_size)
