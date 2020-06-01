@@ -22,7 +22,7 @@
 #include <AP_Vehicle/AP_Vehicle.h>
 #include "SRV_Channel.h"
 
-#if HAL_NUM_CAN_IFACES
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS
   #include <AP_CANManager/AP_CANManager.h>
   #include <AP_UAVCAN/AP_UAVCAN.h>
 
@@ -250,7 +250,7 @@ void SRV_Channels::push()
     blheli_ptr->update_telemetry();
 #endif
 
-#if HAL_NUM_CAN_IFACES
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS
     // push outputs to CAN
     uint8_t can_num_drivers = AP::can().get_num_drivers();
     for (uint8_t i = 0; i < can_num_drivers; i++) {

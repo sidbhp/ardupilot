@@ -53,7 +53,7 @@ int AP_Filesystem_Sys::open(const char *fname, int flags)
             r.data->length = hal.util->thread_info(r.data->data, max_size);
         }
     }
-#if HAL_NUM_CAN_IFACES
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS
     else if (strcmp(fname, "can_log.txt") == 0) {
         const uint32_t max_size = 1024;
         r.data->data = (char *)malloc(max_size);

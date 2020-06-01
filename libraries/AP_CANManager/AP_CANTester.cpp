@@ -2,7 +2,7 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Common/AP_Common.h>
 
-#if HAL_NUM_CAN_IFACES > 1
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS > 1
 #include "AP_CANManager.h"
 #include "AP_CANTester.h"
 #include "AP_CANManager.h"
@@ -624,4 +624,4 @@ bool CANTester::send_toshiba_can_reply(uint32_t cmd)
     }
     return true;
 }
-#endif //#if HAL_NUM_CAN_IFACES > 1
+#endif //#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS > 1

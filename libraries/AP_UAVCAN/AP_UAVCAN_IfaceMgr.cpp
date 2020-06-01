@@ -2,6 +2,8 @@
 #include "AP_UAVCAN_Clock.h"
 #include <AP_HAL/AP_HAL.h>
 #include <AP_CANManager/AP_CANManager.h>
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS
+
 using namespace uavcan;
 extern const AP_HAL::HAL& hal;
 #define LOG_TAG "UAVCANIface"
@@ -234,3 +236,4 @@ int16_t CanIfaceMgr::select(CanSelectMasks& inout_masks,
     return 1;                                   // Return value doesn't matter as long as it is non-negative
 }
 
+#endif //#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS

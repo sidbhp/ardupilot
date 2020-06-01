@@ -55,7 +55,7 @@
 #include <SITL/SITL.h>
 #endif
 
-#if HAL_NUM_CAN_IFACES
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS
   #include <AP_CANManager/AP_CANManager.h>
   #include <AP_Common/AP_Common.h>
 
@@ -3499,7 +3499,7 @@ MAV_RESULT GCS_MAVLINK::handle_command_preflight_calibration(const mavlink_comma
 
 MAV_RESULT GCS_MAVLINK::handle_command_preflight_can(const mavlink_command_long_t &packet)
 {
-#if HAL_NUM_CAN_IFACES
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS
     if (hal.util->get_soft_armed()) {
         // *preflight*, remember?
         return MAV_RESULT_TEMPORARILY_REJECTED;
@@ -4584,7 +4584,7 @@ bool GCS_MAVLINK::try_send_message(const enum ap_message id)
             blheli->send_esc_telemetry_mavlink(uint8_t(chan));
         }
 #endif
-#if HAL_NUM_CAN_IFACES
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS
         uint8_t num_drivers = AP::can().get_num_drivers();
 
         for (uint8_t i = 0; i < num_drivers; i++) {

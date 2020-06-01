@@ -16,7 +16,7 @@
 #include "AP_ESC_Telem.h"
 #include <AP_HAL/AP_HAL.h>
 
-#if HAL_NUM_CAN_IFACES
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS
   #include <AP_CANManager/AP_CANManager.h>
   #include <AP_Common/AP_Common.h>
   #include <AP_Vehicle/AP_Vehicle.h>
@@ -38,7 +38,7 @@ AP_ESC_Telem::AP_ESC_Telem()
 // get an individual ESC's usage time in seconds if available, returns true on success
 bool AP_ESC_Telem::get_usage_seconds(uint8_t esc_id, uint32_t& usage_sec) const
 {
-#if HAL_NUM_CAN_IFACES
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS
     const uint8_t num_drivers = AP::can().get_num_drivers();
     for (uint8_t i = 0; i < num_drivers; i++) {
         if (AP::can().get_driver_type(i) == AP_CANManager::Driver_Type_ToshibaCAN) {

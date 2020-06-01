@@ -3,7 +3,7 @@
 
 #include <AP_HAL/AP_HAL.h>
 
-#if HAL_NUM_CAN_IFACES
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS
 #include "AP_HAL/utility/RingBuffer.h"
 #include <AP_Param/AP_Param.h>
 

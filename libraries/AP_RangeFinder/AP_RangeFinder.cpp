@@ -507,7 +507,7 @@ void RangeFinder::detect_instance(uint8_t instance, uint8_t& serial_instance)
         }
         break;
 
-#if HAL_NUM_CAN_IFACES
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS
     case Type::UAVCAN:
         /*
           the UAVCAN driver gets created when we first receive a

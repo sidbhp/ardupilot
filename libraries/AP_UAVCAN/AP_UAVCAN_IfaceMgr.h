@@ -1,6 +1,7 @@
 #pragma once
 
 #include <AP_HAL/AP_HAL.h>
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS
 #include <uavcan/uavcan.hpp>
 
 namespace uavcan
@@ -52,3 +53,4 @@ public:
 };
 
 }
+#endif // #if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS

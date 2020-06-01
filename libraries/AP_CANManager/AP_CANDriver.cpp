@@ -15,7 +15,7 @@
 
 #include <AP_HAL/AP_HAL.h>
 
-#if HAL_NUM_CAN_IFACES
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS
 #include "AP_CANManager.h"
 #include <AP_Vehicle/AP_Vehicle.h>
 
@@ -49,7 +49,7 @@ const AP_Param::GroupInfo AP_CANManager::CANDriver_Params::var_info[] = {
     // @Path: ../AP_KDECAN/AP_KDECAN.cpp
     AP_SUBGROUPPTR(_kdecan, "KDE_", 3, AP_CANManager::CANDriver_Params, AP_KDECAN),
 
-#if HAL_NUM_CAN_IFACES > 1
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS > 1
     // @Group: TST_
     // @Path: ../AP_CANManager/AP_CANTester.cpp
     AP_SUBGROUPPTR(_testcan, "TST_", 4, AP_CANManager::CANDriver_Params, CANTester),

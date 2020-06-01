@@ -18,7 +18,7 @@
 #include "AP_CANDriver.h"
 #include <AP_HAL/Semaphores.h>
 #include <AP_UAVCAN/AP_UAVCAN.h>
-#if HAL_NUM_CAN_IFACES > 1
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS > 1
 
 class CANTester : public AP_CANDriver
 {
@@ -97,4 +97,4 @@ private:
     AP_Int32 _loop_rate;
     uint8_t _num_ifaces;
 };
-#endif //#if HAL_NUM_CAN_IFACES > 1
+#endif //#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS > 1

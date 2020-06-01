@@ -40,7 +40,7 @@ public:
         AP_HAL::OpticalFlow*_opticalflow,
         AP_HAL::Flash*      _flash,
         AP_HAL::DSP*        _dsp,
-#if HAL_NUM_CAN_IFACES > 0
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS > 0
         AP_HAL::CANIface* _can_ifaces[HAL_NUM_CAN_IFACES])
 #else
         AP_HAL::CANIface** _can_ifaces)
@@ -68,7 +68,7 @@ public:
         flash(_flash),
         dsp(_dsp)
     {
-#if HAL_NUM_CAN_IFACES > 0
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS > 0
         if (_can_ifaces == nullptr) {
             for (uint8_t i = 0; i < HAL_NUM_CAN_IFACES; i++)
                 can[i] = nullptr;
@@ -120,7 +120,7 @@ public:
     AP_HAL::OpticalFlow *opticalflow;
     AP_HAL::Flash       *flash;
     AP_HAL::DSP         *dsp;
-#if HAL_NUM_CAN_IFACES > 0
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS > 0
     AP_HAL::CANIface* can[HAL_NUM_CAN_IFACES];
 #else
     AP_HAL::CANIface** can;

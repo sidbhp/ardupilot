@@ -20,7 +20,7 @@
 #include <AP_Common/AP_Common.h>
 #include "AP_CANManager.h"
 
-#if HAL_NUM_CAN_IFACES
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS
 
 #include <AP_Vehicle/AP_Vehicle.h>
 #include <AP_UAVCAN/AP_UAVCAN.h>
@@ -45,19 +45,19 @@ extern const AP_HAL::HAL& hal;
 // table of user settable parameters
 const AP_Param::GroupInfo AP_CANManager::var_info[] = {
 
-#if HAL_NUM_CAN_IFACES > 0
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS > 0
     // @Group: P1_
     // @Path: ../AP_CANManager/canbus_interface.cpp
     AP_SUBGROUPINFO(_interfaces[0], "P1_", 1, AP_CANManager, AP_CANManager::CANIface_Params),
 #endif
 
-#if HAL_NUM_CAN_IFACES > 1
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS > 1
     // @Group: P2_
     // @Path: ../AP_CANManager/canbus_interface.cpp
     AP_SUBGROUPINFO(_interfaces[1], "P2_", 2, AP_CANManager, AP_CANManager::CANIface_Params),
 #endif
 
-#if HAL_NUM_CAN_IFACES > 2
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS > 2
     // @Group: P3_
     // @Path: ../AP_CANManager/canbus_interface.cpp
     AP_SUBGROUPINFO(_interfaces[2], "P3_", 3, AP_CANManager, AP_CANManager::CANIface_Params),
@@ -224,7 +224,7 @@ void AP_CANManager::init()
             }
 #endif
         } else if (drv_type == Driver_Type_TestCAN) {
-#if HAL_NUM_CAN_IFACES > 1
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS > 1
             _drivers[drv_num] = _drv_param[drv_num]._testcan = new CANTester;
 
             if (_drivers[drv_num] == nullptr) {

@@ -1,5 +1,7 @@
 #pragma once
+#include <AP_HAL/AP_HAL.h>
 
+#if !defined(HAL_BUILD_AP_PERIPH) && !defined(HAL_BOOTLOADER_BUILD)
 #include <stdint.h>
 #include <AP_HAL/AP_HAL_Boards.h>
 #include <AP_HAL/AP_HAL_Macros.h>
@@ -21,3 +23,4 @@ public:
     // Wait on an Event handle, method for internal use by EventHandle
     bool wait(uint64_t duration, AP_HAL::EventHandle* evt_handle) override;
 };
+#endif

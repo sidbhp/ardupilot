@@ -356,8 +356,8 @@ def configure(cfg):
     if ret != 0:
         cfg.fatal("Failed to process hwdef.dat ret=%d" % ret)
     load_env_vars(cfg.env)
-    if env.HAL_NUM_CAN_IFACES:
-        setup_can_build(cfg)
+    # if env.HAL_NUM_CAN_IFACES:
+        # setup_can_build(cfg)
     setup_optimization(cfg.env)
 
 def generate_hwdef_h(env):

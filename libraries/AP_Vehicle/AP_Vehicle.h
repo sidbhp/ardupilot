@@ -183,7 +183,7 @@ protected:
     // board specific config
     AP_BoardConfig BoardConfig;
 
-#if HAL_NUM_CAN_IFACES
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS
     // board specific config for CAN bus
     AP_CANManager can_mgr;
 #endif

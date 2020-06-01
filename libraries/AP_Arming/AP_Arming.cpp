@@ -38,7 +38,7 @@
 #include <AP_RCMapper/AP_RCMapper.h>
 #include <AP_VisualOdom/AP_VisualOdom.h>
 
-#if HAL_NUM_CAN_IFACES
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS
   #include <AP_CANManager/AP_CANManager.h>
   #include <AP_Common/AP_Common.h>
   #include <AP_Vehicle/AP_Vehicle.h>
@@ -814,7 +814,7 @@ bool AP_Arming::proximity_checks(bool report) const
 
 bool AP_Arming::can_checks(bool report)
 {
-#if HAL_NUM_CAN_IFACES
+#if HAL_NUM_CAN_IFACES && MAX_NUMBER_OF_CAN_DRIVERS
     if (check_enabled(ARMING_CHECK_SYSTEM)) {
         char fail_msg[50] = {};
         uint8_t num_drivers = AP::can().get_num_drivers();
