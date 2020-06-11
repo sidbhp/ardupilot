@@ -43,12 +43,45 @@ static AP_Logger logger{unused};
 static AP_GPS gps;
 static AP_AHRS_DCM ahrs;
 
+void log_sensor_health(uint16_t sensor_health);
 void setup(void);
 void loop(void);
 
 static uint16_t _setup_sensor_health_mask = SENSOR_MASK;
 static uint16_t _loop_sensor_health_mask = SENSOR_MASK;
+static uint16_t _last_sensor_health_mask = SENSOR_MASK;
 static bool fault_recorded;
+static int loop_cycle = 0;
+char sensor_pos[][5] = {"ACC0", "ACC1", "ACC2", "GYR0", "GYR1", "GYR2", "BAR0", "BAR1", "COM0", "COM1"};
+
+void log_sensor_health(uint16_t sensor_health)
+{
+    // @LoggerMessage: SENH
+    // @Description: Sensor health
+    // @Field: TimeUS: Time since system startup
+    // @Field: COM1: Compass 1 health
+    // @Field: COM1: Compass 0 health
+    // @Field: BAR1: Baro 1 health
+    // @Field: BAR0: Baro 0 health
+    // @Field: GYR2: Gyro 2 health
+    // @Field: GYR1: Gyro 1 health
+    // @Field: GYR0: Gyro 0 health
+    // @Field: ACC0: Accel 2 health
+    // @Field: ACC1: Accel 1 health
+    // @Field: ACC2: Accel 0 health
+    AP::logger().Write("SENH", "TimeUS,COM1,COM0,BAR1,BAR0,GYR2,GYR1,GYR0,ACC2,ACC1,ACC0", "QHHHHHHHHHH",
+                                            AP_HAL::micros64(),
+                                            (sensor_health >> 9) & 1,
+                                            (sensor_health >> 8) & 1,
+                                            (sensor_health >> 7) & 1,
+                                            (sensor_health >> 6) & 1,
+                                            (sensor_health >> 5) & 1,
+                                            (sensor_health >> 4) & 1,
+                                            (sensor_health >> 3) & 1,
+                                            (sensor_health >> 2) & 1,
+                                            (sensor_health >> 1) & 1,
+                                            (sensor_health) & 1);
+}
 
 void setup(void)
 {
@@ -66,7 +99,7 @@ void setup(void)
     compass.init();
     hal.scheduler->delay(2000);
     hal.console->printf("Starting UAVCAN\n");
-    hal.uartC->printf("Testing firmware updated on 22/5/2020 1122\n");
+    hal.uartC->printf("Testing firmware updated on 11/6/2020 1800\n");
     hal.uartC->printf("Starting UAVCAN\n");
     hal.gpio->pinMode(0, HAL_GPIO_OUTPUT);
     UAVCAN_handler::init();
@@ -76,6 +109,7 @@ void setup(void)
 
     //setup test
     hal.scheduler->delay(3000);
+    AP::logger().Write_Message("Setup Test Started");
     AP::ins().update();
     AP::baro().update();
     AP::compass().read();
@@ -102,6 +136,21 @@ void setup(void)
         g.num_fails.set_and_save(g.num_fails.get()+1);
         g.setup_sensor_health.set_and_save(g.setup_sensor_health.get()&_setup_sensor_health_mask);
     }
+    _last_sensor_health_mask = _setup_sensor_health_mask;
+    AP::logger().Write_Message("Setup Test Ended");
+    AP::logger().Write_MessageF("Healthy Flag: 0x%x", SENSOR_MASK);
+    AP::logger().Write_MessageF("Setup Test Flag: 0x%x", _setup_sensor_health_mask);
+
+    
+    for (uint8_t i = 0; i < ((SENSOR_MASK >> 9) + 9); i++) {
+        if (((_setup_sensor_health_mask >> i) & 1) == 0)
+            AP::logger().Write_MessageF("bad %s in setup", sensor_pos[i]);
+    }
+    log_sensor_health(_setup_sensor_health_mask);
+
+    hal.console->printf("Log: %d\n", AP::logger().find_last_log()-1);
+    hal.uartC->printf("Log: %d\n", AP::logger().find_last_log()-1);
+    
 }
 
 #define IMU_HIGH_TEMP 70
@@ -115,6 +164,9 @@ static uint32_t _led_blink_state;
 
 void loop()
 {
+    if (loop_cycle == 0)
+        AP::logger().Write_Message("Loop Test Started");
+
     //loop test
     AP::ins().update();
     AP::baro().update();
@@ -145,11 +197,35 @@ void loop()
             g.loop_sensor_health.set_and_save(g.loop_sensor_health.get()&_loop_sensor_health_mask);
         }
     }
+    loop_cycle++;
+
+    // Log sensor failure event
+    if (_loop_sensor_health_mask != _last_sensor_health_mask) {
+         for (uint8_t i = 0; i < ((SENSOR_MASK >> 9) + 9); i++)
+            if (((_loop_sensor_health_mask >> i) & 1) > ((_last_sensor_health_mask >> i) & 1)) {
+                AP::logger().Write_MessageF("%s regain at loop %d\n", sensor_pos[i], loop_cycle);
+                hal.console->printf("%s regain at loop %d\n", sensor_pos[i], loop_cycle);
+                hal.uartC->printf("%s regain at loop %d\n", sensor_pos[i], loop_cycle);
+            }
+            else if (((_loop_sensor_health_mask >> i) & 1) < ((_last_sensor_health_mask >> i) & 1)) {
+                AP::logger().Write_MessageF("%s lost at loop %d\n", sensor_pos[i], loop_cycle);
+                hal.console->printf("%s lost at loop %d\n", sensor_pos[i], loop_cycle);
+                hal.uartC->printf("%s lost at loop %d\n", sensor_pos[i], loop_cycle);
+            }
+    }
+    log_sensor_health(_loop_sensor_health_mask);
+    _last_sensor_health_mask = _loop_sensor_health_mask;
 
     // Do LED Patterns
     if ((AP_HAL::millis() - _led_blink_ms) > 2000) {
         _led_blink_state = 0;
         _led_blink_ms = AP_HAL::millis();
+
+        if (_loop_sensor_health_mask ^ g.loop_sensor_health.get()) {
+            hal.console->printf("Fail sensor changed in this run. Log: %d\n", AP::logger().find_last_log()-1);
+            hal.uartC->printf("Fail sensor changed in this run. Log: %d\n", AP::logger().find_last_log()-1);
+        }
+
         hal.console->printf("SENSOR_MASK: 0x%x NUM_RUNS: %d NUM_FAILS: %d LOOP_TEST_FLAGS: 0x%x SETUP_TEST_FLAGS: 0x%x\n", SENSOR_MASK, g.num_cycles.get(), g.num_fails.get(), g.loop_sensor_health.get(), g.setup_sensor_health.get());
         hal.uartC->printf("SENSOR_MASK: 0x%x NUM_RUNS: %d NUM_FAILS: %d LOOP_TEST_FLAGS: 0x%x SETUP_TEST_FLAGS: 0x%x\n", SENSOR_MASK, g.num_cycles.get(), g.num_fails.get(), g.loop_sensor_health.get(), g.setup_sensor_health.get());
         //Write IMU Data to Log
