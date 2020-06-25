@@ -611,13 +611,13 @@ void AP_UAVCAN_DNA_Server::handleAllocation(uint8_t driver_index, uint8_t node_i
 
     if (rcvd_unique_id_offset == 16) {
         //We have received the full Unique ID, time to do allocation
-        uint8_t resp_node_id = getNodeIDForUniqueID((const uint8_t*)rcvd_unique_id, 16);
+        uint8_t resp_node_id = 100;//getNodeIDForUniqueID((const uint8_t*)rcvd_unique_id, 16);
         if (resp_node_id == 255) {
             resp_node_id = findFreeNodeID(cb.msg->node_id);
             if (resp_node_id != 255) {
-                if (addNodeIDForUniqueID(resp_node_id, (const uint8_t*)rcvd_unique_id, 16)) {
+                //if (addNodeIDForUniqueID(resp_node_id, (const uint8_t*)rcvd_unique_id, 16)) {
                     msg.node_id = resp_node_id;
-                }
+                //}
             } else {
                 gcs().send_text(MAV_SEVERITY_ERROR, "UC Node Alloc Failed!");
             }
