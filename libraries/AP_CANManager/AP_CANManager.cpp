@@ -162,13 +162,12 @@ void AP_CANManager::init()
         } else {
             continue;
         }
-
+        AP_HAL::CANIface* iface = hal.can[i];
         // Check if this interface need hooking up to slcan passthrough
         // instead of a driver
         if (_slcan_interface.init_passthrough(i)) {
-            // We will not be running any driver on this port,
-            // we just do a passthrough with SLCAN
-            continue;
+            // we have slcan bridge setup pass that on as can iface
+            iface = &_slcan_interface;
         }
 
         // Find the driver type that we need to allocate and register this interface with
@@ -179,7 +178,7 @@ void AP_CANManager::init()
         if (_drivers[drv_num] != nullptr) {
             //We already initialised the driver just add interface and move on
             log_text(AP_CANManager::LOG_INFO, LOG_TAG, "Adding Interface %d to Driver %d", i + 1, drv_num + 1);
-            _drivers[drv_num]->add_interface(hal.can[i]);
+            _drivers[drv_num]->add_interface(iface);
             continue;
         }
 
@@ -243,7 +242,7 @@ void AP_CANManager::init()
         }
 
         // Hook this interface to the selected Driver Type
-        _drivers[drv_num]->add_interface(hal.can[i]);
+        _drivers[drv_num]->add_interface(iface);
         log_text(AP_CANManager::LOG_INFO, LOG_TAG, "Adding Interface %d to Driver %d", i + 1, drv_num + 1);
         
     }
@@ -253,7 +252,11 @@ void AP_CANManager::init()
         if (_drivers[drv_num] == nullptr) {
             continue;
         }
-        _drivers[drv_num]->init(drv_num, true);
+        if (_slcan_interface.get_drv_num() != drv_num) {
+            _drivers[drv_num]->init(drv_num, true);
+        } else {
+            _drivers[drv_num]->init(drv_num, false);
+        }
     }
 
     // param count could have changed

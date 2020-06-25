@@ -56,14 +56,6 @@ const AP_Param::GroupInfo SLCAN::CANIface::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("TIMOUT", 3, SLCAN::CANIface, _slcan_timeout, 0),
 
-    // @Param: MODE
-    // @DisplayName: SLCAN MODE
-    // @Description: SLCAN Mode to be selected, Passthrough mode routes all can drivers to and from SLCAN. Interface Mode puts selected driver on SLCAN instead of CAN bus, and Silent mode routes all packets on the selected CAN Bus
-    // @Range: 0 2
-    // @Values: 0: Passthrough Mode, 1: Interface Mode, 2: Silent Mode
-    // @User: Standard
-    AP_GROUPINFO("MODE", 4, SLCAN::CANIface, _slcan_mode, 0),
-
     AP_GROUPEND
 };
 
@@ -244,15 +236,9 @@ static inline const char* getASCIIStatusCode(bool status)
     return status ? "\r" : "\a";
 }
 
-bool SLCAN::CANIface::is_initialized() const
-{
-    return initialized_;
-}
-
 bool SLCAN::CANIface::init_passthrough(uint8_t i)
 {
-    // We will not be running any driver on this port,
-    // just forward everything we receive on this port
+    // we setup undelying can iface here which we use for passthrough
     if (initialized_ ||
         _slcan_can_port <= 0 ||
         _slcan_can_port != i+1) {
@@ -260,12 +246,9 @@ bool SLCAN::CANIface::init_passthrough(uint8_t i)
     }
 
     _can_iface = hal.can[i];
-    AP::can().log_text(AP_CANManager::LOG_INFO, LOG_TAG, "Launching SLCAN Passthrough thread for CAN%d\n", _slcan_can_port - 1);
-
-    if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&SLCAN::CANIface::slcan_passthrough_loop, void), "SLCAN_Passthrough", 1024, AP_HAL::Scheduler::PRIORITY_CAN, 0)) {
-        AP::can().log_text(AP_CANManager::LOG_ERROR, LOG_TAG, "Unable to launch slcan passthrough thread\n");
-        return false;
-    }
+    _drv_num = _slcan_can_port - 1;
+    _prev_ser_port = -1;
+    AP::can().log_text(AP_CANManager::LOG_INFO, LOG_TAG, "Setting SLCAN Passthrough for CAN%d\n", _slcan_can_port - 1);
     return true;
 }
 
@@ -473,26 +456,186 @@ inline void SLCAN::CANIface::addByte(const uint8_t byte)
     }
 }
 
+void SLCAN::CANIface::update_slcan_port()
+{
+    if (_prev_ser_port != _slcan_ser_port) {
+        _port = AP::serialmanager().get_serial_by_id(_slcan_ser_port);
+        if (_port == nullptr) {
+            _slcan_ser_port.set_and_save(-1);
+            return;
+        }
+        _port->lock_port(_serial_lock_key, _serial_lock_key);
+        _prev_ser_port = _slcan_ser_port;
+        gcs().send_text(MAV_SEVERITY_INFO, "CANManager: Starting SLCAN Passthrough on Serial %d with CAN%d", _slcan_ser_port.get(), _drv_num);
+        _last_had_activity = AP_HAL::native_millis();
+    }
+    if (_port == nullptr) {
+        return;
+    }
+    if (((AP_HAL::native_millis() - _last_had_activity) > ((uint32_t)_slcan_timeout*1000)) &&
+        (uint32_t)_slcan_timeout != 0) {
+        _port->lock_port(0, 0);
+        _port = nullptr;
+        _slcan_ser_port.set_and_save(-1);
+        _prev_ser_port = -1;
+    }
+}
+
+bool SLCAN::CANIface::set_event_handle(AP_HAL::EventHandle* evt_handle)
+{
+    // When in passthrough mode methods is handled through can iface
+    if (_can_iface) {
+        return _can_iface->set_event_handle(evt_handle);
+    }
+    return false;
+}
+
+uint16_t SLCAN::CANIface::getNumFilters() const
+{
+    // When in passthrough mode methods is handled through can iface
+    if (_can_iface) {
+        return _can_iface->getNumFilters();
+    }
+    return 0;
+}
+
+uint32_t SLCAN::CANIface::getErrorCount() const
+{ 
+    // When in passthrough mode methods is handled through can iface
+    if (_can_iface) {
+        return _can_iface->getErrorCount();
+    }
+    return 0;
+}
+
+uint32_t SLCAN::CANIface::get_stats(char* data, uint32_t max_size)
+{
+    // When in passthrough mode methods is handled through can iface
+    if (_can_iface) {
+        return _can_iface->get_stats(data, max_size);
+    }
+    return 0;
+}
+    
+bool SLCAN::CANIface::is_busoff() const
+{
+    // When in passthrough mode methods is handled through can iface
+    if (_can_iface) {
+        return _can_iface->is_busoff();
+    }
+    return false;
+}
+
+bool SLCAN::CANIface::configureFilters(const CanFilterConfig* filter_configs, uint16_t num_configs) 
+{
+    // When in passthrough mode methods is handled through can iface
+    if (_can_iface) {
+        return _can_iface->configureFilters(filter_configs, num_configs);
+    }
+    return true;
+}
+    
+void SLCAN::CANIface::flush_tx()
+{
+    // When in passthrough mode methods is handled through can iface
+    if (_can_iface) {
+        _can_iface->flush_tx();
+    }
+
+    if (_port) {
+        _port->flush();
+    }
+}
+
+void SLCAN::CANIface::clear_rx()
+{
+    // When in passthrough mode methods is handled through can iface
+    if (_can_iface) {
+        _can_iface->clear_rx();
+    }
+    rx_queue_.clear();
+}
+
+bool SLCAN::CANIface::is_initialized() const {
+    // When in passthrough mode methods is handled through can iface
+    if (_can_iface) {
+        return _can_iface->is_initialized();
+    }
+    return false;
+}
+
+bool SLCAN::CANIface::select(bool &read, bool &write, const AP_HAL::CANFrame* const pending_tx,
+                uint64_t blocking_deadline)
+{
+    update_slcan_port();
+    bool ret = false;
+    // When in passthrough mode select is handled through can iface
+    if (_can_iface) {
+        ret = _can_iface->select(read, write, pending_tx, blocking_deadline); 
+    }
+
+    if (_port == nullptr) {
+        return ret;
+    }
+
+    // if under passthrough, we only do send when can_iface also allows it
+    if (_port->available_locked(_serial_lock_key) || rx_queue_.available()) {
+        // allow for receiving messages over slcan
+        read = true;
+        ret = true;
+    }
+
+    return ret;
+}
+
+
 // send method to transmit the frame through SLCAN interface
 int16_t SLCAN::CANIface::send(const AP_HAL::CANFrame& frame, uint64_t tx_deadline, AP_HAL::CANIface::CanIOFlags flags)
 {
-    if (frame.isErrorFrame() || frame.dlc > 8) {
-        return -1;
+    update_slcan_port();
+    int16_t ret = 0;
+    // When in passthrough mode select is handled through can iface
+    if (_can_iface) {
+        ret = _can_iface->send(frame, tx_deadline, flags);
     }
-    return reportFrame(frame, AP_HAL::native_micros64());
+
+    if (_port == nullptr) {
+        return ret;
+    }
+
+    if (frame.isErrorFrame() || frame.dlc > 8) {
+        return ret;
+    }
+    reportFrame(frame, AP_HAL::native_micros64());
+    return ret;
 }
 
 // receive method to read the frame recorded in the buffer
 int16_t SLCAN::CANIface::receive(AP_HAL::CANFrame& out_frame, uint64_t& rx_time,
                                  AP_HAL::CANIface::CanIOFlags& out_flags)
 {
+    update_slcan_port();
+    // When in passthrough mode select is handled through can iface
+    if (_can_iface) {
+        int16_t ret = _can_iface->receive(out_frame, rx_time, out_flags);
+        if (ret > 0) {
+            // we also pass this frame through to slcan iface,
+            // and immediately return
+            reportFrame(out_frame, AP_HAL::native_micros64());
+            return ret;
+        } else if (ret < 0) {
+            return ret;
+        }
+    }
+
+    // We found nothing in HAL's CANIface recieve, so look in SLCANIface
     if (_port == nullptr) {
         return 0;
     }
-    if (!_port->available_locked(_serial_lock_key)) {
-        return 0;
-    } else {
+
+    if (_port->available_locked(_serial_lock_key)) {
         uint32_t num_bytes = _port->available_locked(_serial_lock_key);
+        // flush bytes from port
         while (num_bytes--) {
             int16_t ret = _port->read_locked(_serial_lock_key);
             if (ret <= 0) {
@@ -501,76 +644,24 @@ int16_t SLCAN::CANIface::receive(AP_HAL::CANFrame& out_frame, uint64_t& rx_time,
             addByte(ret);
         }
     }
-    if (!rx_queue_.available()) {
-        return 0;
+    if (rx_queue_.available()) {
+        // if we already have something in buffer transmit it
+        CanRxItem frm;
+        if (!rx_queue_.pop(frm)) {
+            return 0;
+        }
+        out_frame = frm.frame;
+        rx_time = frm.timestamp_us;
+        out_flags = frm.flags;
+        _last_had_activity = AP_HAL::millis();
+        // Also send this frame over can_iface when in passthrough mode,
+        // We just push this frame without caring for priority etc
+        if (_can_iface) {
+            _can_iface->send(out_frame, AP_HAL::native_micros64() + 1000, out_flags);
+        }
+        return 1;
     }
-    CanRxItem frm;
-    rx_queue_.pop(frm);
-    out_frame = frm.frame;
-    rx_time = frm.timestamp_us;
-    out_flags = frm.flags;
-    return 1;
-}
-
-// Thread loop method to create a passthough link between SLCAN and CAN Iface
-void SLCAN::CANIface::slcan_passthrough_loop()
-{
-    uint8_t drv_num = _slcan_can_port - 1;
-    AP_HAL::CANFrame frame;
-    bool read_select;
-    bool write_select;
-    uint64_t timestamp_us;
-    AP_HAL::CANIface::CanIOFlags flags;
-    uint8_t prev_ser_port = 255;
-    int8_t _slcan_ser_port_cache;
-    bool had_activity;
-    uint32_t last_had_activity = 0;
-    while (true) {
-        _slcan_ser_port_cache = _slcan_ser_port;
-        while (_slcan_ser_port_cache < 0) {
-            hal.scheduler->delay(100);
-            _slcan_ser_port_cache = _slcan_ser_port;
-        }
-
-        if (prev_ser_port != _slcan_ser_port_cache) {
-            AP_HAL::UARTDriver* slcan_serial = AP::serialmanager().get_serial_by_id(_slcan_ser_port_cache);
-            if (slcan_serial != _port) {
-                _port = slcan_serial;
-            } else {
-                _slcan_ser_port.set_and_save(-1);
-                _slcan_ser_port_cache = -1;
-                continue;
-            }
-            _port->lock_port(_serial_lock_key, _serial_lock_key);
-            prev_ser_port = _slcan_ser_port_cache;
-            gcs().send_text(MAV_SEVERITY_INFO, "CANManager: Starting SLCAN Passthrough on Serial %d with CAN%d", _slcan_ser_port_cache, drv_num);
-            last_had_activity = AP_HAL::native_millis();
-        }
-        read_select = true;
-        write_select = true;
-        _can_iface->select(read_select, write_select, nullptr, 0);
-        if (read_select) {
-            //read data from can and put on slcan
-            if (_can_iface->receive(frame, timestamp_us, flags) > 0) {
-                send(frame, AP_HAL::native_micros() + 1000, flags);
-            }
-        }
-        //read data from slcan and put on can
-        if (receive(frame, timestamp_us, flags) > 0) {
-            _can_iface->send(frame, AP_HAL::native_micros() + 1000, flags);
-            had_activity  = true;
-        }
-
-        if (had_activity) {
-            last_had_activity = AP_HAL::native_millis();
-        }
-        if (((AP_HAL::native_millis() - last_had_activity) > (uint32_t)_slcan_timeout) &&
-            (uint32_t)_slcan_timeout != 0) {
-            _port->lock_port(0, 0);
-            _slcan_ser_port.set_and_save(-1);
-        }
-        hal.scheduler->delay_microseconds(100);
-    }
+    return 0;
 }
 
 void SLCAN::CANIface::reset_params()
