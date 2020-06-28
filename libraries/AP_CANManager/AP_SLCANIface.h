@@ -72,7 +72,10 @@ class CANIface: public AP_HAL::CANIface
     AP_Int8 _slcan_can_port;
     AP_Int8 _slcan_ser_port;
     AP_Int8 _slcan_timeout;
+    AP_Int8 _slcan_start_delay;
 
+    bool _slcan_start_req;
+    uint32_t _slcan_start_req_time;
     int8_t _prev_ser_port;
     int8_t _drv_num = -1;
     uint32_t _last_had_activity;

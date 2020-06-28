@@ -52,9 +52,16 @@ const AP_Param::GroupInfo SLCAN::CANIface::var_info[] = {
     // @Param: TIMOUT
     // @DisplayName: SLCAN Timeout
     // @Description: Duration of inactivity after which SLCAN is switched back to original driver in seconds.
-    // @Range: 0 32767
+    // @Range: 0 127
     // @User: Standard
     AP_GROUPINFO("TIMOUT", 3, SLCAN::CANIface, _slcan_timeout, 0),
+
+    // @Param: SDELAY
+    // @DisplayName: SLCAN Start Delay
+    // @Description: Duration after which slcan starts after setting SERNUM in seconds.
+    // @Range: 0 127
+    // @User: Standard
+    AP_GROUPINFO("SDELAY", 4, SLCAN::CANIface, _slcan_start_delay, 1),
 
     AP_GROUPEND
 };
@@ -459,6 +466,13 @@ inline void SLCAN::CANIface::addByte(const uint8_t byte)
 void SLCAN::CANIface::update_slcan_port()
 {
     if (_prev_ser_port != _slcan_ser_port) {
+        if (!_slcan_start_req) {
+            _slcan_start_req_time = AP_HAL::native_millis();
+            _slcan_start_req = true;
+        }
+        if (((AP_HAL::native_millis() - _slcan_start_req_time) < ((uint32_t)_slcan_start_delay*1000))) {
+            return;
+        }
         _port = AP::serialmanager().get_serial_by_id(_slcan_ser_port);
         if (_port == nullptr) {
             _slcan_ser_port.set_and_save(-1);
@@ -478,6 +492,7 @@ void SLCAN::CANIface::update_slcan_port()
         _port = nullptr;
         _slcan_ser_port.set_and_save(-1);
         _prev_ser_port = -1;
+        _slcan_start_req = false;
     }
 }
 
