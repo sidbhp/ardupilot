@@ -148,8 +148,8 @@ void setup(void)
     }
     log_sensor_health(_setup_sensor_health_mask);
 
-    hal.console->printf("Log: %d\n", AP::logger().find_last_log()-1);
-    hal.uartC->printf("Log: %d\n", AP::logger().find_last_log()-1);
+    hal.console->printf("Log: %d\n", AP::logger().find_last_log());
+    hal.uartC->printf("Log: %d\n", AP::logger().find_last_log());
     
 }
 
@@ -171,12 +171,15 @@ void loop()
     AP::ins().update();
     AP::baro().update();
     AP::compass().read();
+
     for (uint8_t i = 0; i < 3; i++) {
         if (!AP::ins().get_accel_health(i)) {
             _loop_sensor_health_mask &= ~((1 << com::hex::equipment::jig::Status::ACCEL_HEALTH_OFF) << i);
+            hal.uartC->printf("[ERROR]\t%s err count: %lu\n", sensor_pos[1], AP::ins().get_accel_error_count(1));
         }
         if (!AP::ins().get_gyro_health(i)) {
             _loop_sensor_health_mask &= ~((1 << com::hex::equipment::jig::Status::GYRO_HEALTH_OFF) << i);
+            hal.uartC->printf("[ERROR]\t%s err count: %lu\n", sensor_pos[1], AP::ins().get_gyro_error_count(1));
         }
     }
     for (uint8_t i = 0; i < 2; i++) {
@@ -204,17 +207,19 @@ void loop()
          for (uint8_t i = 0; i < ((SENSOR_MASK >> 9) + 9); i++)
             if (((_loop_sensor_health_mask >> i) & 1) > ((_last_sensor_health_mask >> i) & 1)) {
                 AP::logger().Write_MessageF("%s regain at loop %d\n", sensor_pos[i], loop_cycle);
-                hal.console->printf("%s regain at loop %d\n", sensor_pos[i], loop_cycle);
-                hal.uartC->printf("%s regain at loop %d\n", sensor_pos[i], loop_cycle);
+                hal.console->printf("[EVENT]\t%s regain at loop %d\n", sensor_pos[i], loop_cycle);
+                hal.uartC->printf("[EVENT]\t%s regain at loop %d\n", sensor_pos[i], loop_cycle);
             }
             else if (((_loop_sensor_health_mask >> i) & 1) < ((_last_sensor_health_mask >> i) & 1)) {
                 AP::logger().Write_MessageF("%s lost at loop %d\n", sensor_pos[i], loop_cycle);
-                hal.console->printf("%s lost at loop %d\n", sensor_pos[i], loop_cycle);
-                hal.uartC->printf("%s lost at loop %d\n", sensor_pos[i], loop_cycle);
+                hal.console->printf("[EVENT]\t%s lost at loop %d\n", sensor_pos[i], loop_cycle);
+                hal.uartC->printf("[EVENT]\t%s lost at loop %d\n", sensor_pos[i], loop_cycle);
             }
     }
     log_sensor_health(_loop_sensor_health_mask);
     _last_sensor_health_mask = _loop_sensor_health_mask;
+    //reset zero count or health bool
+    // ---place holder---
 
     // Do LED Patterns
     if ((AP_HAL::millis() - _led_blink_ms) > 2000) {
@@ -222,8 +227,8 @@ void loop()
         _led_blink_ms = AP_HAL::millis();
 
         if (_loop_sensor_health_mask ^ g.loop_sensor_health.get()) {
-            hal.console->printf("Fail sensor changed in this run. Log: %d\n", AP::logger().find_last_log()-1);
-            hal.uartC->printf("Fail sensor changed in this run. Log: %d\n", AP::logger().find_last_log()-1);
+            hal.console->printf("Fail sensor changed in this run. Log: %d\n", AP::logger().find_last_log());
+            hal.uartC->printf("Fail sensor changed in this run. Log: %d\n", AP::logger().find_last_log());
         }
 
         hal.console->printf("SENSOR_MASK: 0x%x NUM_RUNS: %d NUM_FAILS: %d LOOP_TEST_FLAGS: 0x%x SETUP_TEST_FLAGS: 0x%x\n", SENSOR_MASK, g.num_cycles.get(), g.num_fails.get(), g.loop_sensor_health.get(), g.setup_sensor_health.get());
