@@ -35,7 +35,8 @@ enum ioevents {
     IOEVENT_SET_HEATER_TARGET,
     IOEVENT_SET_DEFAULT_RATE,
     IOEVENT_SET_SAFETY_MASK,
-    IOEVENT_MIXING
+    IOEVENT_MIXING,
+    IOEVENT_SET_OUTPUT_MODE
 };
 
 // max number of consecutve protocol failures we accept before raising
@@ -196,6 +197,13 @@ void AP_IOMCU::thread_main(void)
         if (mask & EVENT_MASK(IOEVENT_SET_BRUSHED_ON)) {
             if (!modify_register(PAGE_SETUP, PAGE_REG_SETUP_FEATURES, 0, P_SETUP_FEATURES_BRUSHED)) {
                 event_failed(IOEVENT_SET_BRUSHED_ON);
+                continue;
+            }
+        }
+
+        if (mask & EVENT_MASK(IOEVENT_SET_OUTPUT_MODE)) {
+            if (!write_registers(PAGE_SETUP, PAGE_REG_SETUP_OUTPUT_MODE, sizeof(mode_out)/2, (const uint16_t *)&mode_out)) {
+                event_failed(IOEVENT_SET_OUTPUT_MODE);
                 continue;
             }
         }
@@ -739,6 +747,14 @@ void AP_IOMCU::set_oneshot_mode(void)
 void AP_IOMCU::set_brushed_mode(void)
 {
     trigger_event(IOEVENT_SET_BRUSHED_ON);
+}
+
+// set output mode
+void AP_IOMCU::set_output_mode(uint16_t mask, uint16_t mode)
+{
+    mode_out.mask = mask;
+    mode_out.mode = mode;
+    trigger_event(IOEVENT_SET_OUTPUT_MODE);
 }
 
 // handling of BRD_SAFETYOPTION parameter
