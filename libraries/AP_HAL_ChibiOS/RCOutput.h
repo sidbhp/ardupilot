@@ -23,8 +23,10 @@
 
 #if HAL_USE_PWM == TRUE
 
-#if !STM32_DMA_ADVANCED
-#define DISABLE_DSHOT
+#if STM32_DMA_ADVANCED
+typedef uint32_t dmar_uint;
+#else
+typedef uint16_t dmar_uint;
 #endif
 
 class ChibiOS::RCOutput : public AP_HAL::RCOutput {
@@ -130,7 +132,7 @@ public:
       enable telemetry request for a mask of channels. This is used
       with DShot to get telemetry feedback
      */
-    void set_telem_request_mask(uint16_t mask) override { telem_request_mask = (mask >> chan_offset); }
+    void set_telem_request_mask(uint16_t mask) override;
 
     /*
       get safety switch state, used by Util.cpp
@@ -160,6 +162,7 @@ public:
       setup serial LED output for a given channel number, with
       the given max number of LEDs in the chain.
      */
+#if STM32_DMA_ADVANCED
     bool set_serial_led_num_LEDs(const uint16_t chan, uint8_t num_leds, output_mode mode = MODE_PWM_NONE, uint16_t clock_mask = 0) override;
 
     /*
@@ -172,6 +175,7 @@ public:
       trigger send of serial LED data
      */
     void serial_led_send(const uint16_t chan) override;
+#endif
 
 private:
     struct pwm_group {
@@ -192,7 +196,7 @@ private:
         uint16_t ch_mask;
         const stm32_dma_stream_t *dma;
         Shared_DMA *dma_handle;
-        uint32_t *dma_buffer;
+        dmar_uint *dma_buffer;
         uint16_t dma_buffer_len;
         bool have_lock;
         bool pwm_started;
@@ -333,22 +337,15 @@ private:
     const uint8_t dshot_pre = 1;
     const uint8_t dshot_post = 2;
     const uint16_t dshot_bit_length = 16 + dshot_pre + dshot_post;
-    const uint16_t dshot_buffer_length = dshot_bit_length*4*sizeof(uint32_t);
+    const uint16_t dshot_buffer_length = dshot_bit_length*4*sizeof(dmar_uint);
     static const uint16_t dshot_min_gap_us = 100;
     uint32_t dshot_pulse_time_us;
     uint16_t telem_request_mask;
 
-    /*
-      Serial lED handling. Max of 32 LEDs uses max 12k of memory per group
-      return true if send was successful
-    */
-    bool serial_led_send(pwm_group &group);
-    bool serial_led_pending;
-
     void dma_allocate(Shared_DMA *ctx);
     void dma_deallocate(Shared_DMA *ctx);
     uint16_t create_dshot_packet(const uint16_t value, bool telem_request);
-    void fill_DMA_buffer_dshot(uint32_t *buffer, uint8_t stride, uint16_t packet, uint16_t clockmul);
+    void fill_DMA_buffer_dshot(dmar_uint *buffer, uint8_t stride, uint16_t packet, uint16_t clockmul);
     void dshot_send(pwm_group &group, bool blocking);
     static void dma_irq_callback(void *p, uint32_t flags);
     static void dma_unlock(void *p);
@@ -358,6 +355,14 @@ private:
     void set_group_mode(pwm_group &group);
     bool is_dshot_protocol(const enum output_mode mode) const;
     uint32_t protocol_bitrate(const enum output_mode mode) const;
+
+    /*
+      Serial lED handling. Max of 32 LEDs uses max 12k of memory per group
+      return true if send was successful
+    */
+#if STM32_DMA_ADVANCED
+    bool serial_led_send(pwm_group &group);
+    bool serial_led_pending;
 
     /*
       setup neopixel (WS2812B) output data for a given output channel
@@ -370,12 +375,13 @@ private:
     void _set_profiled_rgb_data(pwm_group *grp, uint8_t idx, uint8_t led, uint8_t red, uint8_t green, uint8_t blue);
     void _set_profiled_clock(pwm_group *grp, uint8_t idx, uint8_t led);
     void _set_profiled_blank_frame(pwm_group *grp, uint8_t idx, uint8_t led);
-
+#endif
+    
     // serial output support
     static const eventmask_t serial_event_mask = EVENT_MASK(1);
     bool serial_write_byte(uint8_t b);
     bool serial_read_byte(uint8_t &b);
-    void fill_DMA_buffer_byte(uint32_t *buffer, uint8_t stride, uint8_t b , uint32_t bitval);
+    void fill_DMA_buffer_byte(dmar_uint *buffer, uint8_t stride, uint8_t b , uint32_t bitval);
     static void serial_bit_irq(void);
     static void serial_byte_timeout(void *ctx);
 
