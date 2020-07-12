@@ -57,6 +57,7 @@
 
 #if HAL_MAX_CAN_PROTOCOL_DRIVERS
   #include <AP_CANManager/AP_CANManager.h>
+  #include <AP_CANManager/AP_CANTester.h>
   #include <AP_Common/AP_Common.h>
 
   // To be replaced with macro saying if KDECAN library is included
@@ -3610,11 +3611,24 @@ MAV_RESULT GCS_MAVLINK::handle_command_preflight_can(const mavlink_command_long_
 #endif
                 break;
             }
+            case AP_CANManager::Driver_Type_TestCAN: {
+// To be replaced with macro saying if KDECAN library is included
+#if (APM_BUILD_TYPE(APM_BUILD_ArduCopter) || APM_BUILD_TYPE(APM_BUILD_ArduPlane) || APM_BUILD_TYPE(APM_BUILD_ArduSub)) && (HAL_MAX_CAN_PROTOCOL_DRIVERS > 1 && !HAL_MINIMIZE_FEATURES && HAL_MAX_CAN_PROTOCOL_DRIVERS)
+                CANTester *cantester = CANTester::get_cantester(i);
+
+                if (cantester != nullptr) {
+                    can_exists = true;
+                    result = cantester->run_kdecan_enumeration(start_stop) && result;
+                }
+#else
+                UNUSED_RESULT(start_stop); // prevent unused variable error
+#endif
+                break;
+            }
             case AP_CANManager::Driver_Type_PiccoloCAN:
                 // TODO - Run PiccoloCAN pre-flight checks here
                 break;
             case AP_CANManager::Driver_Type_UAVCAN:
-            case AP_CANManager::Driver_Type_TestCAN:
             case AP_CANManager::Driver_Type_None:
             default:
                 break;
