@@ -45,9 +45,9 @@ void AP_RCProtocol::init()
 #if !APM_BUILD_TYPE(APM_BUILD_iofirmware)
     backend[AP_RCProtocol::SRXL2] = new AP_RCProtocol_SRXL2(*this);
     backend[AP_RCProtocol::CRSF] = new AP_RCProtocol_CRSF(*this);
-#endif
     backend[AP_RCProtocol::ST24] = new AP_RCProtocol_ST24(*this);
     backend[AP_RCProtocol::FPORT] = new AP_RCProtocol_FPort(*this, true);
+#endif
 }
 
 AP_RCProtocol::~AP_RCProtocol()
