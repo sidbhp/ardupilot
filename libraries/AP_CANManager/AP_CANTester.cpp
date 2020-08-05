@@ -27,6 +27,8 @@
 #include <AP_Vehicle/AP_Vehicle.h>
 #include <AP_UAVCAN/AP_UAVCAN.h>
 #include <uavcan/protocol/dynamic_node_id_client.hpp>
+#include <uavcan/equipment/esc/Status.hpp>
+#include <uavcan/equipment/esc/RawCommand.hpp>
 #include <AP_ToshibaCAN/AP_ToshibaCAN.h>
 #include <AP_HAL/utility/sparse-endian.h>
 #include "AP_CANTester_KDECAN.h"
@@ -37,7 +39,7 @@ const AP_Param::GroupInfo CANTester::var_info[] = {
     // @DisplayName: CAN Test Index
     // @Description: Selects the Index of Test that needs to be run recursively, this value gets reset to 0 at boot.
     // @Range: 0 4
-    // @Values: 0:TEST_NONE, 1:TEST_LOOPBACK,2:TEST_BUSOFF_RECOVERY,3:TEST_UAVCAN_DNA,4:TEST_TOSHIBA_CAN, 5:TEST_KDE_CAN
+    // @Values: 0:TEST_NONE, 1:TEST_LOOPBACK,2:TEST_BUSOFF_RECOVERY,3:TEST_UAVCAN_DNA,4:TEST_TOSHIBA_CAN, 5:TEST_KDE_CAN, 6:TEST_UAVCAN_ESC
     // @User: Advanced
     AP_GROUPINFO("ID", 1, CANTester, _test_id, 0),
     // @Param: LPR8
@@ -212,6 +214,18 @@ void CANTester::main_thread()
                 }
             } else {
                 gcs().send_text(MAV_SEVERITY_ALERT, "Only one iface needs to be set for TEST_KDE_CAN");
+            }
+            break;
+        case CANTester::TEST_UAVCAN_ESC:
+            if (_can_ifaces[1] == nullptr) {
+                gcs().send_text(MAV_SEVERITY_ALERT, "********Running UAVCAN ESC Test********");
+                if (test_uavcan_esc()) {
+                    gcs().send_text(MAV_SEVERITY_ALERT, "********UAVCAN ESC Test Pass********");
+                } else {
+                    gcs().send_text(MAV_SEVERITY_ALERT, "********UAVCAN ESC Test Fail********");
+                }
+            } else {
+                gcs().send_text(MAV_SEVERITY_ALERT, "Only one iface needs to be set for UAVCAN_ESC_TEST");
             }
             break;
         default:
@@ -698,6 +712,171 @@ bool CANTester::run_kdecan_enumeration(bool start_stop) {
     _kdecan_enumeration = start_stop;
     return true;
 }
+
+/***********************************************
+ *                UAVCAN ESC                   *
+ * *********************************************/
+
+#define NUM_ESCS 4
+static uavcan::Publisher<uavcan::equipment::esc::Status>* esc_status_publisher;
+static uavcan::Subscriber<uavcan::equipment::esc::RawCommand> *esc_command_listener;
+static uint16_t uavcan_esc_command_rate = 0;
+
+void handle_raw_command(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::RawCommand>& msg);
+void handle_raw_command(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::RawCommand>& msg)
+{
+    static uint16_t num_received = 0;
+    static uint32_t last_millis;
+    // We registered with all nodes but actually this will be handled only once by first node
+    // That's fine, we only are here to count packets
+    if (num_received == 0) {
+        last_millis = AP_HAL::millis();
+    }
+    num_received++;
+    // update rate every 50 packets
+    if (num_received == 50) {
+        uavcan_esc_command_rate = 100000/(AP_HAL::millis() - last_millis);
+        num_received = 0;
+    }
+}
+
+bool CANTester::test_uavcan_esc()
+{
+    bool ret = true;
+    uavcan::CanIfaceMgr _uavcan_iface_mgr {};
+
+    if (!_uavcan_iface_mgr.add_interface(_can_ifaces[0])) {
+        gcs().send_text(MAV_SEVERITY_CRITICAL, "Failed to add iface");
+        return false;
+    }
+
+    uavcan::Node<0> *node = nullptr;
+    {
+        node = new uavcan::Node<0>(_uavcan_iface_mgr, uavcan::SystemClock::instance(), _node_allocator);
+        if (node == nullptr) {
+            gcs().send_text(MAV_SEVERITY_CRITICAL, "Failed to allocate ESC Node");
+            ret = false;
+            goto exit;
+        } else {
+            node->setName("org.ardupilot.esctest");
+        }
+    }
+
+    {
+        uavcan::protocol::HardwareVersion hw_version;
+        const uint8_t uid_buf_len = hw_version.unique_id.capacity();
+        uint8_t uid_len = uid_buf_len;
+        uint8_t unique_id[uid_buf_len];
+        if (hal.util->get_system_id_unformatted(unique_id, uid_len)) {
+            // Generate random uid
+            unique_id[uid_len - 1] += 5;
+            uavcan::copy(unique_id, unique_id + uid_len, hw_version.unique_id.begin());
+        }
+
+        node->setHardwareVersion(hw_version); // Copying the value to the node's internals
+    }
+    /*
+    * Starting the node normally, in passive mode (i.e. without node ID assigned).
+    */
+    {
+        const int node_start_res = node->start();
+        if (node_start_res < 0) {
+            gcs().send_text(MAV_SEVERITY_CRITICAL, "Failed to start the node");
+            ret = false;
+            goto exit;
+        }
+    }
+
+    {
+        /*
+        * Initializing the dynamic node ID allocation client.
+        * By default, the client will use TransferPriority::OneHigherThanLowest for communications with the allocator;
+        * this can be overriden through the third argument to the start() method.
+        */
+        uavcan::DynamicNodeIDClient client(*node);
+        int client_start_res = client.start(node->getHardwareVersion().unique_id,    // USING THE SAME UNIQUE ID AS ABOVE
+                                            uavcan::NodeID(0));
+        if (client_start_res < 0) {
+            gcs().send_text(MAV_SEVERITY_ALERT,"Failed to start the dynamic node");
+            ret = false;
+            goto exit;
+        }
+
+        /*
+        * Waiting for the client to obtain for us a node ID.
+        * This may take a few seconds.
+        */
+        gcs().send_text(MAV_SEVERITY_ALERT, "Allocation is in progress");
+        while (!client.isAllocationComplete()) {
+            const int res = node->spin(uavcan::MonotonicDuration::fromMSec(200));    // Spin duration doesn't matter
+            if (res < 0) {
+                gcs().send_text(MAV_SEVERITY_ALERT, "Transient failure");
+            }
+        }
+        gcs().send_text(MAV_SEVERITY_ALERT, "Dynamic NodeID %d allocated node ID %d",
+                        int(client.getAllocatedNodeID().get()),
+                        int(client.getAllocatorNodeID().get()));
+        if (client.getAllocatedNodeID().get() == 255) {
+            gcs().send_text(MAV_SEVERITY_ALERT, "Node Allocation Failed");
+            ret = false;
+            goto exit;
+        }
+        esc_command_listener = new uavcan::Subscriber<uavcan::equipment::esc::RawCommand>(*node);
+        if (esc_command_listener) {
+            esc_command_listener->start(handle_raw_command);
+        } else {
+            ret = false;
+            goto exit;
+        }
+
+        esc_status_publisher = new uavcan::Publisher<uavcan::equipment::esc::Status>(*node);
+        if (esc_status_publisher == nullptr) {
+            ret = false;
+            goto exit;
+        }
+        esc_status_publisher->setTxTimeout(uavcan::MonotonicDuration::fromMSec(2));
+        esc_status_publisher->setPriority(uavcan::TransferPriority::OneLowerThanHighest);
+        node->setNodeID(client.getAllocatedNodeID());
+        node->setModeOperational();
+    }
+
+    // Allocations done lets begin
+    if (ret) {
+        while(true) {
+            node->spin(uavcan::MonotonicDuration::fromMSec(1000));
+            gcs().send_text(MAV_SEVERITY_ALERT, "UC ESC Command Rate: %d", uavcan_esc_command_rate);
+            uavcan_esc_command_rate = 0;
+            // send fake ESC stats as well
+            for (uint8_t i = 0; i < NUM_ESCS; i++) {
+                uavcan::equipment::esc::Status status_msg;
+                status_msg.esc_index = i;
+                status_msg.error_count = 0;
+                status_msg.voltage = 30 + 2*((float)get_random16()/INT16_MAX);
+                status_msg.current = 10 + 10*((float)get_random16()/INT16_MAX);
+                status_msg.temperature = 124 + i + C_TO_KELVIN; 
+                status_msg.rpm = 1200 + 300*((float)get_random16()/INT16_MAX);
+                status_msg.power_rating_pct = 70 + 20*((float)get_random16()/INT16_MAX);
+                esc_status_publisher->broadcast(status_msg);
+            }
+        }
+    }
+
+exit:
+    // Clean up!
+    if(node != nullptr) {
+        delete node;
+    }
+    if(esc_command_listener != nullptr) {
+        delete esc_command_listener;
+        esc_command_listener = nullptr;
+    }
+    if (esc_status_publisher != nullptr) {
+        delete esc_status_publisher;
+        esc_status_publisher = nullptr;
+    }
+    return ret;
+}
+
 
 CANTester *CANTester::get_cantester(uint8_t driver_index) {
     if (driver_index >= AP::can().get_num_drivers() ||

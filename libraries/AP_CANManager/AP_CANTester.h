@@ -50,6 +50,7 @@ private:
         TEST_UAVCAN_DNA,
         TEST_TOSHIBA_CAN,
         TEST_KDE_CAN,
+        TEST_UAVCAN_ESC,
         TEST_END,
     };
 
@@ -78,6 +79,7 @@ private:
 
     bool test_kdecan();
 
+    bool test_uavcan_esc();
 
     // write frame on CAN bus, returns true on success
     bool write_frame(uint8_t iface, AP_HAL::CANFrame &out_frame, uint64_t timeout);
