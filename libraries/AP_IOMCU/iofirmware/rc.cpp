@@ -96,20 +96,20 @@ void AP_IOMCU_FW::rcin_serial_update(void)
     uint32_t n;
     uint32_t now = AP_HAL::millis();
 
-    // read from DSM port
-    if ((n = chnReadTimeout(&SD1, b, sizeof(b), TIME_IMMEDIATE)) > 0) {
-        n = MIN(n, sizeof(b));
-        // don't mix two 115200 uarts
-        if (sd3_config == 0) {
-            rc_stats.num_dsm_bytes += n;
-            for (uint8_t i=0; i<n; i++) {
-                if (AP::RC().process_byte(b[i], 115200)) {
-                    rc_stats.last_good_ms = now;
-                }
-            }
-        }
-        //BLUE_TOGGLE();
-    }
+    // // read from DSM port
+    // if ((n = chnReadTimeout(&SD1, b, sizeof(b), TIME_IMMEDIATE)) > 0) {
+    //     n = MIN(n, sizeof(b));
+    //     // don't mix two 115200 uarts
+    //     if (sd3_config == 0) {
+    //         rc_stats.num_dsm_bytes += n;
+    //         for (uint8_t i=0; i<n; i++) {
+    //             if (AP::RC().process_byte(b[i], 115200)) {
+    //                 rc_stats.last_good_ms = now;
+    //             }
+    //         }
+    //     }
+    //     //BLUE_TOGGLE();
+    // }
 
     // read from SBUS port
     if ((n = chnReadTimeout(&SD3, b, sizeof(b), TIME_IMMEDIATE)) > 0) {
