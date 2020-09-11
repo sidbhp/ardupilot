@@ -80,6 +80,7 @@ public:
      */
     int read_file(const char *path, const char *fmt, ...) FMT_SCANF(3, 4);
 
+#ifndef HAL_BUILD_REPLAY
     perf_counter_t perf_alloc(enum perf_counter_type t, const char *name) override
     {
         return Perf::get_singleton()->add(t, name);
@@ -99,6 +100,7 @@ public:
     {
         return Perf::get_singleton()->count(perf);
     }
+#endif
 
     int get_hw_arm32();
 
