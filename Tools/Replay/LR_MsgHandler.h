@@ -491,3 +491,20 @@ public:
 private:
     Vector3f &sim_attitude;
 };
+
+class LR_MsgHandler_MODE : public LR_MsgHandler
+{
+public:
+    LR_MsgHandler_MODE(log_Format &_f, AP_Logger &_logger,
+                   uint64_t &_last_timestamp_usec,
+                   VehicleType::vehicle_type &_vehicle, AP_AHRS &_ahrs) :
+        LR_MsgHandler(_f, _logger, _last_timestamp_usec),
+        vehicle(_vehicle), ahrs(_ahrs) { }
+
+
+    void process_message(uint8_t *msg) override;
+
+private:
+    VehicleType::vehicle_type &vehicle;
+    AP_AHRS &ahrs;
+};

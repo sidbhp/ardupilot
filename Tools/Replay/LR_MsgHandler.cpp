@@ -359,7 +359,7 @@ void LR_MsgHandler_MAG_Base::update_from_msg_compass(uint8_t compass_offset, uin
         last_update_usec = AP_HAL::micros();
     }
 
-    compass.setHIL(compass_offset, mag - mag_offset, last_update_usec);
+    compass.setHIL(compass_offset, mag, last_update_usec);
     // compass_offset is which compass we are setting info for;
     // mag_offset is a vector indicating the compass' calibration...
     compass.set_offsets(compass_offset, mag_offset);
@@ -400,6 +400,21 @@ void LR_MsgHandler_MSG::process_message(uint8_t *msg)
     }
 }
 
+void LR_MsgHandler_MODE::process_message(uint8_t *msg)
+{
+    if (vehicle != VehicleType::VEHICLE_PLANE) {
+        return;
+    }
+    uint8_t mode = require_field_uint8_t(msg, "ModeNum");
+    // Hardcoded value for now
+    if (mode > 17) {
+        ::printf("Detected QuadPlane Copter Mode\n");
+        ahrs.set_fly_forward(false);
+    } else {
+        ::printf("Detected Normal Plane Mode\n");
+        ahrs.set_fly_forward(true);
+    }
+}
 
 void LR_MsgHandler_NTUN_Copter::process_message(uint8_t *msg)
 {

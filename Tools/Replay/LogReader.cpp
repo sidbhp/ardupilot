@@ -406,7 +406,11 @@ bool LogReader::handle_log_format_msg(const struct log_Format &f)
 	} else if (streq(name, "PM")) {
 	  msgparser[f.type] = new LR_MsgHandler_PM(formats[f.type], logger,
                                                    last_timestamp_usec);
-	} else {
+	} else if (streq(name, "MODE")) {
+        msgparser[f.type] = new LR_MsgHandler_MODE(formats[f.type], logger,
+                                                   last_timestamp_usec,
+						                            vehicle, ahrs);
+    } else {
             debug("  No parser for (%s)\n", name);
 	}
 
