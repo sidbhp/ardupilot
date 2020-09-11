@@ -6,7 +6,7 @@ import boards
 def build(bld):
     if not isinstance(bld.get_board(), boards.linux):
         return
-
+    bld.define("HAL_BUILD_REPLAY", 1)
     vehicle = bld.path.name
 
     bld.ap_stlib(
