@@ -76,6 +76,7 @@ void NavEKF3::Log_Write_XKF2(uint8_t _core, uint64_t time_us) const
 
 void NavEKF3::Log_Write_XKFS(uint8_t _core, uint64_t time_us) const
 {
+    return;
     // Write sensor selection EKF packet
     uint8_t magIndex = getActiveMag(_core);
     uint8_t baroIndex = getActiveBaro(_core);

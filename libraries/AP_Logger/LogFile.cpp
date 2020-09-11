@@ -108,6 +108,7 @@ bool AP_Logger_Backend::Write_Format_Units(const struct LogStructure *s)
  */
 bool AP_Logger_Backend::Write_Parameter(const char *name, float value)
 {
+    return true;;
     struct log_Parameter pkt{
         LOG_PACKET_HEADER_INIT(LOG_PARAMETER_MSG),
         time_us : AP_HAL::micros64(),
