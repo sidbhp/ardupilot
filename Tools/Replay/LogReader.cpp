@@ -20,7 +20,7 @@
 #include "MsgHandler.h"
 #include "Replay.h"
 
-#define DEBUG 1
+#define DEBUG 0
 #if DEBUG
 # define debug(fmt, args...)     printf(fmt "\n", ##args)
 #else
@@ -210,7 +210,7 @@ uint8_t LogReader::map_fmt_type(const char *name, uint8_t intype)
         return mapped_msgid[intype];
     }
     for (uint8_t n=next_msgid; n<255; n++) {
-        ::fprintf(stderr, "next_msgid=%u\n", n);
+        //::fprintf(stderr, "next_msgid=%u\n", n);
         bool already_mapped = false;
         for (uint16_t i=0; i<sizeof(mapped_msgid); i++) {
             if (mapped_msgid[i] == n) {
