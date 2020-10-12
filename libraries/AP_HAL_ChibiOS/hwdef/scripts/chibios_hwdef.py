@@ -1492,7 +1492,27 @@ def write_PWM_config(f):
 # define HAL_PWM%u_DMA_CONFIG true, STM32_TIM_TIM%u_UP_DMA_STREAM, STM32_TIM_TIM%u_UP_DMA_CHAN
 #else
 # define HAL_PWM%u_DMA_CONFIG false, 0, 0
-#endif\n''' % (n, n, n, n, n, n))
+#endif
+#if defined(STM32_TIM_TIM%u_CH1_DMA_STREAM) && defined(STM32_TIM_TIM%u_CH1_DMA_CHAN)
+# define HAL_IC%u_CH1_DMA_CONFIG true, STM32_TIM_TIM%u_CH1_DMA_STREAM, STM32_TIM_TIM%u_CH1_DMA_CHAN
+#else
+# define HAL_IC%u_CH1_DMA_CONFIG false, 0, 0
+#endif
+#if defined(STM32_TIM_TIM%u_CH2_DMA_STREAM) && defined(STM32_TIM_TIM%u_CH2_DMA_CHAN)
+# define HAL_IC%u_CH2_DMA_CONFIG true, STM32_TIM_TIM%u_CH2_DMA_STREAM, STM32_TIM_TIM%u_CH2_DMA_CHAN
+#else
+# define HAL_IC%u_CH2_DMA_CONFIG false, 0, 0
+#endif
+#if defined(STM32_TIM_TIM%u_CH3_DMA_STREAM) && defined(STM32_TIM_TIM%u_CH3_DMA_CHAN)
+# define HAL_IC%u_CH3_DMA_CONFIG true, STM32_TIM_TIM%u_CH3_DMA_STREAM, STM32_TIM_TIM%u_CH3_DMA_CHAN
+#else
+# define HAL_IC%u_CH3_DMA_CONFIG false, 0, 0
+#endif
+#if defined(STM32_TIM_TIM%u_CH4_DMA_STREAM) && defined(STM32_TIM_TIM%u_CH4_DMA_CHAN)
+# define HAL_IC%u_CH4_DMA_CONFIG true, STM32_TIM_TIM%u_CH4_DMA_STREAM, STM32_TIM_TIM%u_CH4_DMA_CHAN
+#else
+# define HAL_IC%u_CH4_DMA_CONFIG false, 0, 0
+#endif\n''' % (n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n))
         f.write('''#define HAL_PWM_GROUP%u { %s, \\
         {%u, %u, %u, %u}, \\
         /* Group Initial Config */ \\
@@ -1508,13 +1528,14 @@ def write_PWM_config(f):
            {%s, NULL}  \\
           }, 0, 0}, &PWMD%u, \\
           HAL_PWM%u_DMA_CONFIG, \\
+          { {HAL_IC%u_CH1_DMA_CONFIG}, {HAL_IC%u_CH2_DMA_CONFIG}, {HAL_IC%u_CH3_DMA_CONFIG}, {HAL_IC%u_CH4_DMA_CONFIG}}, \\
           { %u, %u, %u, %u }, \\
-          { %s, %s, %s, %s }}\n''' %
+          { %s, %s, %s, %s }}\n\n''' %
                 (group, advanced_timer,
                  chan_list[0], chan_list[1], chan_list[2], chan_list[3],
                  pwm_clock, period,
                  chan_mode[0], chan_mode[1], chan_mode[2], chan_mode[3],
-                 n, n,
+                 n, n, n, n, n, n,
                  alt_functions[0], alt_functions[1], alt_functions[2], alt_functions[3],
                  pal_lines[0], pal_lines[1], pal_lines[2], pal_lines[3]))
     f.write('#define HAL_PWM_GROUPS %s\n\n' % ','.join(groups))
@@ -1848,6 +1869,9 @@ def build_peripheral_list():
             periph_pins.append(altmap[alt][p])
     for p in periph_pins:
         type = p.type
+        if type.startswith('TIM'):
+            # we need to independently demand DMA for each channel
+            type = p.label
         if type in done:
             continue
         for prefix in prefixes:
@@ -1878,9 +1902,13 @@ def build_peripheral_list():
                 peripherals.append(label)
             elif not p.has_extra('ALARM') and not p.has_extra('RCININT'):
                 # get the TIMn_UP DMA channels for DShot
-                label = type + '_UP'
+                label = p.type + '_UP'
                 if label not in peripherals and not p.has_extra('NODMA'):
                     peripherals.append(label)
+                ch_label = type
+                (_, _, compl) = parse_timer(ch_label)
+                if ch_label not in peripherals and p.has_extra('BIDIR') and not compl:
+                    peripherals.append(ch_label)
         done.add(type)
     return peripherals
 
