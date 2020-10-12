@@ -13,6 +13,7 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Code by Andrew Tridgell and Siddharth Bharat Purohit
+ * Bi-directional dshot based on Betaflight, code by Andy Piper and Siddharth Bharat Purohit
  */
 #include "RCOutput.h"
 #include <AP_Math/AP_Math.h>
@@ -21,6 +22,9 @@
 #include "GPIO.h"
 #include "hwdef/common/stm32_util.h"
 #include "hwdef/common/watchdog.h"
+#include <AP_BLHeli/AP_BLHeli.h>
+#include <AP_InternalError/AP_InternalError.h>
+#include <AP_Vehicle/AP_Vehicle_Type.h>
 
 #if HAL_USE_PWM == TRUE
 
@@ -34,6 +38,18 @@ extern AP_IOMCU iomcu;
 #endif
 
 #define RCOU_SERIAL_TIMING_DEBUG 0
+
+#if RCOU_DSHOT_TIMING_DEBUG
+#define DEBUG_CHANNEL 1
+#define TOGGLE_PIN_CH_DEBUG(pin, channel) do { if (channel == DEBUG_CHANNEL) palToggleLine(HAL_GPIO_LINE_GPIO ## pin); } while (0)
+#define TOGGLE_PIN_DEBUG(pin) do { palToggleLine(HAL_GPIO_LINE_GPIO ## pin); } while (0)
+#else
+#define TOGGLE_PIN_CH_DEBUG(pin, channel) do {} while (0)
+#define TOGGLE_PIN_DEBUG(pin) do {} while (0)
+#endif
+
+#define TELEM_SAMPLE 4
+#define TELEM_IC_SAMPLE 16
 
 struct RCOutput::pwm_group RCOutput::pwm_group_list[] = { HAL_PWM_GROUPS };
 struct RCOutput::irq_state RCOutput::irq;
@@ -64,6 +80,11 @@ void RCOutput::init()
                 num_fmu_channels = MAX(num_fmu_channels, group.chan[j]+1);
                 group.ch_mask |= (1U<<group.chan[j]);
             }
+            // zero out telemetry data structures
+            group.ic_dma_handle[j] = nullptr;
+            group.ic_dma[j] = nullptr;
+            group.telem_tim_ch[j] = CHAN_DISABLED;
+            group.telem_read_gpio[j] = false;
         }
         if (group.ch_mask != 0) {
             pwmStart(group.pwm_drv, &group.pwm_cfg);
@@ -86,6 +107,20 @@ void RCOutput::init()
 
 #ifdef HAL_GPIO_PIN_SAFETY_IN
     safety_state = AP_HAL::Util::SAFETY_DISARMED;
+#endif
+
+#if defined(HAVE_AP_BLHELI_SUPPORT) && !APM_BUILD_TYPE(APM_BUILD_iofirmware)
+    AP_BLHeli* blh = AP_BLHeli::get_singleton();
+    if (blh != nullptr) {
+        _bidir_dshot_enabled = blh->has_option(AP_BLHeli::EscOptions::OPTIONS_BIDIR_DSHOT);
+    }
+#endif
+
+#if RCOU_DSHOT_TIMING_DEBUG
+    hal.gpio->pinMode(54, 1);
+    hal.gpio->pinMode(55, 1);
+    hal.gpio->pinMode(56, 1);
+    hal.gpio->pinMode(57, 1);
 #endif
 }
 
@@ -401,7 +436,7 @@ void RCOutput::push_local(void)
 #ifndef DISABLE_DSHOT
                 else if (is_dshot_protocol(group.current_mode) || group.current_mode == MODE_NEOPIXEL || group.current_mode == MODE_PROFILED) {
                     // set period_us to time for pulse output, to enable very fast rates
-                    period_us = dshot_pulse_time_us;
+                    period_us = group.dshot_pulse_time_us;
                 }
 #endif //#ifndef DISABLE_DSHOT
                 if (period_us > widest_pulse) {
@@ -526,6 +561,14 @@ bool RCOutput::setup_group_DMA(pwm_group &group, uint32_t bitrate, uint32_t bit_
     // hold the lock during setup, to ensure there isn't a DMA operation ongoing
     group.dma_handle->lock();
 
+    // configure input capture DMA if required
+    if (_bidir_dshot_enabled) {
+        if (!setup_group_ic_DMA(group)) {
+            group.dma_handle->unlock();
+            return false;
+        }
+    }
+
     // configure timer driver for DMAR at requested rate
     if (group.pwm_started) {
         pwmStop(group.pwm_drv);
@@ -572,9 +615,9 @@ bool RCOutput::setup_group_DMA(pwm_group &group, uint32_t bitrate, uint32_t bit_
         pwmmode_t mode = group.pwm_cfg.channels[j].mode;
         if (mode != PWM_OUTPUT_DISABLED) {
             if(mode == PWM_COMPLEMENTARY_OUTPUT_ACTIVE_LOW || mode == PWM_COMPLEMENTARY_OUTPUT_ACTIVE_HIGH) {
-               group.pwm_cfg.channels[j].mode = active_high?PWM_COMPLEMENTARY_OUTPUT_ACTIVE_HIGH:PWM_COMPLEMENTARY_OUTPUT_ACTIVE_LOW;
+               group.pwm_cfg.channels[j].mode = active_high ? PWM_COMPLEMENTARY_OUTPUT_ACTIVE_HIGH : PWM_COMPLEMENTARY_OUTPUT_ACTIVE_LOW;
             } else {
-               group.pwm_cfg.channels[j].mode = active_high?PWM_OUTPUT_ACTIVE_HIGH:PWM_OUTPUT_ACTIVE_LOW;
+               group.pwm_cfg.channels[j].mode = active_high ? PWM_OUTPUT_ACTIVE_HIGH : PWM_OUTPUT_ACTIVE_LOW;
             }
         }
     }
@@ -587,6 +630,7 @@ bool RCOutput::setup_group_DMA(pwm_group &group, uint32_t bitrate, uint32_t bit_
             pwmEnableChannel(group.pwm_drv, j, 0);
         }
     }
+
     group.dma_handle->unlock();
     return true;
 #else
@@ -594,6 +638,87 @@ bool RCOutput::setup_group_DMA(pwm_group &group, uint32_t bitrate, uint32_t bit_
 #endif //#ifndef DISABLE_DSHOT
 }
 
+bool RCOutput::setup_group_ic_DMA(pwm_group &group)
+{
+#ifndef DISABLE_DSHOT
+    bool set_curr_chan = false;
+
+    for (uint8_t i = 0; i < 4; i++) {
+        if (group.chan[i] == CHAN_DISABLED) {
+            continue;
+        }
+        // make sure we don't start on a disabled channel
+        if (!set_curr_chan) {
+            group.curr_telem_chan = i;
+            set_curr_chan = true;
+        }
+        pwmmode_t mode = group.pwm_cfg.channels[i].mode;
+        if (mode == PWM_COMPLEMENTARY_OUTPUT_ACTIVE_LOW ||
+            mode == PWM_COMPLEMENTARY_OUTPUT_ACTIVE_HIGH) {
+            // Complementary channels don't support input capture
+            // So this channel will use GPIO sampling
+            group.telem_read_gpio[i] = true;
+            group.dma_ch[i].have_dma = false;
+            continue;
+        }
+        if (!group.ic_dma_handle[i] && group.dma_ch[i].have_dma) {
+            group.ic_dma_handle[i] = new Shared_DMA(group.dma_ch[i].stream_id, SHARED_DMA_NONE,
+                                            FUNCTOR_BIND_MEMBER(&RCOutput::ic_dma_allocate, void, Shared_DMA *),
+                                            FUNCTOR_BIND_MEMBER(&RCOutput::ic_dma_deallocate, void, Shared_DMA *));
+            if (!group.ic_dma_handle[i]) {
+                return false;
+            }
+        }
+    }
+
+    // We might need to do sharing of timers for telemetry feedback
+    // due to lack of available DMA channels
+    for (uint8_t i = 0; i < 4; i++) {
+        if (group.chan[i] == CHAN_DISABLED) {
+            continue;
+        }
+        uint8_t curr_chan = i;
+        pwmmode_t mode = group.pwm_cfg.channels[i].mode;
+        if (group.ic_dma_handle[i]) {
+            // we are all good just set and continue
+            group.telem_tim_ch[i] = curr_chan;
+        } else if (mode == PWM_COMPLEMENTARY_OUTPUT_ACTIVE_LOW ||
+                 mode == PWM_COMPLEMENTARY_OUTPUT_ACTIVE_HIGH) {
+            // Complementary channels don't support input capture
+            // So this channel will use GPIO sampling
+            group.telem_read_gpio[i] = true;
+            continue;
+        } else {
+            // I guess we have to share
+            if (curr_chan%2 == 0) {
+                curr_chan = curr_chan + 1;
+            } else {
+                curr_chan = curr_chan - 1;
+            }
+            if (!group.dma_ch[curr_chan].have_dma) {
+                // We can't find a DMA channel to use so
+                // we do GPIO sampling
+                group.telem_read_gpio[i] = true;
+                continue;
+            }
+            if (group.ic_dma_handle[i]) {
+                AP_HAL::panic("Duplicate shared DMA");
+            }
+            // we can use the next channel
+            group.ic_dma_handle[i] = new Shared_DMA(group.dma_ch[curr_chan].stream_id, SHARED_DMA_NONE,
+                                        FUNCTOR_BIND_MEMBER(&RCOutput::ic_dma_allocate, void, Shared_DMA *),
+                                        FUNCTOR_BIND_MEMBER(&RCOutput::ic_dma_deallocate, void, Shared_DMA *));
+            if (!group.ic_dma_handle[i]) {
+                return false;
+            }
+            group.telem_tim_ch[i] = curr_chan;
+            group.dma_ch[i] = group.dma_ch[curr_chan];
+        }
+    }
+
+#endif
+    return true;
+}
 
 /*
   setup output mode for a group, using group.current_mode. Used to restore output
@@ -605,6 +730,8 @@ void RCOutput::set_group_mode(pwm_group &group)
         pwmStop(group.pwm_drv);
         group.pwm_started = false;
     }
+
+    memset(group.erpm, 0, 4*sizeof(uint16_t));
 
     switch (group.current_mode) {
     case MODE_PWM_BRUSHED:
@@ -644,22 +771,29 @@ void RCOutput::set_group_mode(pwm_group &group)
         }
 
         // calculate min time between pulses
-        dshot_pulse_time_us = 1000000UL * bit_length / rate;
+        group.dshot_pulse_time_us = 1000000UL * bit_length / rate;
         break;
     }
 
     case MODE_PWM_DSHOT150 ... MODE_PWM_DSHOT1200: {
         const uint32_t rate = protocol_bitrate(group.current_mode);
         const uint32_t bit_period = 20;
+        bool active_high = _bidir_dshot_enabled ? false : true;
 
         // configure timer driver for DMAR at requested rate
-        if (!setup_group_DMA(group, rate, bit_period, true, dshot_buffer_length, false)) {
+        if (!setup_group_DMA(group, rate, bit_period, active_high,
+            MAX(DSHOT_BUFFER_LENGTH, GCR_TELEMETRY_BUFFER_LEN), false)) {
             group.current_mode = MODE_PWM_NORMAL;
             break;
         }
-
         // calculate min time between pulses
-        dshot_pulse_time_us = 1000000UL * dshot_bit_length / rate;
+        group.dshot_pulse_send_time_us = 1000000UL * dshot_bit_length / rate;
+        if (_bidir_dshot_enabled) {
+            // to all intents and purposes the pulse time of send and receive are the same
+            group.dshot_pulse_time_us = group.dshot_pulse_send_time_us + group.dshot_pulse_send_time_us + 30;
+        } else {
+            group.dshot_pulse_time_us = group.dshot_pulse_send_time_us;
+        }
         break;
     }
 
@@ -872,12 +1006,7 @@ void RCOutput::trigger_groups(void)
     osalSysUnlock();
 
     if (!serial_group) {
-        for (uint8_t i = 0; i < NUM_GROUPS; i++) {
-            pwm_group &group = pwm_group_list[i];
-            if (is_dshot_protocol(group.current_mode)) {
-                dshot_send(group, false);
-            }
-        }
+        dshot_send_groups(false);
     }
 
     /*
@@ -891,25 +1020,22 @@ void RCOutput::trigger_groups(void)
 
 /*
   periodic timer. This is used for oneshot and dshot modes, plus for
-  safety switch update
+  safety switch update. Runs every 1000us.
  */
 void RCOutput::timer_tick(void)
 {
     safety_update();
 
     uint64_t now = AP_HAL::micros64();
-    for (uint8_t i = 0; i < NUM_GROUPS; i++ ) {
-        pwm_group &group = pwm_group_list[i];
-        if (!serial_group &&
-            is_dshot_protocol(group.current_mode) &&
-            now - group.last_dmar_send_us > 400) {
-            // do a blocking send now, to guarantee DShot sends at
-            // above 1000 Hz. This makes the protocol more reliable on
-            // long cables, and also keeps some ESCs happy that don't
-            // like low rates
-            dshot_send(group, true);
-        }
+
+    // do a blocking send now, to guarantee DShot sends at
+    // above 1000 Hz. This makes the protocol more reliable on
+    // long cables, and also keeps some ESCs happy that don't
+    // like low rates
+    if (!serial_group) {
+        dshot_send_groups(true);
     }
+
     if (serial_led_pending && chMtxTryLock(&trigger_mutex)) {
         serial_led_pending = false;
         for (uint8_t j = 0; j < NUM_GROUPS; j++) {
@@ -942,7 +1068,7 @@ void RCOutput::dma_allocate(Shared_DMA *ctx)
         pwm_group &group = pwm_group_list[i];
         if (group.dma_handle == ctx && group.dma == nullptr) {
             chSysLock();
-            group.dma = dmaStreamAllocI(group.dma_up_stream_id, 10, dma_irq_callback, &group);
+            group.dma = dmaStreamAllocI(group.dma_up_stream_id, 10, dma_up_irq_callback, &group);
             chSysUnlock();
 #if STM32_DMA_SUPPORTS_DMAMUX
             if (group.dma) {
@@ -970,9 +1096,48 @@ void RCOutput::dma_deallocate(Shared_DMA *ctx)
 }
 
 /*
+  allocate DMA channel
+ */
+void RCOutput::ic_dma_allocate(Shared_DMA *ctx)
+{
+    for (uint8_t i = 0; i < NUM_GROUPS; i++ ) {
+        pwm_group &group = pwm_group_list[i];
+        for (uint8_t icuch = 0; icuch < 4; icuch++) {
+            if (group.ic_dma_handle[icuch] == ctx && group.ic_dma[icuch] == nullptr) {
+                chSysLock();
+                group.ic_dma[icuch] = dmaStreamAllocI(group.dma_ch[icuch].stream_id, 10, dma_ic_irq_callback, &group);
+                chSysUnlock();
+    #if STM32_DMA_SUPPORTS_DMAMUX
+                if (group.ic_dma[icuch]) {
+                    dmaSetRequestSource(group.ic_dma[icuch], group.dma_ch[icuch].channel);
+                }
+    #endif
+            }
+        }
+    }
+}
+
+/*
+  deallocate DMA channel
+ */
+void RCOutput::ic_dma_deallocate(Shared_DMA *ctx)
+{
+    for (uint8_t i = 0; i < NUM_GROUPS; i++ ) {
+        pwm_group &group = pwm_group_list[i];
+        for (uint8_t icuch = 0; icuch < 4; icuch++) {
+            if (group.ic_dma_handle[icuch] == ctx && group.ic_dma[icuch] != nullptr) {
+                chSysLock();
+                dmaStreamFreeI(group.ic_dma[icuch]);
+                group.ic_dma[icuch] = nullptr;
+                chSysUnlock();
+            }
+        }
+    }
+}
+/*
   create a DSHOT 16 bit packet. Based on prepareDshotPacket from betaflight
  */
-uint16_t RCOutput::create_dshot_packet(const uint16_t value, bool telem_request)
+uint16_t RCOutput::create_dshot_packet(const uint16_t value, bool telem_request, bool bidir_telem)
 {
     uint16_t packet = (value << 1);
 
@@ -987,8 +1152,13 @@ uint16_t RCOutput::create_dshot_packet(const uint16_t value, bool telem_request)
         csum ^= csum_data;
         csum_data >>= 4;
     }
-    csum &= 0xf;
+    // trigger bi-dir dshot telemetry
+    if (bidir_telem) {
+        csum = ~csum;
+    }
+
     // append checksum
+    csum &= 0xf;
     packet = (packet << 4) | csum;
 
     return packet;
@@ -1014,6 +1184,22 @@ void RCOutput::fill_DMA_buffer_dshot(uint32_t *buffer, uint8_t stride, uint16_t 
     }
 }
 
+// send dshot for all groups that support it
+void RCOutput::dshot_send_groups(bool blocking)
+{
+    for (uint8_t i = 0; i < NUM_GROUPS; i++) {
+        pwm_group &group = pwm_group_list[i];
+        if (group.can_send_dshot_pulse()) {
+            dshot_send(group, blocking);
+            // delay sending the next group by the same amount as the bidir dead time
+            // to avoid irq collisions
+            if (group.bidir_dshot_enabled) {
+                hal.scheduler->delay_microseconds(group.dshot_pulse_time_us);
+            }
+        }
+    }
+}
+
 /*
   send a set of DShot packets for a channel group
   This call be called in blocking mode from the timer, in which case it waits for the DMA lock.
@@ -1022,26 +1208,75 @@ void RCOutput::fill_DMA_buffer_dshot(uint32_t *buffer, uint8_t stride, uint16_t 
 void RCOutput::dshot_send(pwm_group &group, bool blocking)
 {
 #ifndef DISABLE_DSHOT
-    if (irq.waiter) {
-        // doing serial output, don't send DShot pulses
+    if (irq.waiter || (group.dshot_state != DshotState::IDLE && group.dshot_state != DshotState::RECV_COMPLETE)) {
+        // doing serial output or DMAR input, don't send DShot pulses
         return;
     }
 
+    // first make sure we have the DMA channel before anything else
     if (blocking) {
         group.dma_handle->lock();
-    } else {
-        if (!group.dma_handle->lock_nonblock()) {
-            return;
+    } else if (!group.dma_handle->lock_nonblock()) {
+        return;
+    }
+
+    // assume that we won't be able to get the input capture lock
+    group.bidir_dshot_enabled = false;
+
+    // now grab the input capture lock if we are able
+    if (_bidir_dshot_enabled && group.has_ic_dma()) {
+        if (blocking) {
+            group.ic_dma_handle[group.curr_telem_chan]->lock();
+            group.bidir_dshot_enabled = true;
+        } else {
+            group.bidir_dshot_enabled = group.ic_dma_handle[group.curr_telem_chan]->lock_nonblock();
+        }
+    }
+
+    // if the last transaction returned telemetry, decode it
+    if (group.dshot_state == DshotState::RECV_COMPLETE) {
+        uint8_t chan = group.chan[group.prev_telem_chan];
+        uint32_t now = AP_HAL::millis();
+        if (decode_dshot_telemetry(group, group.prev_telem_chan)) {
+            _erpm_clean_frames[chan]++;
+        } else {
+            _erpm_errors[chan]++;
+        }
+        // reset statistics periodically
+        if (now - _erpm_last_stats_ms[chan] > 5000) {
+            _erpm_clean_frames[chan] = 0;
+            _erpm_errors[chan] = 0;
+            _erpm_last_stats_ms[chan] = now;
+        }
+    }
+
+    if (group.bidir_dshot_enabled) {
+        if (group.pwm_started) {
+            pwmStop(group.pwm_drv);
+        }
+        pwmStart(group.pwm_drv, &group.pwm_cfg);
+        group.pwm_started = true;
+
+        if (group.has_ic_gpio()) {
+            // this defines the sampling rate of GPIO signal
+            // we avoid using a even divisor, so as to avoid aliasing
+            group.telempsc = (uint16_t)(lrintf(((float)group.pwm_drv->clock / getDshotHz(group.current_mode) + 0.01f)/TELEM_SAMPLE) - 1);
+        } else {
+            // we can be more precise for capture timer
+            group.telempsc = (uint16_t)(lrintf(((float)group.pwm_drv->clock / getDshotHz(group.current_mode) + 0.01f)/TELEM_IC_SAMPLE) - 1);
         }
     }
 
     bool safety_on = hal.util->safety_switch_state() == AP_HAL::Util::SAFETY_DISARMED;
 
-    memset((uint8_t *)group.dma_buffer, 0, dshot_buffer_length);
+    memset((uint8_t *)group.dma_buffer, 0, DSHOT_BUFFER_LENGTH);
 
     for (uint8_t i=0; i<4; i++) {
         uint8_t chan = group.chan[i];
         if (chan != CHAN_DISABLED) {
+            // retrieve the last erpm values
+            _erpm[chan] = group.erpm[i];
+
             uint16_t pwm = period[chan];
 
             if (safety_on && !(safety_mask & (1U<<(chan+chan_offset)))) {
@@ -1075,7 +1310,7 @@ void RCOutput::dshot_send(pwm_group &group, bool blocking)
             }
 
             bool request_telemetry = (telem_request_mask & chan_mask)?true:false;
-            uint16_t packet = create_dshot_packet(value, request_telemetry);
+            uint16_t packet = create_dshot_packet(value, request_telemetry, _bidir_dshot_enabled);
             if (request_telemetry) {
                 telem_request_mask &= ~chan_mask;
             }
@@ -1084,12 +1319,11 @@ void RCOutput::dshot_send(pwm_group &group, bool blocking)
     }
 
     // start sending the pulses out
-    send_pulses_DMAR(group, dshot_buffer_length);
+    send_pulses_DMAR(group, DSHOT_BUFFER_LENGTH);
 
     group.last_dmar_send_us = AP_HAL::micros64();
 #endif //#ifndef DISABLE_DSHOT
 }
-
 
 /*
   send a set of Serial LED packets for a channel group
@@ -1132,6 +1366,8 @@ void RCOutput::send_pulses_DMAR(pwm_group &group, uint32_t buffer_length)
       datasheet. Many thanks to the betaflight developers for coming
       up with this great method.
      */
+    TOGGLE_PIN_DEBUG(54);
+
     dmaStreamSetPeripheral(group.dma, &(group.pwm_drv->tim->DMAR));
     stm32_cacheBufferFlush(group.dma_buffer, buffer_length);
     dmaStreamSetMemory0(group.dma, group.dma_buffer);
@@ -1146,40 +1382,522 @@ void RCOutput::send_pulses_DMAR(pwm_group &group, uint32_t buffer_length)
     // setup for 4 burst strided transfers. 0x0D is the register
     // address offset of the CCR registers in the timer peripheral
     group.pwm_drv->tim->DCR = 0x0D | STM32_TIM_DCR_DBL(3);
+    group.dshot_state = DshotState::SEND_START;
+
+    TOGGLE_PIN_DEBUG(54);
 
     dmaStreamEnable(group.dma);
 #endif //#ifndef DISABLE_DSHOT
 }
 
-/*
-  unlock DMA channel after a dshot send completes
- */
-void RCOutput::dma_unlock(void *p)
+// see https://github.com/betaflight/betaflight/pull/8554#issuecomment-512507625
+// called from the interrupt
+void RCOutput::receive_pulses_DMAR(pwm_group* group)
 {
-#if STM32_DMA_ADVANCED
+    // make sure the transaction finishes or times out, this function takes a little time to run so the most
+    // accurate timing is from the beginning. the pulse time is slightly longer than we need so an extra 10U
+    // should be plenty
+    chVTSetI(&group->dma_timeout, chTimeUS2I(group->dshot_pulse_send_time_us + 30U + 10U),
+        finish_dshot_gcr_transaction, group);
+#if !defined(DISABLE_DSHOT) && !APM_BUILD_TYPE(APM_BUILD_iofirmware)
+    uint8_t curr_ch = group->curr_telem_chan;
+
+    // This is a weirdness noticed on H7 boards where there's a momentary transition
+    // on pins while setting up Timer, this is to avoid that. Otherwise we would only
+    // be doing this when telem_read_gpio
+    uint32_t gpio_mode = PAL_MODE_INPUT_PULLUP | PAL_STM32_OSPEED_HIGHEST;
+    // we are going to read pins by sampling
+    for (uint8_t i = 0; i < 4; i++) {
+        if (group->chan[i] == CHAN_DISABLED) {
+            continue;
+        }
+        palSetLineMode(group->pal_lines[i], gpio_mode);
+    }
+
+    // Configure Timer
+    group->pwm_drv->tim->SR = 0;
+    group->pwm_drv->tim->CCER = 0;
+    group->pwm_drv->tim->CCMR1 = 0;
+    group->pwm_drv->tim->CCMR2 = 0;
+    group->pwm_drv->tim->CCER = 0;
+    group->pwm_drv->tim->DIER = 0;
+    group->pwm_drv->tim->CR1 = 0;
+    group->pwm_drv->tim->CR2 = 0;
+    group->pwm_drv->tim->PSC = group->telempsc;
+
+    // Restore pin alt functions for cases other than telem_read_gpio
+    for (uint8_t i = 0; i < 4; i++) {
+        if (group->chan[i] == CHAN_DISABLED || group->telem_read_gpio[i]) {
+            continue;
+        }
+        palSetLineMode(group->pal_lines[i], PAL_MODE_ALTERNATE(group->alt_functions[i]) | PAL_STM32_OSPEED_MID2 | PAL_STM32_OTYPE_PUSHPULL);
+    }
+
+    group->dshot_state = DshotState::RECV_START;
+
+    //TOGGLE_PIN_CH_DEBUG(54, curr_ch);
+
+    if (group->ic_gpio_enabled()) {
+        stm32_gpio_t* gpio_read = PAL_PORT(group->pal_lines[curr_ch]);
+        group->pwm_drv->tim->ARR = 0x1; // we trigger a sample at every tick
+        group->pwm_drv->tim->CNT = 0;
+        MODIFY_REG(group->pwm_drv->tim->DIER,
+                    TIM_DIER_UDE, 
+                    TIM_DIER_UDE);
+        // Configure DMA    
+        dmaStreamSetPeripheral(group->dma, &(gpio_read->IDR));
+        dmaStreamSetMemory0(group->dma, group->dma_buffer);
+        dmaStreamSetTransactionSize(group->dma, DSHOT_GPIO_TX_SIZE);
+        dmaStreamSetFIFO(group->dma, STM32_DMA_FCR_DMDIS | STM32_DMA_FCR_FTH_FULL);
+        dmaStreamSetMode(group->dma,
+                        STM32_DMA_CR_CHSEL(group->dma_up_channel) |
+                        STM32_DMA_CR_DIR_P2M | STM32_DMA_CR_PSIZE_WORD | STM32_DMA_CR_MSIZE_WORD |
+                        STM32_DMA_CR_MINC | STM32_DMA_CR_PL(3) |
+                        STM32_DMA_CR_TEIE | STM32_DMA_CR_TCIE);
+        dmaStreamEnable(group->dma);
+        // Start Timer
+        group->pwm_drv->tim->EGR |= STM32_TIM_EGR_UG;
+        group->pwm_drv->tim->SR = 0;
+        group->pwm_drv->tim->CR1 = TIM_CR1_DIR | TIM_CR1_ARPE | STM32_TIM_CR1_CEN;
+    } else {
+        group->pwm_drv->tim->ARR = 0xFFFF;  // count forever
+        group->pwm_drv->tim->CNT = 0;
+
+        // Initialise ICU channels
+        config_icu_dshot(group->pwm_drv->tim, curr_ch, group->telem_tim_ch[curr_ch]);
+        // Configure DMA
+        dmaStreamSetPeripheral(group->ic_dma[curr_ch], &(group->pwm_drv->tim->DMAR));
+        dmaStreamSetMemory0(group->ic_dma[curr_ch], group->dma_buffer);
+        dmaStreamSetTransactionSize(group->ic_dma[curr_ch], GCR_TELEMETRY_BIT_LEN);
+        dmaStreamSetFIFO(group->ic_dma[curr_ch], STM32_DMA_FCR_DMDIS | STM32_DMA_FCR_FTH_FULL);
+        dmaStreamSetMode(group->ic_dma[curr_ch],
+                        STM32_DMA_CR_CHSEL(group->dma_ch[curr_ch].channel) |
+                        STM32_DMA_CR_DIR_P2M | STM32_DMA_CR_PSIZE_WORD | STM32_DMA_CR_MSIZE_WORD |
+                        STM32_DMA_CR_MINC | STM32_DMA_CR_PL(3) |
+                        STM32_DMA_CR_TEIE | STM32_DMA_CR_TCIE);
+
+        // setup for transfers. 0x0D is the register
+        // address offset of the CCR registers in the timer peripheral
+        group->pwm_drv->tim->DCR = (0x0D + group->telem_tim_ch[curr_ch]) | STM32_TIM_DCR_DBL(0);
+
+        // Start Timer
+        group->pwm_drv->tim->EGR |= STM32_TIM_EGR_UG;
+        group->pwm_drv->tim->SR = 0;
+        group->pwm_drv->tim->CR1 = TIM_CR1_ARPE | STM32_TIM_CR1_URS | STM32_TIM_CR1_UDIS | STM32_TIM_CR1_CEN;
+        dmaStreamEnable(group->ic_dma[curr_ch]);
+    }
+#endif //#ifndef DISABLE_DSHOT
+}
+
+
+void RCOutput::config_icu_dshot(stm32_tim_t* TIMx, uint8_t chan, uint8_t ccr_ch)
+{
+#if !defined(DISABLE_DSHOT) && !APM_BUILD_TYPE(APM_BUILD_iofirmware)
+    switch(ccr_ch) {
+    case 0: {
+        /* Disable the Channel 1: Reset the CC1E Bit */
+        TIMx->CCER &= (uint32_t)~TIM_CCER_CC1E;
+        
+        const uint32_t CCMR1_FILT = TIM_CCMR1_IC1F_1;   // 4 samples per output transition
+        // Select the Input and set the filter and the prescaler value
+        if (chan == 0) {
+            MODIFY_REG(TIMx->CCMR1,
+                        (TIM_CCMR1_CC1S | TIM_CCMR1_IC1F | TIM_CCMR1_IC1PSC),
+                        (TIM_CCMR1_CC1S_0 | CCMR1_FILT));
+        } else {
+            MODIFY_REG(TIMx->CCMR1,
+                        (TIM_CCMR1_CC1S | TIM_CCMR1_IC1F | TIM_CCMR1_IC1PSC),
+                        (TIM_CCMR1_CC1S_1 | CCMR1_FILT));
+        }
+        // Select the Polarity as Both Edge and set the CC1E Bit
+        MODIFY_REG(TIMx->CCER,
+                    (TIM_CCER_CC1P | TIM_CCER_CC1NP | TIM_CCER_CC1E),
+                    (TIM_CCER_CC1P | TIM_CCER_CC1NP | TIM_CCER_CC1E));
+        MODIFY_REG(TIMx->DIER, TIM_DIER_CC1DE, TIM_DIER_CC1DE);
+        
+        break;
+    }
+    case 1: {
+        // Disable the Channel 2: Reset the CC2E Bit
+        TIMx->CCER &= (uint32_t)~TIM_CCER_CC2E;
+
+        const uint32_t CCMR1_FILT = TIM_CCMR1_IC2F_1;
+        // Select the Input and set the filter and the prescaler value
+        if (chan == 0) {
+            MODIFY_REG(TIMx->CCMR1,
+                        (TIM_CCMR1_CC2S | TIM_CCMR1_IC2F | TIM_CCMR1_IC2PSC),
+                        (TIM_CCMR1_CC2S_1 | CCMR1_FILT));
+        } else {
+            MODIFY_REG(TIMx->CCMR1,
+                        (TIM_CCMR1_CC2S | TIM_CCMR1_IC2F | TIM_CCMR1_IC2PSC),
+                        (TIM_CCMR1_CC2S_0 | CCMR1_FILT));
+        }
+
+        // Select the Polarity as Both Edge and set the CC2E Bit
+        MODIFY_REG(TIMx->CCER,
+                    TIM_CCER_CC2P | TIM_CCER_CC2NP | TIM_CCER_CC2E,
+                    (TIM_CCER_CC2P | TIM_CCER_CC2NP | TIM_CCER_CC2E));
+        MODIFY_REG(TIMx->DIER, TIM_DIER_CC2DE, TIM_DIER_CC2DE);
+        break;
+    }
+    case 2: {
+        // Disable the Channel 3: Reset the CC3E Bit
+        TIMx->CCER &= (uint32_t)~TIM_CCER_CC3E;
+
+        const uint32_t CCMR2_FILT = TIM_CCMR2_IC3F_1;
+        // Select the Input and set the filter and the prescaler value
+        if (chan == 2) {
+            MODIFY_REG(TIMx->CCMR2,
+                        (TIM_CCMR2_CC3S | TIM_CCMR2_IC3F | TIM_CCMR2_IC3PSC),
+                        (TIM_CCMR2_CC3S_0 | CCMR2_FILT));
+        } else {
+            MODIFY_REG(TIMx->CCMR2,
+                        (TIM_CCMR2_CC3S | TIM_CCMR2_IC3F | TIM_CCMR2_IC3PSC),
+                        (TIM_CCMR2_CC3S_1 | CCMR2_FILT));
+        }
+
+        // Select the Polarity as Both Edge and set the CC3E Bit
+        MODIFY_REG(TIMx->CCER,
+                    (TIM_CCER_CC3P | TIM_CCER_CC3NP | TIM_CCER_CC3E),
+                    (TIM_CCER_CC3P | TIM_CCER_CC3NP | TIM_CCER_CC3E));
+        
+        MODIFY_REG(TIMx->DIER, TIM_DIER_CC3DE, TIM_DIER_CC3DE);
+        break;
+    }
+    case 3: {
+        // Disable the Channel 4: Reset the CC4E Bit
+        TIMx->CCER &= (uint32_t)~TIM_CCER_CC4E;
+
+        const uint32_t CCMR2_FILT = TIM_CCMR2_IC4F_1;
+        // Select the Input and set the filter and the prescaler value
+        if (chan == 2) {
+            MODIFY_REG(TIMx->CCMR2,
+                        (TIM_CCMR2_CC4S | TIM_CCMR2_IC4F | TIM_CCMR2_IC4PSC),
+                        (TIM_CCMR2_CC4S_1 | CCMR2_FILT));
+        } else {
+            MODIFY_REG(TIMx->CCMR2,
+                        (TIM_CCMR2_CC4S | TIM_CCMR2_IC4F | TIM_CCMR2_IC4PSC),
+                        (TIM_CCMR2_CC4S_0 | CCMR2_FILT));
+        }
+
+        // Select the Polarity as Both Edge and set the CC4E Bit
+        MODIFY_REG(TIMx->CCER,
+                    (TIM_CCER_CC4P | TIM_CCER_CC4NP | TIM_CCER_CC4E),
+                    (TIM_CCER_CC4P | TIM_CCER_CC4NP | TIM_CCER_CC4E));
+
+        MODIFY_REG(TIMx->DIER, TIM_DIER_CC4DE, TIM_DIER_CC4DE);
+        break;
+    }
+    default:
+        break;
+    }
+#endif
+}
+
+// CH_IRQ_HANDLER(STM32_TIM1_CC_HANDLER);
+// CH_IRQ_HANDLER(STM32_TIM1_CC_HANDLER)
+// {
+//     CH_IRQ_PROLOGUE();
+//     MODIFY_REG(TIM1->SR,
+//                 TIM_SR_CC1IF,
+//                 (0 << TIM_SR_CC1IF_Pos));
+//     CH_IRQ_EPILOGUE();
+// }
+/*
+    returns the bitrate in Hz of the given output_mode
+*/
+uint32_t RCOutput::getDshotHz(const enum output_mode mode)
+{
+    switch (mode) {
+    case MODE_PWM_DSHOT150:
+        return 150000 * 5 / 4;
+    case MODE_PWM_DSHOT300:
+        return 300000 * 5 / 4;
+    case MODE_PWM_DSHOT600:
+        return 600000 * 5 / 4;
+    case MODE_PWM_DSHOT1200:
+        return 120000 * 5 / 4;
+    default:
+        // use 1 to prevent a possible divide-by-zero
+        return 1;
+    }
+}
+
+/*
+  unlock DMA channel after a bi-directional dshot transaction completes
+ */
+void RCOutput::finish_dshot_gcr_transaction(void *p)
+{
+#ifndef DISABLE_DSHOT
     pwm_group *group = (pwm_group *)p;
     chSysLockFromISR();
+    TOGGLE_PIN_DEBUG(56);
+
+    uint8_t curr_telem_chan = group->curr_telem_chan;
+
+    // record the transaction size before the stream is released
+    if (group->ic_gpio_enabled()) {
+        dmaStreamDisable(group->dma);
+        group->dma_tx_size = DSHOT_GPIO_TX_SIZE - dmaStreamGetTransactionSize(group->dma);
+        stm32_cacheBufferInvalidate(group->dma_buffer, group->dma_tx_size);
+        memcpy(group->dma_buffer_copy, group->dma_buffer, sizeof(uint32_t) * group->dma_tx_size);
+    } else {
+        dmaStreamDisable(group->ic_dma[curr_telem_chan]);
+        group->dma_tx_size = MIN(uint16_t(GCR_TELEMETRY_BIT_LEN),
+            GCR_TELEMETRY_BIT_LEN - dmaStreamGetTransactionSize(group->ic_dma[curr_telem_chan]));
+        stm32_cacheBufferInvalidate(group->dma_buffer, group->dma_tx_size);
+        memcpy(group->dma_buffer_copy, group->dma_buffer, sizeof(uint32_t) * group->dma_tx_size);
+    }
+
+    group->dshot_state = DshotState::RECV_COMPLETE;
+
+    // if using input capture DMA then clean up
+    if (group->ic_dma_enabled()) {
+        group->ic_dma_handle[curr_telem_chan]->unlock_from_IRQ();
+    }
+
+    // rotate to the next input channel
+    group->prev_telem_chan = group->curr_telem_chan;
+    group->curr_telem_chan = find_next_ic_channel(*group);
+
+    // restore pin setup
+    for (uint8_t i = 0; i < 4; i++) {
+        if (group->chan[i] == CHAN_DISABLED) {
+            continue;
+        }
+        palSetLineMode(group->pal_lines[i], PAL_MODE_ALTERNATE(group->alt_functions[i]) | PAL_STM32_OSPEED_MID2 | PAL_STM32_OTYPE_PUSHPULL);
+    }
+
     group->dma_handle->unlock_from_IRQ();
+
+    TOGGLE_PIN_DEBUG(56);
     chSysUnlockFromISR();
 #endif
 }
 
 /*
-  DMA interrupt handler. Used to mark DMA completed for DShot
+  unlock DMA channel after a dshot send completes and no return value is expected
  */
-void RCOutput::dma_irq_callback(void *p, uint32_t flags)
+void RCOutput::dma_unlock(void *p)
+{
+    chSysLockFromISR();
+    pwm_group *group = (pwm_group *)p;
+
+    group->dshot_state = DshotState::IDLE;
+    group->dma_handle->unlock_from_IRQ();
+
+    chSysUnlockFromISR();
+}
+
+/*
+  decode returned data from bi-directional dshot
+ */
+bool RCOutput::decode_dshot_telemetry(pwm_group& group, uint8_t chan)
+{
+    if (group.chan[chan] == CHAN_DISABLED) {
+        return true;
+    }
+
+#ifndef DISABLE_DSHOT
+    if (group.telem_read_gpio[chan]) {
+        uint16_t pal_pad = 0;
+        chSysLock();
+        pal_pad = PAL_PAD(group.pal_lines[chan]);
+        chSysUnlock();
+
+        group.dma_tx_size = digest_gpio_samples(group.dma_buffer_copy, group.dma_tx_size, pal_pad);
+        group.erpm[chan] = decode_telemetry_packet(group.dma_buffer_copy, group.dma_tx_size);
+    } else {
+        // evaluate dshot telemetry
+        group.erpm[chan] = decode_telemetry_packet(group.dma_buffer_copy, group.dma_tx_size);
+    }
+
+    group.dshot_state = DshotState::IDLE;
+
+#if RCOU_DSHOT_TIMING_DEBUG
+    // Record Stats
+    if (group.erpm[chan] != 0xFFFF) {
+        group.telem_rate[chan]++;
+    } else {
+        TOGGLE_PIN_DEBUG(57);
+        group.telem_err_rate[chan]++;
+        TOGGLE_PIN_DEBUG(57);
+    }
+
+    uint64_t now = AP_HAL::micros64();
+    if (chan == DEBUG_CHANNEL && (now  - group.last_print) > 1000000) {
+        hal.console->printf("TELEM: %d <%d Hz, %.1f%% err>", group.erpm[chan], group.telem_rate[chan],
+            100.0f * float(group.telem_err_rate[chan]) / (group.telem_err_rate[chan] + group.telem_rate[chan]));
+        hal.console->printf(" %ld ", group.dma_buffer_copy[0]);
+        for (uint8_t l = 1; l < group.dma_tx_size; l++) {
+            hal.console->printf(" +%ld ", group.dma_buffer_copy[l] - group.dma_buffer_copy[l-1]);
+        }
+        hal.console->printf("\n");
+
+        group.telem_rate[chan] = 0;
+        group.telem_err_rate[chan] = 0;
+        group.last_print = now;
+    }
+#endif
+#endif
+    return group.erpm[chan] != 0xFFFF;
+}
+
+// Find next valid channel for dshot telem
+uint8_t RCOutput::find_next_ic_channel(const pwm_group& group)
+{
+    uint8_t chan = group.curr_telem_chan;
+    for (uint8_t i = 1; i < 4; i++) {
+        const uint8_t next_chan = (chan + i) % 4;
+        if (group.chan[next_chan] != CHAN_DISABLED &&
+            (group.ic_dma_handle[next_chan] != nullptr || group.telem_read_gpio[next_chan])) {
+            return next_chan;
+        }
+    }
+    return chan;
+}
+
+/*
+  DMA UP channel interrupt handler. Used to mark DMA send completed for DShot
+ */
+void RCOutput::dma_up_irq_callback(void *p, uint32_t flags)
 {
     pwm_group *group = (pwm_group *)p;
     chSysLockFromISR();
+
+    // check nothing bad happened
+    if ((flags & STM32_DMA_ISR_TEIF) != 0) {
+        INTERNAL_ERROR(AP_InternalError::error_t::dma_fail);
+    }
+
+    // for gpio transactions there is a small chance we end up here - do nothing and rely on the timeout
+    if (group->ic_gpio_enabled() && group->dshot_state == DshotState::RECV_START) {
+        chSysUnlockFromISR();
+        return;
+    }
+
     dmaStreamDisable(group->dma);
+
     if (group->in_serial_dma && irq.waiter) {
         // tell the waiting process we've done the DMA
         chEvtSignalI(irq.waiter, serial_event_mask);
+    } else if (group->bidir_dshot_enabled) {
+        group->dshot_state = DshotState::SEND_COMPLETE;
+        // sending is done, in 30us the ESC will send telemetry
+        TOGGLE_PIN_DEBUG(55);
+        receive_pulses_DMAR(group);
+        TOGGLE_PIN_DEBUG(55);
     } else {
-        // this prevents us ever having two dshot pulses too close together
-        chVTSetI(&group->dma_timeout, chTimeUS2I(dshot_min_gap_us), dma_unlock, p);
+        // non-bidir case
+        chVTSetI(&group->dma_timeout, chTimeUS2I(group->dshot_pulse_time_us + 40), dma_unlock, p);
     }
+
     chSysUnlockFromISR();
+}
+
+// DMA IC channel handler. Used to mark DMA receive completed for DShot
+void RCOutput::dma_ic_irq_callback(void *p, uint32_t flags)
+{
+    chSysLockFromISR();
+
+    // check nothing bad happened
+    if ((flags & STM32_DMA_ISR_TEIF) != 0) {
+        INTERNAL_ERROR(AP_InternalError::error_t::dma_fail);
+    }
+
+    chSysUnlockFromISR();
+}
+
+// turn a set of GPIO samples into GCR bytes
+uint32_t RCOutput::digest_gpio_samples(uint32_t* buffer, uint32_t count, uint16_t pal_pad) {
+    int32_t counter = 0;
+    uint8_t old_value = 1;
+    uint8_t curr_value;
+    bool triggered = false;
+    uint32_t last_value = 120;
+
+    uint32_t new_value = 0;
+    for (uint32_t i = 0; i < count; i++) {
+        curr_value = (buffer[i] & (1 << pal_pad)) >> pal_pad;
+        if (old_value == curr_value && triggered) {
+            new_value++;
+        } else if (old_value != curr_value) {
+            triggered = true;
+            new_value *= 32;
+            new_value /= TELEM_SAMPLE;
+            new_value += last_value;
+            last_value = new_value;
+            buffer[counter++] = new_value;
+            new_value = 0;
+        }
+        if (new_value > TELEM_SAMPLE*4) {
+            buffer[counter] = 0;
+            return --counter;
+        }
+        old_value = curr_value;
+    }
+    // capture the last value if any
+    if (new_value > 0) {
+        buffer[counter] = new_value;
+    }
+    return counter;
+}
+
+// decode a telemetry packet from a GCR encoded stride buffer
+uint32_t RCOutput::decode_telemetry_packet(uint32_t* buffer, uint32_t count)
+{
+    uint32_t value = 0;
+    uint32_t oldValue = buffer[0];
+    uint32_t bits = 0;
+    uint32_t len;
+
+    for (uint32_t i = 1; i <= count; i++) {
+        if (i < count) {
+            int32_t diff = buffer[i] - oldValue;
+            if (bits >= 21) {
+                break;
+            }
+            len = (diff + TELEM_IC_SAMPLE/2) / TELEM_IC_SAMPLE;
+        } else {
+            len = 21 - bits;
+        }
+
+        value <<= len;
+        value |= 1 << (len - 1);
+        oldValue = buffer[i];
+        bits += len;
+    }
+    if (bits != 21) {
+        return 0xffff;
+    }
+
+    static const uint32_t decode[32] = {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 10, 11, 0, 13, 14, 15,
+        0, 0, 2, 3, 0, 5, 6, 7, 0, 0, 8, 1, 0, 4, 12, 0 };
+
+    uint32_t decodedValue = decode[value & 0x1f];
+    decodedValue |= decode[(value >> 5) & 0x1f] << 4;
+    decodedValue |= decode[(value >> 10) & 0x1f] << 8;
+    decodedValue |= decode[(value >> 15) & 0x1f] << 12;
+
+    uint32_t csum = decodedValue;
+    csum = csum ^ (csum >> 8); // xor bytes
+    csum = csum ^ (csum >> 4); // xor nibbles
+
+    if ((csum & 0xf) != 0xf) {
+        return 0xffff;
+    }
+    decodedValue >>= 4;
+
+    if (decodedValue == 0x0fff) {
+        return 0;
+    }
+    decodedValue = (decodedValue & 0x000001ff) << ((decodedValue & 0xfffffe00) >> 9);
+    if (!decodedValue) {
+        return 0xffff;
+    }
+    uint32_t ret = (1000000 * 60 / 100 + decodedValue / 2) / decodedValue;
+    return ret;
 }
 
 /*
@@ -1230,7 +1948,7 @@ bool RCOutput::serial_setup_output(uint8_t chan, uint32_t baudrate, uint16_t cha
     for (uint8_t i = 0; i < NUM_GROUPS; i++ ) {
         pwm_group &group = pwm_group_list[i];
         if (group.ch_mask & chanmask) {
-            if (!setup_group_DMA(group, baudrate, 10, false, dshot_buffer_length, false)) {
+            if (!setup_group_DMA(group, baudrate, 10, false, DSHOT_BUFFER_LENGTH, false)) {
                 serial_end();
                 return false;
             }
@@ -1306,12 +2024,12 @@ bool RCOutput::serial_write_byte(uint8_t b)
 */
 bool RCOutput::serial_write_bytes(const uint8_t *bytes, uint16_t len)
 {
-#if STM32_DMA_ADVANCED
+#ifndef DISABLE_DSHOT
     if (!serial_group) {
         return false;
     }
     serial_group->dma_handle->lock();
-    memset(serial_group->dma_buffer, 0, dshot_buffer_length);
+    memset(serial_group->dma_buffer, 0, DSHOT_BUFFER_LENGTH);
     while (len--) {
         if (!serial_write_byte(*bytes++)) {
             serial_group->dma_handle->unlock();
@@ -1327,7 +2045,7 @@ bool RCOutput::serial_write_bytes(const uint8_t *bytes, uint16_t len)
     return true;
 #else
     return false;
-#endif //#if STM32_DMA_ADVANCED
+#endif // DISABLE_DSHOT
 }
 
 /*
@@ -1650,7 +2368,7 @@ void RCOutput::set_failsafe_pwm(uint32_t chmask, uint16_t period_us)
 /*
   true when the output mode is of type dshot
 */
-bool RCOutput::is_dshot_protocol(const enum output_mode mode) const
+bool RCOutput::is_dshot_protocol(const enum output_mode mode)
 {
     switch (mode) {
     case MODE_PWM_DSHOT150:
@@ -1666,7 +2384,7 @@ bool RCOutput::is_dshot_protocol(const enum output_mode mode) const
 /*
     returns the bitrate in Hz of the given output_mode
 */
-uint32_t RCOutput::protocol_bitrate(const enum output_mode mode) const
+uint32_t RCOutput::protocol_bitrate(const enum output_mode mode)
 {
     switch (mode) {
     case MODE_PWM_DSHOT150:

@@ -4,7 +4,7 @@ import sys, fnmatch
 import importlib
 
 # peripheral types that can be shared, wildcard patterns
-SHARED_MAP = ["I2C*", "USART*_TX", "UART*_TX", "SPI*", "TIM*_UP"]
+SHARED_MAP = ["I2C*", "USART*_TX", "UART*_TX", "SPI*", "TIM*_UP", "TIM*_CH*"]
 
 ignore_list = []
 dma_map = None
@@ -169,6 +169,8 @@ def generate_DMAMUX_map_mask(peripheral_list, channel_mask, noshare_list, dma_ex
                     other = p[:-2] + 'RX'
                 else:
                     other = None
+                if "_CH" in p:
+                    other = p[:-3] + 'UP'
 
                 if other is not None and ii in idsets[other]:
                     if len(idsets[p]) >= len(idsets[other]) and len(idsets[other]) > 0:
@@ -292,6 +294,14 @@ def write_dma_header(f, peripheral_list, mcu_type, dma_exclude=[],
             stream = (streamchan[0], streamchan[1])
             share_ok = True
             for periph2 in stream_assign[stream]:
+                # can't share timer UP and Channel streams
+                if periph[:4] == periph2[:4]:
+                    if "_UP" in periph2 and "_CH" in periph:
+                        print ("Can't share ", periph, periph2)
+                        share_ok = False
+                    if "_CH" in periph2 and "_UP" in periph:
+                        print ("Can't share ", periph, periph2)
+                        share_ok = False
                 if not can_share(periph, noshare_list) or not can_share(periph2, noshare_list):
                     share_ok = False
             if share_ok:

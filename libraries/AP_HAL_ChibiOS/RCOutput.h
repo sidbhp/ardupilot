@@ -27,6 +27,8 @@
 #define DISABLE_DSHOT
 #endif
 
+#define RCOU_DSHOT_TIMING_DEBUG 0
+
 class ChibiOS::RCOutput : public AP_HAL::RCOutput {
 public:
     void     init() override;
@@ -48,6 +50,12 @@ public:
         max_pwm = _esc_pwm_max;
         return true;
     }
+    // surface dshot telemetry for use by the harmonic notch and status information
+    uint16_t get_erpm(uint8_t chan) const override { return _erpm[chan]; }
+    float get_erpm_error_rate(uint8_t chan) const override {
+      return 100.0f * float(_erpm_errors[chan]) / (1 + _erpm_errors[chan] + _erpm_clean_frames[chan]);
+    }
+
     void set_output_mode(uint16_t mask, const enum output_mode mode) override;
     bool get_output_mode_banner(char banner_msg[], uint8_t banner_msg_len) const override;
 
@@ -174,6 +182,28 @@ public:
     void serial_led_send(const uint16_t chan) override;
 
 private:
+    enum class DshotState {
+      IDLE = 0,
+      SEND_START = 1,
+      SEND_COMPLETE = 2,
+      RECV_START = 3,
+      RECV_COMPLETE = 4
+    };
+
+    /*
+      DShot handling
+     */
+    // the pre-bit is needed with TIM5, or we can get some corrupt frames
+    static const uint8_t dshot_pre = 1;
+    static const uint8_t dshot_post = 2;
+    static const uint16_t dshot_bit_length = 16 + dshot_pre + dshot_post;
+    static const uint16_t DSHOT_GPIO_TX_SIZE = dshot_bit_length * 4;
+    static const uint16_t DSHOT_BUFFER_LENGTH = DSHOT_GPIO_TX_SIZE * sizeof(uint32_t);
+    static const uint16_t MIN_GCR_BIT_LEN = 7;
+    static const uint16_t MAX_GCR_BIT_LEN = 22;
+    static const uint16_t GCR_TELEMETRY_BIT_LEN = MAX_GCR_BIT_LEN;
+    static const uint16_t GCR_TELEMETRY_BUFFER_LEN = GCR_TELEMETRY_BIT_LEN*sizeof(uint32_t);
+
     struct pwm_group {
         // only advanced timers can do high clocks needed for more than 400Hz
         bool advanced_timer;
@@ -183,6 +213,11 @@ private:
         bool have_up_dma; // can we do DMAR outputs for DShot?
         uint8_t dma_up_stream_id;
         uint8_t dma_up_channel;
+        struct {
+            bool have_dma;
+            uint8_t stream_id;
+            uint8_t channel;
+        } dma_ch[4];
         uint8_t alt_functions[4];
         ioline_t pal_lines[4];
 
@@ -191,20 +226,39 @@ private:
         uint16_t frequency_hz;
         uint16_t ch_mask;
         const stm32_dma_stream_t *dma;
+        const stm32_dma_stream_t *ic_dma[4];
         Shared_DMA *dma_handle;
+        Shared_DMA *ic_dma_handle[4];
+        uint8_t telem_tim_ch[4];
+        uint8_t curr_telem_chan;
+        uint8_t prev_telem_chan;
+        uint16_t telempsc;
         uint32_t *dma_buffer;
         uint16_t dma_buffer_len;
+        uint16_t dma_tx_size; // save tx value from last read
         bool have_lock;
         bool pwm_started;
         uint32_t bit_width_mul;
         uint32_t rc_frequency;
         bool in_serial_dma;
         uint64_t last_dmar_send_us;
+        uint32_t dshot_pulse_time_us;
+        uint32_t dshot_pulse_send_time_us;
         virtual_timer_t dma_timeout;
         uint8_t serial_nleds;
         uint8_t clock_mask;
         bool serial_led_pending;
         bool prepared_send;
+        volatile bool bidir_dshot_enabled;
+        volatile DshotState dshot_state;
+        uint16_t erpm[4];
+        uint32_t dma_buffer_copy[DSHOT_GPIO_TX_SIZE];
+#if RCOU_DSHOT_TIMING_DEBUG
+        uint16_t telem_rate[4];
+        uint16_t telem_err_rate[4];
+#endif
+        bool telem_read_gpio[4];
+        uint64_t last_print;  // debug
 
         // serial output
         struct {
@@ -217,6 +271,35 @@ private:
             // thread waiting for byte to be written
             thread_t *waiter;
         } serial;
+
+        // do we have an input capture dma channel
+        bool has_ic_dma() const {
+          return ic_dma_handle[curr_telem_chan] != nullptr;
+        }
+
+        // is input capture currently enabled
+        bool ic_dma_enabled() const {
+          return bidir_dshot_enabled && has_ic_dma() && ic_dma[curr_telem_chan] != nullptr;
+        }
+
+        // do we have gpio input capture
+        bool has_ic_gpio() const {
+          return telem_read_gpio[curr_telem_chan];
+        }
+
+        bool ic_gpio_enabled() const {
+          return bidir_dshot_enabled && has_ic_gpio();
+        }
+
+        // do we have any kind of input capture
+        bool ic_enabled() const {
+          return bidir_dshot_enabled && (has_ic_dma() || has_ic_gpio());
+        }
+
+        // are we safe to send another pulse?
+        bool can_send_dshot_pulse() const {
+          return is_dshot_protocol(current_mode) && AP_HAL::micros64() - last_dmar_send_us > (dshot_pulse_time_us + 50);
+        }
     };
 
     /*
@@ -279,6 +362,13 @@ private:
     // these values are for the local channels. Non-local channels are handled by IOMCU
     uint32_t en_mask;
     uint16_t period[max_channels];
+    // handling of bi-directional dshot
+    bool _bidir_dshot_enabled;
+    uint16_t _erpm[max_channels];
+    uint16_t _erpm_errors[max_channels] {};
+    uint16_t _erpm_clean_frames[max_channels] {};
+    uint32_t _erpm_last_stats_ms[max_channels] {};
+
     uint16_t safe_pwm[max_channels]; // pwm to use when safety is on
     bool corked;
     // mask of channels that are running in high speed
@@ -326,16 +416,6 @@ private:
     // update safety switch and LED
     void safety_update(void);
 
-    /*
-      DShot handling
-     */
-    // the pre-bit is needed with TIM5, or we can get some corrupt frames
-    const uint8_t dshot_pre = 1;
-    const uint8_t dshot_post = 2;
-    const uint16_t dshot_bit_length = 16 + dshot_pre + dshot_post;
-    const uint16_t dshot_buffer_length = dshot_bit_length*4*sizeof(uint32_t);
-    static const uint16_t dshot_min_gap_us = 100;
-    uint32_t dshot_pulse_time_us;
     uint16_t telem_request_mask;
 
     /*
@@ -347,17 +427,32 @@ private:
 
     void dma_allocate(Shared_DMA *ctx);
     void dma_deallocate(Shared_DMA *ctx);
-    uint16_t create_dshot_packet(const uint16_t value, bool telem_request);
+    void ic_dma_allocate(Shared_DMA *ctx);
+    void ic_dma_deallocate(Shared_DMA *ctx);
+    
+    uint16_t create_dshot_packet(const uint16_t value, bool telem_request, bool bidir_telem);
     void fill_DMA_buffer_dshot(uint32_t *buffer, uint8_t stride, uint16_t packet, uint16_t clockmul);
+    static uint32_t decode_telemetry_packet(uint32_t* buffer, uint32_t count);
+    static bool decode_dshot_telemetry(pwm_group& group, uint8_t chan);
+    static uint8_t find_next_ic_channel(const pwm_group& group);
+    static uint32_t digest_gpio_samples(uint32_t* buffer, uint32_t count, uint16_t pal_pad);
+    void dshot_send_groups(bool blocking);
     void dshot_send(pwm_group &group, bool blocking);
-    static void dma_irq_callback(void *p, uint32_t flags);
+    static void dma_up_irq_callback(void *p, uint32_t flags);
+    static void dma_ic_irq_callback(void *p, uint32_t flags);
+    static void finish_dshot_gcr_transaction(void *p);
     static void dma_unlock(void *p);
     bool mode_requires_dma(enum output_mode mode) const;
     bool setup_group_DMA(pwm_group &group, uint32_t bitrate, uint32_t bit_width, bool active_high, const uint16_t buffer_length, bool choose_high);
+    bool setup_group_ic_DMA(pwm_group &group);
     void send_pulses_DMAR(pwm_group &group, uint32_t buffer_length);
+    static void receive_pulses_DMAR(pwm_group* group);
     void set_group_mode(pwm_group &group);
-    bool is_dshot_protocol(const enum output_mode mode) const;
-    uint32_t protocol_bitrate(const enum output_mode mode) const;
+    static bool is_dshot_protocol(const enum output_mode mode);
+
+    static uint32_t protocol_bitrate(const enum output_mode mode);
+    static void config_icu_dshot(stm32_tim_t* TIMx, uint8_t chan, uint8_t ccr_ch);
+    static uint32_t getDshotHz(const enum output_mode mode);
 
     /*
       setup neopixel (WS2812B) output data for a given output channel
