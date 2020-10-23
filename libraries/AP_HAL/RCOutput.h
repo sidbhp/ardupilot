@@ -123,6 +123,12 @@ public:
     virtual float    scale_esc_to_unity(uint16_t pwm) { return 0; }
 
     /*
+      return the erpm and error rate for a channel if available
+     */
+    virtual uint16_t get_erpm(uint8_t chan) const { return 0; }
+    virtual float get_erpm_error_rate(uint8_t chan) const { return 0.0f; }
+
+    /*
       enable PX4IO SBUS out at the given rate
      */
     virtual bool enable_px4io_sbus_out(uint16_t rate_hz) { return false; }
