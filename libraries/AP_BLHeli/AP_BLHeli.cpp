@@ -118,6 +118,13 @@ const AP_Param::GroupInfo AP_BLHeli::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("REMASK",  10, AP_BLHeli, channel_reversible_mask, 0),
 
+    // @Param: OPTS
+    // @DisplayName: BLHeli options
+    // @Description: Set of options that can be used to modify the BLHeli output.
+    // @Bitmask: 0:Bi-Dir DShot
+    // @User: Advanced
+    AP_GROUPINFO("OPTS",  11, AP_BLHeli, options, 0),
+
     AP_GROUPEND
 };
 
@@ -1352,17 +1359,31 @@ float AP_BLHeli::get_average_motor_frequency_hz() const
 }
 
 // return all the motor frequencies in Hz for dynamic filtering
+static int ocount = 0;
 uint8_t AP_BLHeli::get_motor_frequencies_hz(uint8_t nfreqs, float* freqs) const
 {
     const uint32_t now = AP_HAL::millis();
     uint8_t valid_escs = 0;
+
     // average the rpm of each motor as reported by BLHeli and convert to Hz
     for (uint8_t i = 0; i < num_motors && i < nfreqs; i++) {
-        if (last_telem[i].timestamp_ms && (now - last_telem[i].timestamp_ms < 1000)) {
+        uint16_t erpm = hal.rcout->get_erpm(i);
+        if (erpm > 0) {
+            if (erpm < 0xFFFF) {
+                freqs[valid_escs++] = hal.rcout->get_erpm(i) * 200 / motor_poles;
+            }
+        } else if (last_telem[i].timestamp_ms && (now - last_telem[i].timestamp_ms < 1000)) {
             // slew the update
             const float slew = MIN(1.0f, (now - last_telem[i].timestamp_ms) * telem_rate / 1000.0f);
             freqs[valid_escs++] = (prev_motor_rpm[i] + (last_telem[i].rpm - prev_motor_rpm[i]) * slew) / 60.0f;
         }
+    }
+    if (hal.util->get_soft_armed() && ocount++ % 200 == 0) {
+        debug("%d(%.1f%%e), %d(%.1f%%e), %d(%.1f%%e), %d(%.1f%%e)",
+            hal.rcout->get_erpm(0), hal.rcout->get_erpm_error_rate(0),
+            hal.rcout->get_erpm(1), hal.rcout->get_erpm_error_rate(1),
+            hal.rcout->get_erpm(2), hal.rcout->get_erpm_error_rate(2),
+            hal.rcout->get_erpm(3), hal.rcout->get_erpm_error_rate(3));
     }
 
     return MIN(valid_escs, nfreqs);

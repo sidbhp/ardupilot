@@ -56,6 +56,11 @@ public:
         uint32_t timestamp_ms;
     };
 
+    enum class EscOptions {
+        OPTIONS_NONE = 0,
+        OPTIONS_BIDIR_DSHOT = 1 << 0
+    };
+
     // number of ESCs configured as BLHeli in channel mask
     uint8_t get_num_motors(void) { return num_motors;};
     // get the most recent telemetry data packet for a motor
@@ -68,6 +73,10 @@ public:
     // return true if we have received any telemetry data
     bool have_telem_data(void) const {
         return received_telem_data;
+    }
+
+    bool has_option(EscOptions opts) {
+        return options & uint8_t(opts);
     }
 
     static AP_BLHeli *get_singleton(void) {
@@ -91,6 +100,7 @@ private:
     AP_Int8 output_type;
     AP_Int8 control_port;
     AP_Int8 motor_poles;
+    AP_Int8 options;
     
     enum mspState {
         MSP_IDLE=0,
@@ -214,7 +224,7 @@ private:
         ESC_PROTOCOL_ONESHOT125=2,
         ESC_PROTOCOL_DSHOT=5,
     };
-    
+
     // ESC status structure at address 0xEB00
     struct PACKED esc_status {
         uint8_t unknown[3];
