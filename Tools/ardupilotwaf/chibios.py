@@ -218,9 +218,9 @@ def chibios_firmware(self):
     generate_bin_task.set_run_after(self.link_task)
     if len(self.env.SECURE_KEY) != 0:
         secure_key_pem = self.bld.srcnode.make_node(self.env.SECURE_KEY)
-        bin_target = [bin_target, secure_key_pem]
-
-    generate_apj_task = self.create_task('generate_apj', src=bin_target, tgt=apj_target)
+        generate_apj_task = self.create_task('generate_apj', src=[bin_target,secure_key_pem], tgt=apj_target)
+    else:
+        generate_apj_task = self.create_task('generate_apj', src=bin_target, tgt=apj_target)
     generate_apj_task.set_run_after(generate_bin_task)
 
     if self.env.BUILD_ABIN:
