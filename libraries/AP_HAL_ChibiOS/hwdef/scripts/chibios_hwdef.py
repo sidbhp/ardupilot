@@ -1910,7 +1910,7 @@ def build_peripheral_list():
                     peripherals.append(label)
                 ch_label = type
                 (_, _, compl) = parse_timer(ch_label)
-                if ch_label not in peripherals and not p.has_extra('NODMA') and not compl:
+                if ch_label not in peripherals and p.has_extra('BIDIR') and not compl:
                     peripherals.append(ch_label)
         done.add(type)
     return peripherals
