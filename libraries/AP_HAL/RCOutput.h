@@ -206,6 +206,12 @@ public:
     virtual void set_telem_request_mask(uint16_t mask) {}
 
     /*
+      enable bi-directional telemetry request for a mask of channels. This is used
+      with DShot to get telemetry feedback
+     */
+    virtual void set_bidir_dshot_mask(uint16_t mask) {}
+
+    /*
       setup serial led output for a given channel number, with
       the given max number of LEDs in the chain.
      */
