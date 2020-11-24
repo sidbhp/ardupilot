@@ -836,6 +836,7 @@ struct PACKED log_Esc {
     int16_t esc_temp;
     uint16_t current_tot;
     int16_t motor_temp;
+    float error_rate;
 };
 
 struct PACKED log_CSRV {
@@ -1436,6 +1437,7 @@ struct PACKED log_PSC {
 // @Field: Temp: ESC temperature
 // @Field: CTot: current consumed total
 // @Field: MotTemp: measured motor temperature
+// @Field: Err: error rate
 
 // @LoggerMessage: EV
 // @Description: Specifically coded event messages
@@ -2232,7 +2234,7 @@ struct PACKED log_PSC {
     { LOG_GPS_RAWS_MSG, sizeof(log_GPS_RAWS), \
       "GRXS", "QddfBBBHBBBBB", "TimeUS,prMes,cpMes,doMes,gnss,sv,freq,lock,cno,prD,cpD,doD,trk", "s------------", "F------------" }, \
     { LOG_ESC_MSG, sizeof(log_Esc), \
-      "ESC",  "QBeCCcHc", "TimeUS,Instance,RPM,Volt,Curr,Temp,CTot,MotTemp", "s#qvAO-O", "F-BBBB-B" }, \
+      "ESC",  "QBeCCcHcf", "TimeUS,Instance,RPM,Volt,Curr,Temp,CTot,MotTemp,Err", "s#qvAO-O%", "F-BBBB-B-" }, \
     { LOG_CSRV_MSG, sizeof(log_CSRV), \
       "CSRV","QBfffB","TimeUS,Id,Pos,Force,Speed,Pow", "s#---%", "F-0000" }, \
     { LOG_CESC_MSG, sizeof(log_CESC), \
