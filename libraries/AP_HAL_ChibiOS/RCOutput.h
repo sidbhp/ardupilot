@@ -21,6 +21,10 @@
 #include "ch.h"
 #include "hal.h"
 
+#ifndef HAL_WITH_BIDIR_DSHOT
+#define HAL_WITH_BIDIR_DSHOT 0
+#endif
+
 #if HAL_USE_PWM == TRUE
 
 #if !STM32_DMA_ADVANCED
@@ -140,11 +144,13 @@ public:
      */
     void set_telem_request_mask(uint16_t mask) override { telem_request_mask = (mask >> chan_offset); }
 
+#if HAL_WITH_BIDIR_DSHOT
     /*
       enable bi-directional telemetry request for a mask of channels. This is used
       with DShot to get telemetry feedback
      */
     void set_bidir_dshot_mask(uint16_t mask) override;
+#endif
 
     /*
       get safety switch state, used by Util.cpp
@@ -231,16 +237,9 @@ private:
         uint16_t frequency_hz;
         uint16_t ch_mask;
         const stm32_dma_stream_t *dma;
-        const stm32_dma_stream_t *ic_dma[4];
         Shared_DMA *dma_handle;
-        Shared_DMA *ic_dma_handle[4];
-        uint8_t telem_tim_ch[4];
-        uint8_t curr_telem_chan;
-        uint8_t prev_telem_chan;
-        uint16_t telempsc;
         uint32_t *dma_buffer;
         uint16_t dma_buffer_len;
-        uint16_t dma_tx_size; // save tx value from last read
         bool have_lock;
         bool pwm_started;
         uint32_t bit_width_mul;
@@ -254,15 +253,6 @@ private:
         uint8_t clock_mask;
         bool serial_led_pending;
         bool prepared_send;
-        volatile bool bidir_dshot_enabled;
-        volatile DshotState dshot_state;
-        uint16_t erpm[4];
-        uint32_t dma_buffer_copy[GCR_TELEMETRY_BUFFER_LEN];
-#if RCOU_DSHOT_TIMING_DEBUG
-        uint16_t telem_rate[4];
-        uint16_t telem_err_rate[4];
-#endif
-        uint64_t last_print;  // debug
 
         // serial output
         struct {
@@ -275,6 +265,26 @@ private:
             // thread waiting for byte to be written
             thread_t *waiter;
         } serial;
+
+        // support for bi-directional dshot
+        uint16_t erpm[4];
+        volatile bool bidir_dshot_enabled;
+        volatile DshotState dshot_state;
+
+#if HAL_WITH_BIDIR_DSHOT
+        const stm32_dma_stream_t *ic_dma[4];
+        uint16_t dma_tx_size; // save tx value from last read
+        Shared_DMA *ic_dma_handle[4];
+        uint8_t telem_tim_ch[4];
+        uint8_t curr_telem_chan;
+        uint8_t prev_telem_chan;
+        uint16_t telempsc;
+        uint32_t dma_buffer_copy[GCR_TELEMETRY_BUFFER_LEN];
+#if RCOU_DSHOT_TIMING_DEBUG
+        uint16_t telem_rate[4];
+        uint16_t telem_err_rate[4];
+#endif
+        uint64_t last_print;  // debug
 
         // do we have an input capture dma channel
         bool has_ic_dma() const {
@@ -298,7 +308,7 @@ private:
         bool ic_enabled() const {
           return bidir_dshot_enabled && has_ic();
         }
-
+#endif
         // are we safe to send another pulse?
         bool can_send_dshot_pulse() const {
           return is_dshot_protocol(current_mode) && AP_HAL::micros64() - last_dmar_send_us > (dshot_pulse_time_us + 50);
@@ -345,6 +355,7 @@ private:
     tprio_t serial_priority;
 
     static pwm_group pwm_group_list[];
+    static const uint8_t NUM_GROUPS;
     uint16_t _esc_pwm_min;
     uint16_t _esc_pwm_max;
 
@@ -432,29 +443,32 @@ private:
 
     void dma_allocate(Shared_DMA *ctx);
     void dma_deallocate(Shared_DMA *ctx);
-    void ic_dma_allocate(Shared_DMA *ctx);
-    void ic_dma_deallocate(Shared_DMA *ctx);
-    
     uint16_t create_dshot_packet(const uint16_t value, bool telem_request, bool bidir_telem);
     void fill_DMA_buffer_dshot(uint32_t *buffer, uint8_t stride, uint16_t packet, uint16_t clockmul);
-    static uint32_t decode_telemetry_packet(uint32_t* buffer, uint32_t count);
-    static bool decode_dshot_telemetry(pwm_group& group, uint8_t chan);
-    static uint8_t find_next_ic_channel(const pwm_group& group);
+
     void dshot_send_groups(bool blocking);
     void dshot_send(pwm_group &group, bool blocking);
     static void dma_up_irq_callback(void *p, uint32_t flags);
-    static void dma_ic_irq_callback(void *p, uint32_t flags);
-    static void finish_dshot_gcr_transaction(void *p);
     static void dma_unlock(void *p);
     bool mode_requires_dma(enum output_mode mode) const;
     bool setup_group_DMA(pwm_group &group, uint32_t bitrate, uint32_t bit_width, bool active_high, const uint16_t buffer_length, bool choose_high);
-    bool setup_group_ic_DMA(pwm_group &group);
     void send_pulses_DMAR(pwm_group &group, uint32_t buffer_length);
-    static void receive_pulses_DMAR(pwm_group* group);
     void set_group_mode(pwm_group &group);
     static bool is_dshot_protocol(const enum output_mode mode);
-
     static uint32_t protocol_bitrate(const enum output_mode mode);
+
+    /*
+      Support for bi-direction dshot
+     */
+    void ic_dma_allocate(Shared_DMA *ctx);
+    void ic_dma_deallocate(Shared_DMA *ctx);
+    static uint32_t decode_telemetry_packet(uint32_t* buffer, uint32_t count);
+    static bool decode_dshot_telemetry(pwm_group& group, uint8_t chan);
+    static uint8_t find_next_ic_channel(const pwm_group& group);
+    static void dma_ic_irq_callback(void *p, uint32_t flags);
+    static void finish_dshot_gcr_transaction(void *p);
+    bool setup_group_ic_DMA(pwm_group &group);
+    static void receive_pulses_DMAR(pwm_group* group);
     static void config_icu_dshot(stm32_tim_t* TIMx, uint8_t chan, uint8_t ccr_ch);
     static uint32_t getDshotHz(const enum output_mode mode);
 

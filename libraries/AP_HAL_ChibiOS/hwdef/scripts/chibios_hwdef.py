@@ -1352,6 +1352,7 @@ def write_PWM_config(f):
     rc_in = None
     rc_in_int = None
     alarm = None
+    bidir = None
     pwm_out = []
     pwm_timers = []
     for l in bylabel.keys():
@@ -1366,6 +1367,8 @@ def write_PWM_config(f):
             else:
                 if p.extra_value('PWM', type=int) is not None:
                     pwm_out.append(p)
+                if p.has_extra('BIDIR'):
+                    bidir = p
                 if p.type not in pwm_timers:
                     pwm_timers.append(p.type)
 
@@ -1449,6 +1452,10 @@ def write_PWM_config(f):
     f.write('\n')
 
     f.write('// PWM timer config\n')
+    if bidir is not None:
+        f.write('#define HAL_WITH_BIDIR_DSHOT 1\n')
+    else:
+        f.write('#define HAL_WITH_BIDIR_DSHOT 0\n')
     for t in sorted(pwm_timers):
         n = int(t[3:])
         f.write('#define STM32_PWM_USE_TIM%u TRUE\n' % n)
