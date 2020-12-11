@@ -74,7 +74,7 @@ void RCOutput::init()
                 num_fmu_channels = MAX(num_fmu_channels, group.chan[j]+1);
                 group.ch_mask |= (1U<<group.chan[j]);
             }
-#if HAL_WITH_BIDIR_DSHOT
+#ifdef HAL_WITH_BIDIR_DSHOT
             group.bdshot.telem_tim_ch[j] = CHAN_DISABLED;
 #endif
         }
@@ -545,7 +545,7 @@ bool RCOutput::setup_group_DMA(pwm_group &group, uint32_t bitrate, uint32_t bit_
 
     // hold the lock during setup, to ensure there isn't a DMA operation ongoing
     group.dma_handle->lock();
-#if HAL_WITH_BIDIR_DSHOT
+#ifdef HAL_WITH_BIDIR_DSHOT
     // configure input capture DMA if required
     if (is_bidir_dshot_enabled()) {
         if (!bdshot_setup_group_ic_DMA(group)) {
@@ -1083,7 +1083,7 @@ void RCOutput::dshot_send(pwm_group &group, bool blocking)
     } else if (!group.dma_handle->lock_nonblock()) {
         return;
     }
-#if HAL_WITH_BIDIR_DSHOT
+#ifdef HAL_WITH_BIDIR_DSHOT
     // assume that we won't be able to get the input capture lock
     group.bdshot.enabled = false;
 
@@ -1265,7 +1265,7 @@ void RCOutput::dma_unlock(void *p)
     chSysUnlockFromISR();
 }
 
-#if !HAL_WITH_BIDIR_DSHOT
+#ifndef HAL_WITH_BIDIR_DSHOT
 /*
   DMA interrupt handler. Used to mark DMA completed for DShot
  */

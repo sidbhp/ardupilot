@@ -1355,6 +1355,7 @@ def write_PWM_config(f):
     bidir = None
     pwm_out = []
     pwm_timers = []
+    has_bidir = False
     for l in bylabel.keys():
         p = bylabel[l]
         if p.type.startswith('TIM'):
@@ -1453,9 +1454,7 @@ def write_PWM_config(f):
 
     f.write('// PWM timer config\n')
     if bidir is not None:
-        f.write('#define HAL_WITH_BIDIR_DSHOT 1\n')
-    else:
-        f.write('#define HAL_WITH_BIDIR_DSHOT 0\n')
+        f.write('#define HAL_WITH_BIDIR_DSHOT\n')
     for t in sorted(pwm_timers):
         n = int(t[3:])
         f.write('#define STM32_PWM_USE_TIM%u TRUE\n' % n)
@@ -1495,31 +1494,27 @@ def write_PWM_config(f):
             advanced_timer = 'false'
         pwm_clock = 1000000
         period = 20000 * pwm_clock / 1000000
+        hal_icu_def = ''
+        hal_icu_cfg = ''
+        if bidir is not None:
+            hal_icu_cfg = '\n          {'
+            hal_icu_def = '\n'
+            for i in range(1,5):
+                hal_icu_cfg += '{HAL_IC%u_CH%u_DMA_CONFIG},' % (n, i)
+                hal_icu_def +='''#if defined(STM32_TIM_TIM%u_CH%u_DMA_STREAM) && defined(STM32_TIM_TIM%u_CH%u_DMA_CHAN)
+# define HAL_IC%u_CH%u_DMA_CONFIG true, STM32_TIM_TIM%u_CH%u_DMA_STREAM, STM32_TIM_TIM%u_CH%u_DMA_CHAN
+#else
+# define HAL_IC%u_CH%u_DMA_CONFIG false, 0, 0
+#endif
+''' % (n, i, n, i, n, i, n, i, n, i, n, i)
+            hal_icu_cfg += '},  \\'
+
+
         f.write('''#if defined(STM32_TIM_TIM%u_UP_DMA_STREAM) && defined(STM32_TIM_TIM%u_UP_DMA_CHAN)
 # define HAL_PWM%u_DMA_CONFIG true, STM32_TIM_TIM%u_UP_DMA_STREAM, STM32_TIM_TIM%u_UP_DMA_CHAN
 #else
 # define HAL_PWM%u_DMA_CONFIG false, 0, 0
-#endif
-#if defined(STM32_TIM_TIM%u_CH1_DMA_STREAM) && defined(STM32_TIM_TIM%u_CH1_DMA_CHAN)
-# define HAL_IC%u_CH1_DMA_CONFIG true, STM32_TIM_TIM%u_CH1_DMA_STREAM, STM32_TIM_TIM%u_CH1_DMA_CHAN
-#else
-# define HAL_IC%u_CH1_DMA_CONFIG false, 0, 0
-#endif
-#if defined(STM32_TIM_TIM%u_CH2_DMA_STREAM) && defined(STM32_TIM_TIM%u_CH2_DMA_CHAN)
-# define HAL_IC%u_CH2_DMA_CONFIG true, STM32_TIM_TIM%u_CH2_DMA_STREAM, STM32_TIM_TIM%u_CH2_DMA_CHAN
-#else
-# define HAL_IC%u_CH2_DMA_CONFIG false, 0, 0
-#endif
-#if defined(STM32_TIM_TIM%u_CH3_DMA_STREAM) && defined(STM32_TIM_TIM%u_CH3_DMA_CHAN)
-# define HAL_IC%u_CH3_DMA_CONFIG true, STM32_TIM_TIM%u_CH3_DMA_STREAM, STM32_TIM_TIM%u_CH3_DMA_CHAN
-#else
-# define HAL_IC%u_CH3_DMA_CONFIG false, 0, 0
-#endif
-#if defined(STM32_TIM_TIM%u_CH4_DMA_STREAM) && defined(STM32_TIM_TIM%u_CH4_DMA_CHAN)
-# define HAL_IC%u_CH4_DMA_CONFIG true, STM32_TIM_TIM%u_CH4_DMA_STREAM, STM32_TIM_TIM%u_CH4_DMA_CHAN
-#else
-# define HAL_IC%u_CH4_DMA_CONFIG false, 0, 0
-#endif\n''' % (n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n))
+#endif\n%s''' % (n, n, n, n, n, n, hal_icu_def))
         f.write('''#define HAL_PWM_GROUP%u { %s, \\
         {%u, %u, %u, %u}, \\
         /* Group Initial Config */ \\
@@ -1534,15 +1529,14 @@ def write_PWM_config(f):
            {%s, NULL}, \\
            {%s, NULL}  \\
           }, 0, 0}, &PWMD%u, \\
-          HAL_PWM%u_DMA_CONFIG, \\
-          { {HAL_IC%u_CH1_DMA_CONFIG}, {HAL_IC%u_CH2_DMA_CONFIG}, {HAL_IC%u_CH3_DMA_CONFIG}, {HAL_IC%u_CH4_DMA_CONFIG}}, \\
+          HAL_PWM%u_DMA_CONFIG, \\%s
           { %u, %u, %u, %u }, \\
-          { %s, %s, %s, %s }}\n\n''' %
+          { %s, %s, %s, %s }}\n''' %
                 (group, advanced_timer,
                  chan_list[0], chan_list[1], chan_list[2], chan_list[3],
                  pwm_clock, period,
                  chan_mode[0], chan_mode[1], chan_mode[2], chan_mode[3],
-                 n, n, n, n, n, n,
+                 n, n, hal_icu_cfg,
                  alt_functions[0], alt_functions[1], alt_functions[2], alt_functions[3],
                  pal_lines[0], pal_lines[1], pal_lines[2], pal_lines[3]))
     f.write('#define HAL_PWM_GROUPS %s\n\n' % ','.join(groups))

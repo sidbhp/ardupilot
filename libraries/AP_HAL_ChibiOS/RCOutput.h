@@ -21,10 +21,6 @@
 #include "ch.h"
 #include "hal.h"
 
-#ifndef HAL_WITH_BIDIR_DSHOT
-#define HAL_WITH_BIDIR_DSHOT 0
-#endif
-
 #if HAL_USE_PWM == TRUE
 
 #if !STM32_DMA_ADVANCED
@@ -144,7 +140,7 @@ public:
      */
     void set_telem_request_mask(uint16_t mask) override { telem_request_mask = (mask >> chan_offset); }
 
-#if HAL_WITH_BIDIR_DSHOT
+#ifdef HAL_WITH_BIDIR_DSHOT
     /*
       enable bi-directional telemetry request for a mask of channels. This is used
       with DShot to get telemetry feedback
@@ -224,11 +220,13 @@ private:
         bool have_up_dma; // can we do DMAR outputs for DShot?
         uint8_t dma_up_stream_id;
         uint8_t dma_up_channel;
+#ifdef HAL_WITH_BIDIR_DSHOT
         struct {
             bool have_dma;
             uint8_t stream_id;
             uint8_t channel;
         } dma_ch[4];
+#endif
         uint8_t alt_functions[4];
         ioline_t pal_lines[4];
 
@@ -272,7 +270,7 @@ private:
         struct {
             uint16_t erpm[4];
             volatile bool enabled;
-#if HAL_WITH_BIDIR_DSHOT
+#ifdef HAL_WITH_BIDIR_DSHOT
             const stm32_dma_stream_t *ic_dma[4];
             uint16_t dma_tx_size; // save tx value from last read
             Shared_DMA *ic_dma_handle[4];
@@ -289,7 +287,7 @@ private:
 #endif
         } bdshot;
 
-#if HAL_WITH_BIDIR_DSHOT
+#ifdef HAL_WITH_BIDIR_DSHOT
         // do we have an input capture dma channel
         bool has_ic_dma() const {
           return bdshot.ic_dma_handle[bdshot.curr_telem_chan] != nullptr;

@@ -20,7 +20,7 @@
 #include <AP_InternalError/AP_InternalError.h>
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 
-#if HAL_WITH_BIDIR_DSHOT
+#ifdef HAL_WITH_BIDIR_DSHOT
 
 using namespace ChibiOS;
 
