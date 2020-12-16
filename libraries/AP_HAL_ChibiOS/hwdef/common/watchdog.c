@@ -60,12 +60,14 @@ static bool watchdog_enabled;
  */
 void stm32_watchdog_init(void)
 {
+#ifndef WATCHDOG_DISABLED
     // setup for 2s reset
     IWDGD.KR = 0x5555;
     IWDGD.PR = 2; // div16
     IWDGD.RLR = 0xFFF;
     IWDGD.KR = 0xCCCC;
     watchdog_enabled = true;
+#endif
 }
 
 /*
@@ -74,9 +76,11 @@ void stm32_watchdog_init(void)
  */
 void stm32_watchdog_pat(void)
 {
+#ifndef WATCHDOG_DISABLED
     if (watchdog_enabled) {
         IWDGD.KR = 0xAAAA;
     }
+#endif
 }
 
 /*
@@ -84,9 +88,11 @@ void stm32_watchdog_pat(void)
  */
 void stm32_watchdog_save_reason(void)
 {
+#ifndef WATCHDOG_DISABLED
     if (WDG_RESET_STATUS & WDG_RESET_IS_IWDG) {
         was_watchdog_reset = true;
     }
+#endif
 }
 
 /*
@@ -94,7 +100,9 @@ void stm32_watchdog_save_reason(void)
  */
 void stm32_watchdog_clear_reason(void)
 {
+#ifndef WATCHDOG_DISABLED
     WDG_RESET_STATUS = WDG_RESET_CLEAR;
+#endif
 }
 
 /*
@@ -102,7 +110,11 @@ void stm32_watchdog_clear_reason(void)
  */
 bool stm32_was_watchdog_reset(void)
 {
+#ifndef WATCHDOG_DISABLED
     return was_watchdog_reset;
+#else
+    return false;
+#endif
 }
 
 /*
@@ -110,7 +122,9 @@ bool stm32_was_watchdog_reset(void)
  */
 void stm32_watchdog_save(const uint32_t *data, uint32_t nwords)
 {
+#ifndef WATCHDOG_DISABLED
     set_rtc_backup(1, data, nwords);
+#endif
 }
 
 /*
@@ -118,5 +132,7 @@ void stm32_watchdog_save(const uint32_t *data, uint32_t nwords)
  */
 void stm32_watchdog_load(uint32_t *data, uint32_t nwords)
 {
+#ifndef WATCHDOG_DISABLED
     get_rtc_backup(1, data, nwords);
+#endif
 }

@@ -144,7 +144,7 @@ void AP_Periph_FW::init()
 #ifdef HAL_PERIPH_ENABLE_MSP
     msp_init(hal.uartD);
 #endif
-    
+    battmon_init();
     start_ms = AP_HAL::millis();
 }
 

@@ -12,6 +12,7 @@
 #include "AP_BattMonitor_FuelFlow.h"
 #include "AP_BattMonitor_FuelLevel_PWM.h"
 #include "AP_BattMonitor_Generator.h"
+#include "AP_BattMonitor_BQ769x0.h"
 
 #include <AP_HAL/AP_HAL.h>
 
@@ -74,6 +75,7 @@ const AP_Param::GroupInfo AP_BattMonitor::var_info[] = {
 // Note that the Vector/Matrix constructors already implicitly zero
 // their values.
 //
+#ifndef HAL_BUILD_AP_PERIPH
 AP_BattMonitor::AP_BattMonitor(uint32_t log_battery_bit, battery_failsafe_handler_fn_t battery_failsafe_handler_fn, const int8_t *failsafe_priorities) :
     _log_battery_bit(log_battery_bit),
     _num_instances(0),
@@ -87,7 +89,17 @@ AP_BattMonitor::AP_BattMonitor(uint32_t log_battery_bit, battery_failsafe_handle
     }
     _singleton = this;
 }
+#else
+AP_BattMonitor::AP_BattMonitor()
+{
+    AP_Param::setup_object_defaults(this, var_info);
 
+    if (_singleton != nullptr) {
+        AP_HAL::panic("AP_BattMonitor must be singleton");
+    }
+    _singleton = this;
+}
+#endif
 // init - instantiate the battery monitors
 void
 AP_BattMonitor::init()
@@ -97,7 +109,9 @@ AP_BattMonitor::init()
         return;
     }
 
+#ifndef HAL_BUILD_AP_PERIPH
     _highest_failsafe_priority = INT8_MAX;
+#endif
 
     convert_params();
 
@@ -183,7 +197,14 @@ AP_BattMonitor::init()
                                                                                          100000, true, 20));
                 break;
             case Type::Generator:
+#ifndef HAL_BUILD_AP_PERIPH
                 drivers[instance] = new AP_BattMonitor_Generator(*this, state[instance], _params[instance]);
+                break;
+#endif
+            case Type::BQ769x0:
+                drivers[instance] = new AP_BattMonitor_BQ769x0(*this, state[instance], _params[instance],
+                                                               hal.i2c_mgr->get_device(_params[instance]._i2c_bus, AP_BATTMONITOR_BQ_I2C_ADDR,
+                                                               100000, false, 20));
                 break;
             case Type::NONE:
             default:
@@ -285,6 +306,7 @@ AP_BattMonitor::read()
         }
     }
 
+#ifndef HAL_BUILD_AP_PERIPH
     AP_Logger *logger = AP_Logger::get_singleton();
     if (logger->should_log(_log_battery_bit)) {
         logger->Write_Current();
@@ -292,7 +314,8 @@ AP_BattMonitor::read()
     }
 
     check_failsafes();
-    
+#endif
+
     checkPoweringOff();
 }
 
@@ -372,6 +395,7 @@ int32_t AP_BattMonitor::pack_capacity_mah(uint8_t instance) const
     }
 }
 
+#ifndef HAL_BUILD_AP_PERIPH
 void AP_BattMonitor::check_failsafes(void)
 {
     if (hal.util->get_soft_armed()) {
@@ -400,7 +424,7 @@ void AP_BattMonitor::check_failsafes(void)
                     break;
             }
 
-            gcs().send_text(MAV_SEVERITY_WARNING, "Battery %d is %s %.2fV used %.0f mAh", i + 1, type_str,
+            GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Battery %d is %s %.2fV used %.0f mAh", i + 1, type_str,
                             (double)voltage(i), (double)state[i].consumed_mah);
             _has_triggered_failsafe = true;
             AP_Notify::flags.failsafe_battery = true;
@@ -427,6 +451,7 @@ void AP_BattMonitor::check_failsafes(void)
         }
     }
 }
+#endif
 
 // return true if any battery is pushing too much power
 bool AP_BattMonitor::overpower_detected() const
@@ -481,6 +506,62 @@ bool AP_BattMonitor::get_temperature(float &temperature, const uint8_t instance)
     }
 }
 
+// return true if powering on was successful
+bool AP_BattMonitor::power_on(uint8_t instance)
+{
+    if (instance >= AP_BATT_MONITOR_MAX_INSTANCES || (drivers[instance] == nullptr)) {
+        return false;
+    }
+    return drivers[instance]->power_on();
+}
+
+// return true if powering off was successful
+bool AP_BattMonitor::power_off(uint8_t instance)
+{
+    if (instance >= AP_BATT_MONITOR_MAX_INSTANCES || (drivers[instance] == nullptr)) {
+        return false;
+    }
+    return drivers[instance]->power_off();
+}
+
+// return true if start charging was successful
+bool AP_BattMonitor::start_charging(uint8_t instance)
+{
+    if (instance >= AP_BATT_MONITOR_MAX_INSTANCES || (drivers[instance] == nullptr)) {
+        return false;
+    }
+    return drivers[instance]->start_charging();
+}
+
+// return true if stop charging was successful
+bool AP_BattMonitor::stop_charging(uint8_t instance)
+{
+    if (instance >= AP_BATT_MONITOR_MAX_INSTANCES || (drivers[instance] == nullptr)) {
+        return false;
+    }
+    return drivers[instance]->stop_charging();
+}
+
+
+// return true if charging
+bool AP_BattMonitor::is_charging(uint8_t instance)
+{
+    if (instance >= AP_BATT_MONITOR_MAX_INSTANCES || (drivers[instance] == nullptr)) {
+        return false;
+    }
+    return drivers[instance]->is_charging();
+}
+
+
+// return true if balancing
+bool AP_BattMonitor::is_balancing(uint8_t instance)
+{
+    if (instance >= AP_BATT_MONITOR_MAX_INSTANCES || (drivers[instance] == nullptr)) {
+        return false;
+    }
+    return drivers[instance]->is_balancing();
+}
+
 // return true if cycle count can be provided and fills in cycles argument
 bool AP_BattMonitor::get_cycle_count(uint8_t instance, uint16_t &cycles) const
 {
@@ -512,13 +593,14 @@ void AP_BattMonitor::checkPoweringOff(void)
             // Set the AP_Notify flag, which plays the power off tones
             AP_Notify::flags.powering_off = true;
 
+#ifndef HAL_BUILD_AP_PERIPH
             // Send a Mavlink broadcast announcing the shutdown
             mavlink_command_long_t cmd_msg{};
             cmd_msg.command = MAV_CMD_POWER_OFF_INITIATED;
             cmd_msg.param1 = i+1;
             GCS_MAVLINK::send_to_components(MAVLINK_MSG_ID_COMMAND_LONG, (char*)&cmd_msg, sizeof(cmd_msg));
-            gcs().send_text(MAV_SEVERITY_WARNING, "Vehicle %d battery %d is powering off", mavlink_system.sysid, i+1);
-
+            GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Vehicle %d battery %d is powering off", mavlink_system.sysid, i+1);
+#endif
             // only send this once
             state[i].powerOffNotified = true;
         }
@@ -532,6 +614,7 @@ void AP_BattMonitor::checkPoweringOff(void)
 bool AP_BattMonitor::reset_remaining(uint16_t battery_mask, float percentage)
 {
     bool ret = true;
+#ifndef HAL_BUILD_AP_PERIPH
     BatteryFailsafe highest_failsafe = BatteryFailsafe_None;
     for (uint8_t i = 0; i < _num_instances; i++) {
         if ((1U<<i) & battery_mask) {
@@ -549,6 +632,13 @@ bool AP_BattMonitor::reset_remaining(uint16_t battery_mask, float percentage)
         // and reset notify flag
         AP_Notify::flags.failsafe_battery = false;
     }
+#else
+    for (uint8_t i = 0; i < _num_instances; i++) {
+        if ((1U<<i) & battery_mask) {
+            ret &= drivers[i]->reset_remaining(percentage);
+        }
+    }
+#endif
     return ret;
 }
 
