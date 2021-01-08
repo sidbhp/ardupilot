@@ -11,9 +11,6 @@ parser.add_argument("log", metavar="LOG")
 
 args = parser.parse_args()
 
-POLY_ORDER = 3
-SCALE_FACTOR = 1.0e5
-
 import sys
 import math
 import re
@@ -22,6 +19,13 @@ import numpy as np
 import matplotlib.pyplot as pyplot
 from scipy import signal
 from pymavlink.rotmat import Vector3, Matrix3
+
+POLY_ORDER = 3
+
+# we scale the parameters so the values work nicely in
+# parameter editors and parameter files that don't
+# use exponential notation
+SCALE_FACTOR = 1.0e6
 
 def moving_average(data, w):
     '''apply a moving average filter over a window of width w'''
