@@ -46,7 +46,7 @@ const AP_Param::GroupInfo SITL::var_info[] = {
     
     AP_GROUPINFO("GYR_RND",        1, SITL,  gyro_noise,  0),
     AP_GROUPINFO("ACC_RND",        2, SITL,  accel_noise, 0),
-    AP_GROUPINFO("DRIFT_SPEED",    5, SITL,  drift_speed, 0.05f),
+    AP_GROUPINFO("DRIFT_SPEED",    5, SITL,  drift_speed, 0),
     AP_GROUPINFO("DRIFT_TIME",     6, SITL,  drift_time,  5),
     AP_GROUPINFO("ENGINE_MUL",     8, SITL,  engine_mul,  1),
     AP_GROUPINFO("WIND_SPD",       9, SITL,  wind_speed,  0),
@@ -76,6 +76,7 @@ const AP_Param::GroupInfo SITL::var_info[] = {
     AP_GROUPINFO("ADSB_TX",       51, SITL,  adsb_tx, 0),
     AP_GROUPINFO("SPEEDUP",       52, SITL,  speedup, -1),
     AP_GROUPINFO("IMU_POS",       53, SITL,  imu_pos_offset, 0),
+    AP_SUBGROUPEXTENSION("",      54, SITL,  var_ins),
     AP_GROUPINFO("SONAR_POS",     55, SITL,  rngfnd_pos_offset, 0),
     AP_GROUPINFO("FLOW_POS",      56, SITL,  optflow_pos_offset, 0),
     AP_GROUPINFO("ACC2_BIAS",     57, SITL,  accel2_bias, 0),
@@ -368,8 +369,19 @@ const AP_Param::GroupInfo SITL::var_sfml_joystick[] = {
     AP_GROUPINFO("SF_JS_AXIS8",    9, SITL,  sfml_joystick_axis[7], sf::Joystick::Axis::PovY),
     AP_GROUPEND
 };
-
 #endif //SFML_JOYSTICK
+
+// INS SITL parameters
+const AP_Param::GroupInfo SITL::var_ins[] = {
+    AP_GROUPINFO("IMUT_START",             1, SITL, imu_temp_start,  25),
+    AP_GROUPINFO("IMUT_END",               2, SITL, imu_temp_end, 45),
+    AP_GROUPINFO("IMUT_TCONST",            3, SITL, imu_temp_tconst, 300),
+    AP_GROUPINFO("IMUT_FIXED",             4, SITL, imu_temp_fixed, 0),
+    AP_SUBGROUPINFO(imu_tcal[0], "IMUT1_", 5, SITL, AP_InertialSensor::TCal),
+    AP_SUBGROUPINFO(imu_tcal[1], "IMUT2_", 6, SITL, AP_InertialSensor::TCal),
+    AP_SUBGROUPINFO(imu_tcal[2], "IMUT3_", 7, SITL, AP_InertialSensor::TCal),
+    AP_GROUPEND
+};
     
 /* report SITL state via MAVLink */
 void SITL::simstate_send(mavlink_channel_t chan)
