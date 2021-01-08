@@ -179,7 +179,9 @@ Vector3f AP_InertialSensor::TCal::polynomial_eval(float tdiff, const AP_Vector3f
 {
     // evaluate order 3 polynomial
     const Vector3f *c = (Vector3f *)&coeff[0];
-    return (c[0] + (c[1] + c[2]*tdiff)*tdiff)*tdiff;
+    // this scale factor ensures params are easy to work with in GUI parameter editors
+    const float scale_factor = 1.0e-5;
+    return (c[0]*scale_factor + (c[1]*scale_factor + c[2]*scale_factor*tdiff)*tdiff)*tdiff;
 }
 
 /*
