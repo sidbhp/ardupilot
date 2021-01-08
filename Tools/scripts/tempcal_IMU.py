@@ -6,11 +6,13 @@ Create temperature calibration parameters for IMUs based on log data.
 from argparse import ArgumentParser
 parser = ArgumentParser(description=__doc__)
 parser.add_argument("--outfile", default="tcal.parm")
+parser.add_argument("--no-graph", action='store_true', default=False)
 parser.add_argument("log", metavar="LOG")
 
 args = parser.parse_args()
 
 POLY_ORDER = 3
+SCALE_FACTOR = 1.0e5
 
 import sys
 import math
@@ -88,13 +90,13 @@ def IMUfit(logfile):
                         acoef[imu] = {}
                     if not axis in acoef[imu]:
                         acoef[imu][axis] = [0.0]*4
-                    acoef[imu][axis][POLY_ORDER-p] = msg.Value
+                    acoef[imu][axis][POLY_ORDER-p] = msg.Value/SCALE_FACTOR
                 if stype == 'GYR':
                     if not imu in gcoef:
                         gcoef[imu] = {}
                     if not axis in gcoef[imu]:
                         gcoef[imu][axis] = [0.0]*4
-                    gcoef[imu][axis][POLY_ORDER-p] = msg.Value
+                    gcoef[imu][axis][POLY_ORDER-p] = msg.Value/SCALE_FACTOR
             m = re.match("^INS_TCAL(\d)_ENABLE$", msg.Name)
             if m:
                 imu = int(m.group(1))-1
@@ -198,16 +200,18 @@ def IMUfit(logfile):
         # calibration
         for p in range(POLY_ORDER):
             for axis in axes:
-                params += 'INS_TCAL%u_ACC%u_%s %.7e\n' % (imu+1, p+1, axis, acoef[imu][axis][POLY_ORDER-(p+1)])
+                params += 'INS_TCAL%u_ACC%u_%s %.9f\n' % (imu+1, p+1, axis, acoef[imu][axis][POLY_ORDER-(p+1)]*SCALE_FACTOR)
         for p in range(POLY_ORDER):
             for axis in axes:
-                params += 'INS_TCAL%u_GYR%u_%s %.7e\n' % (imu+1, p+1, axis, gcoef[imu][axis][POLY_ORDER-(p+1)])
+                params += 'INS_TCAL%u_GYR%u_%s %.9f\n' % (imu+1, p+1, axis, gcoef[imu][axis][POLY_ORDER-(p+1)]*SCALE_FACTOR)
         print(params)
         calfile.write(params)
 
     calfile.close()
     print("Calibration written to %s" % args.outfile)
 
+    if args.no_graph:
+        return
     fig, axs = pyplot.subplots(len(gyro), 1, sharex=True)
 
     for imu in gyro:
