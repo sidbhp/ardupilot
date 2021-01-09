@@ -104,6 +104,9 @@ def IMUfit(logfile):
             m = re.match("^INS_TCAL(\d)_ENABLE$", msg.Name)
             if m:
                 imu = int(m.group(1))-1
+                if msg.Value == 1 and enable[imu] == 2:
+                    print("TCAL[%u] enabled" % imu)
+                    break
                 enable[imu] = msg.Value
             m = re.match("^INS_TCAL(\d)_TMIN$", msg.Name)
             if m:
