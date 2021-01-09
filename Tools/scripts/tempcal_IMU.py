@@ -59,7 +59,7 @@ def correction_parm(enable, tmin, tmax, coeff, temperature, cal_temp, axis):
     return ret
 
 class OnlineIMUfit:
-    def _init__(self, porder):
+    def __init__(self, porder):
         self.porder = porder + 1
         self.mat = np.zeros((self.porder, self.porder))
         self.vec = np.zeros(self.porder)
@@ -68,27 +68,27 @@ class OnlineIMUfit:
         temp = 1.0
 
         for i in range(2*(self.porder - 1), -1, -1):
-            k = (0 if (i < self.porder) else i) - self.porder + 1
-            for j in range(i - k, k+1, -1):
+            k = 0 if (i < self.porder) else (i - self.porder + 1)
+            for j in range(i - k, k-1, -1):
                 self.mat[j][i-j] += temp
-            temp = temp * x
+            temp *= x
     
         temp = 1.0
         for i in range(self.porder-1, -1, -1):
-            self.vec[i] += y * temp;
-            temp *= x;
+            self.vec[i] += y * temp
+            temp *= x
 
     def get_polynomial(self):
         inv_mat = np.linalg.inv(self.mat)
         res = np.zeros(self.porder)
         for i in range(self.porder):
-            res[i] = 0.0;
+            res[i] = 0.0
             for j in range(self.porder):
                 res[i] += inv_mat[i][j] * self.vec[j]
         return res
 
     def polyfit(x, y, order):
-        fitter = onlineIMUfit(order)
+        fitter = OnlineIMUfit(order)
         for i in range(len(x)):
             fitter.update(x[i], y[i])
         return fitter.get_polynomial()
@@ -129,15 +129,21 @@ def IMUfit(logfile):
                 if stype == 'ACC':
                     if not imu in acoef:
                         acoef[imu] = {}
+                        online_acoef[imu] = {}
                     if not axis in acoef[imu]:
                         acoef[imu][axis] = [0.0]*4
+                        online_acoef[imu][axis] = [0.0]*4
                     acoef[imu][axis][POLY_ORDER-p] = msg.Value/SCALE_FACTOR
+                    online_acoef[imu][axis][POLY_ORDER-p] = msg.Value/SCALE_FACTOR
                 if stype == 'GYR':
                     if not imu in gcoef:
                         gcoef[imu] = {}
+                        online_gcoef[imu] = {}
                     if not axis in gcoef[imu]:
                         gcoef[imu][axis] = [0.0]*4
+                        online_gcoef[imu][axis] = [0.0]*4
                     gcoef[imu][axis][POLY_ORDER-p] = msg.Value/SCALE_FACTOR
+                    online_gcoef[imu][axis][POLY_ORDER-p] = msg.Value/SCALE_FACTOR
             m = re.match("^INS_TCAL(\d)_ENABLE$", msg.Name)
             if m:
                 imu = int(m.group(1))-1
@@ -249,11 +255,16 @@ def IMUfit(logfile):
         # calibration
         for p in range(POLY_ORDER):
             for axis in axes:
-                params += 'INS_TCAL%u_ACC%u_%s %.9f\n' % (imu+1, p+1, axis, acoef[imu][axis][POLY_ORDER-(p+1)]*SCALE_FACTOR)
+                param = 'INS_TCAL%u_ACC%u_%s %.9f\n' % (imu+1, p+1, axis, acoef[imu][axis][POLY_ORDER-(p+1)]*SCALE_FACTOR)
+                params += param
+                print(param)
+                print(acoef[imu][axis][POLY_ORDER-(p+1)]*SCALE_FACTOR, online_acoef[imu][axis][POLY_ORDER-(p+1)]*SCALE_FACTOR, '\n')
         for p in range(POLY_ORDER):
             for axis in axes:
-                params += 'INS_TCAL%u_GYR%u_%s %.9f\n' % (imu+1, p+1, axis, gcoef[imu][axis][POLY_ORDER-(p+1)]*SCALE_FACTOR)
-        print(params)
+                param = 'INS_TCAL%u_GYR%u_%s %.9f\n' % (imu+1, p+1, axis, gcoef[imu][axis][POLY_ORDER-(p+1)]*SCALE_FACTOR)
+                params += param
+                print(param)
+                print(gcoef[imu][axis][POLY_ORDER-(p+1)]*SCALE_FACTOR, online_gcoef[imu][axis][POLY_ORDER-(p+1)]*SCALE_FACTOR, '\n')
         calfile.write(params)
 
     calfile.close()
