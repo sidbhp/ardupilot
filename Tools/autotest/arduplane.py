@@ -1951,6 +1951,7 @@ class AutoTestPlane(AutoTest):
             "SIM_IMUT_END"     : 45.000000,
             "SIM_IMUT_START"   : 3.000000,
             "SIM_IMUT_TCONST"  : 75.000000,
+            "INS_GYR_CAL"      : 1,
         }
         self.progress("Setting up SITL temperature profile")
         for p in params.keys():
@@ -2000,6 +2001,33 @@ class AutoTestPlane(AutoTest):
         if self.get_parameter("INS_TCAL2_ENABLE") != 1.0:
             raise NotAchievedException("TCAL2 did not complete")
 
+        self.progress("Testing with calibration enabled")
+        self.reboot_sitl()
+
+        tstart = self.get_sim_time()
+        timeout = 600
+        temp_ok = False
+        last_print_temp = -100
+        while self.get_sim_time_cached() - tstart < timeout:
+            m = self.mav.recv_match(type='RAW_IMU', blocking=True, timeout=2)
+            if m is None:
+                raise NotAchievedException("RAW_IMU")
+            temperature = m.temperature*0.01
+            if temperature >= 43:
+                self.progress("Reached temperature %.1f" % temperature)
+                temp_ok = True
+                break
+            if temperature - last_print_temp > 1:
+                self.progress("temperature %.1f" % temperature)
+                last_print_temp = temperature
+
+        if not temp_ok:
+            raise NotAchievedException("target temperature")
+        if self.get_parameter("INS_TCAL1_ENABLE") != 1.0:
+            raise NotAchievedException("TCAL1 did not complete")
+        if self.get_parameter("INS_TCAL2_ENABLE") != 1.0:
+            raise NotAchievedException("TCAL2 did not complete")
+        
         self.set_parameter("LOG_DISARMED", 0)
 
         self.progress("Testing with compensation enabled")
