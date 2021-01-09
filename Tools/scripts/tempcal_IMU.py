@@ -147,8 +147,9 @@ def IMUfit(logfile):
         gyr = Vector3(msg.GyrX, msg.GyrY, msg.GyrZ)
 
         # invert the board orientation rotation. Corrections are in sensor frame
-        acc = acc.rotate_by_inverse_id(orientation)
-        gyr = gyr.rotate_by_inverse_id(orientation)
+        if orientation != 0:
+            acc = acc.rotate_by_inverse_id(orientation)
+            gyr = gyr.rotate_by_inverse_id(orientation)
         if acc is None or gyr is None:
             print("Invalid AHRS_ORIENTATION %u" % orientation)
             sys.exit(1)
