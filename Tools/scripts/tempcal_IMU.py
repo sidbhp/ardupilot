@@ -58,6 +58,41 @@ def correction_parm(enable, tmin, tmax, coeff, temperature, cal_temp, axis):
     ret = poly(cal_temp-tmid) - poly(temperature-tmid)
     return ret
 
+class OnlineIMUfit:
+    def _init__(self, porder):
+        self.porder = porder + 1
+        self.mat = np.zeros((self.porder, self.porder))
+        self.vec = np.zeros(self.porder)
+    
+    def update(self, x, y):
+        temp = 1.0
+
+        for i in range(2*(self.porder - 1), -1, -1):
+            k = (0 if (i < self.porder) else i) - self.porder + 1
+            for j in range(i - k, k+1, -1):
+                self.mat[j][i-j] += temp
+            temp = temp * x
+    
+        temp = 1.0
+        for i in range(self.porder-1, -1, -1):
+            self.vec[i] += y * temp;
+            temp *= x;
+
+    def get_polynomial(self):
+        inv_mat = np.linalg.inv(self.mat)
+        res = np.zeros(self.porder)
+        for i in range(self.porder):
+            res[i] = 0.0;
+            for j in range(self.porder):
+                res[i] += inv_mat[i][j] * self.vec[j]
+        return res
+
+    def polyfit(x, y, order):
+        fitter = onlineIMUfit(order)
+        for i in range(len(x)):
+            fitter.update(x[i], y[i])
+        return fitter.get_polynomial()
+
 def IMUfit(logfile):
     '''find IMU calibration parameters from a log file'''
     print("Processing log %s" % logfile)
@@ -65,6 +100,8 @@ def IMUfit(logfile):
 
     accel = {}
     gyro = {}
+    online_acoef = {}
+    online_gcoef = {}
     acoef = {}
     gcoef = {}
     enable = [0]*3
@@ -188,13 +225,17 @@ def IMUfit(logfile):
         tmin = np.amin(accel[imu]['T'])
         tmax = np.amax(accel[imu]['T'])
         tref = (tmin+tmax)*0.5
-
+        
+        online_acoef[imu] = {}
+        online_gcoef[imu] = {}
         acoef[imu] = {}
         gcoef[imu] = {}
 
         trel[imu] = accel[imu]['T'] - tref
 
         for axis in axes:
+            online_acoef[imu][axis] = OnlineIMUfit.polyfit(trel[imu], accel[imu][axis] - np.median(accel[imu][axis]), POLY_ORDER)
+            online_gcoef[imu][axis] = OnlineIMUfit.polyfit(trel[imu], gyro[imu][axis], POLY_ORDER)
             acoef[imu][axis] = np.polyfit(trel[imu], accel[imu][axis] - np.median(accel[imu][axis]), POLY_ORDER)
             gcoef[imu][axis] = np.polyfit(trel[imu], gyro[imu][axis], POLY_ORDER)
 
@@ -230,6 +271,10 @@ def IMUfit(logfile):
             poly = np.poly1d(gcoef[imu][axis])
             correction = poly(trel[imu])
             axs[imu].plot(gyro[imu]['time'], (gyro[imu][axis] - correction)*scale, label='Corrected %s' % axis)
+        for axis in axes:
+            poly = np.poly1d(online_gcoef[imu][axis])
+            correction = poly(trel[imu])
+            axs[imu].plot(gyro[imu]['time'], (gyro[imu][axis] - correction)*scale, label='Online Corrected %s' % axis)
         ax2 = axs[imu].twinx()
         ax2.plot(gyro[imu]['time'], gyro[imu]['T'], label='Temperature(C)', color='black')
         ax2.legend(loc='upper right')
@@ -247,6 +292,10 @@ def IMUfit(logfile):
             poly = np.poly1d(acoef[imu][axis])
             correction = poly(trel[imu])
             axs[imu].plot(accel[imu]['time'], (accel[imu][axis]-mean[axis]) - correction, label='Corrected %s' % axis)
+        for axis in axes:
+            poly = np.poly1d(online_acoef[imu][axis])
+            correction = poly(trel[imu])
+            axs[imu].plot(accel[imu]['time'], (accel[imu][axis]-mean[axis]) - correction, label='Online Corrected %s' % axis)
         ax2 = axs[imu].twinx()
         ax2.plot(accel[imu]['time'], accel[imu]['T'], label='Temperature(C)', color='black')
         ax2.legend(loc='upper right')
