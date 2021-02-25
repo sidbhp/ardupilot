@@ -58,7 +58,8 @@ public:
         StorageKeys    = 4,
         StorageBindInfo= 5,
         StorageCANDNA  = 6,
-        StorageParamBak = 7
+        StorageParamBak = 7,
+        StorageDSNPNT = 8
     };
 
     // erase whole of storage
