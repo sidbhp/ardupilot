@@ -102,6 +102,9 @@ for reviewing patches on their specific area.
   - ***Subsystem***: DataFlash, Tools
 - [Randy Mackay](https://github.com/rmackay9):
   - ***Vehicle***: Copter, Rover, AntennaTracker
+- [Siddharth Purohit](https://github.com/bugobliterator):
+  - ***Subsystem***: CAN, Compass
+  - ***Board***: Cube*
 - [Tom Pittenger](https://github.com/magicrub):
   - ***Vehicle***: Plane
 - [Bill Geyer](https://github.com/bnsgeyer):
