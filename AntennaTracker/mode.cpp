@@ -34,7 +34,7 @@ void Mode::update_scan(void)
 
     if (!nav_status.manual_control_yaw) {
         float yaw_delta = g.scan_speed_yaw * 0.02f;
-        nav_status.bearing   += yaw_delta   * (nav_status.scan_reverse_yaw?-1:1);
+        nav_status.bearing   = nav_status.bearing + (yaw_delta   * (nav_status.scan_reverse_yaw?-1:1));
         if (nav_status.bearing < 0 && nav_status.scan_reverse_yaw) {
             nav_status.scan_reverse_yaw = false;
         }
@@ -47,12 +47,12 @@ void Mode::update_scan(void)
     if (!nav_status.manual_control_pitch) {
         const float pitch_delta = g.scan_speed_pitch * 0.02f;
         if (nav_status.scan_reverse_pitch) {
-            nav_status.pitch -= pitch_delta;
+            nav_status.pitch = nav_status.pitch - pitch_delta;
             if (nav_status.pitch < g.pitch_min) {
                 nav_status.scan_reverse_pitch = false;
             }
         } else {
-            nav_status.pitch += pitch_delta;
+            nav_status.pitch = nav_status.pitch + pitch_delta;
             if (nav_status.pitch > g.pitch_max) {
                 nav_status.scan_reverse_pitch = true;
             }

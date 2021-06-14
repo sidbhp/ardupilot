@@ -25,6 +25,7 @@
 #include <cmath>
 #include <stdarg.h>
 #include <stdio.h>
+#include <atomic>
 
 #include <AP_Common/AP_Common.h>
 #include <AP_HAL/AP_HAL.h>
@@ -141,9 +142,9 @@ private:
 
     // Navigation controller state
     struct NavStatus {
-        float bearing;                  // bearing to vehicle in centi-degrees
+        std::atomic<float> bearing;     // bearing to vehicle in centi-degrees
         float distance;                 // distance to vehicle in meters
-        float pitch;                    // pitch to vehicle in degrees (positive means vehicle is above tracker, negative means below)
+        std::atomic<float> pitch;       // pitch to vehicle in degrees (positive means vehicle is above tracker, negative means below)
         float angle_error_pitch;        // angle error between target and current pitch in centi-degrees
         float angle_error_yaw;          // angle error between target and current yaw in centi-degrees
         float alt_difference_baro;      // altitude difference between tracker and vehicle in meters according to the barometer.  positive value means vehicle is above tracker
@@ -232,6 +233,7 @@ private:
     void tracking_update_pressure(const mavlink_scaled_pressure_t &msg);
     void tracking_manual_control(const mavlink_manual_control_t &msg);
     void update_armed_disarmed() const;
+    bool get_pan_tilt_norm(float &pan_norm, float &tilt_norm) const override;
 
     // Arming/Disarming management class
     AP_Arming_Tracker arming;
