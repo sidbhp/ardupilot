@@ -17,6 +17,8 @@
 #pragma once
 
 #include <AP_HAL/AP_HAL.h>
+
+#if ENABLE_ONVIF
 #include <AP_ONVIF/onvifDeviceBindingProxy.h>
 #include <AP_ONVIF/onvifMediaBindingProxy.h>
 #include <AP_ONVIF/onvifPTZBindingProxy.h>
@@ -31,7 +33,6 @@ public:
     AP_ONVIF(const AP_ONVIF &other) = delete;
     AP_ONVIF &operator=(const AP_ONVIF&) = delete;
     
-    bool init();
     bool start(const char *user, const char *pass, const char *httphostname);
     void set_credentials();
     bool set_absolutemove(float pan, float tilt, float zoom);
@@ -70,9 +71,11 @@ private:
     std::string DEVICE_ENDPOINT;
     std::string MEDIA_ENDPOINT;
     std::string PTZ_ENDPOINT;
+    bool initialised;
 };
 
 
  namespace AP {
      AP_ONVIF &onvif();
  };
+#endif // #if ENABLE_ONVIF
