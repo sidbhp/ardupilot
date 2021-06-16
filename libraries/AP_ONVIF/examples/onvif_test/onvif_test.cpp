@@ -17,7 +17,7 @@ void setup()
 {
     lwipInit(NULL);
     hal.console->printf("AP_ONVIF library test\n");
-    while (true) {//(!AP::onvif().start("user","123456","http://192.168.1.19:10000")) {
+    while (!AP::onvif().start("user","123456","http://192.168.1.19:10000")) {
         ETHARP_STATS_DISPLAY();
         LINK_STATS_DISPLAY();
         hal.scheduler->delay(1000);

@@ -709,6 +709,7 @@ class chibios(Board):
             '-u_errno',
             '-uchThdExit',
             '-fno-common',
+            '-fno-exceptions',
             '-nostartfiles',
             '-mno-thumb-interwork',
             '-mthumb',
