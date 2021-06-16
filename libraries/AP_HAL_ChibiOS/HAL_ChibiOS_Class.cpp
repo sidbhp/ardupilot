@@ -35,6 +35,7 @@
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 
 #include <hwdef.h>
+#include "lwipthread.h"
 
 #ifndef HAL_NO_UARTDRIVER
 static HAL_UARTA_DRIVER;
@@ -296,6 +297,8 @@ void HAL_ChibiOS::run(int argc, char * const argv[], Callbacks* callbacks) const
 #if HAL_USE_SERIAL_USB == TRUE
     usb_initialise();
 #endif
+
+    lwipInit(NULL);
 
 #ifdef HAL_STDOUT_SERIAL
     //STDOUT Initialisation

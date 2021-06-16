@@ -24,6 +24,7 @@
 // For ChibiOS we will use HW RND # generator
 #include <stdlib.h> //rand()
 #include <soapdefs.h>
+#include "lwipthread.h"
 #ifndef PRINT
 #define PRINT(fmt,args...) do {printf(fmt "\n", ## args); } while(0)
 #endif

@@ -15,7 +15,7 @@ const AP_HAL::HAL& hal = AP_HAL::get_HAL();
 
 void setup()
 {
-    lwipInit(NULL);
+    // lwipInit(NULL);
     hal.console->printf("AP_ONVIF library test\n");
     while (!AP::onvif().start("user","123456","http://192.168.1.19:10000")) {
         ETHARP_STATS_DISPLAY();
