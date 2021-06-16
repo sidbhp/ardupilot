@@ -257,7 +257,6 @@ void __late_init(void) {
   rccEnableAHB2(RCC_AHB2ENR_RNGEN, 0);
   RNG->CR |= RNG_CR_IE;
   RNG->CR |= RNG_CR_RNGEN;
-  lwipInit(NULL);
   stm32_watchdog_save_reason();
 #ifndef HAL_BOOTLOADER_BUILD
   stm32_watchdog_clear_reason();

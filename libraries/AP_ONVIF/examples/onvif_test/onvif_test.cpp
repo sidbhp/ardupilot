@@ -4,6 +4,7 @@
 // #include <DeviceBinding.nsmap>
 // #include <MediaBinding.nsmap>
 // #include <PTZBinding.nsmap>
+#include "lwipthread.h"
 
 void setup();
 void loop();
@@ -14,8 +15,11 @@ const AP_HAL::HAL& hal = AP_HAL::get_HAL();
 
 void setup()
 {
+    lwipInit(NULL);
     hal.console->printf("AP_ONVIF library test\n");
-    while (!AP::onvif().start("user","123456","http://192.168.1.19:10000")) {
+    while (true) {//(!AP::onvif().start("user","123456","http://192.168.1.19:10000")) {
+        ETHARP_STATS_DISPLAY();
+        LINK_STATS_DISPLAY();
         hal.scheduler->delay(1000);
     }
 }

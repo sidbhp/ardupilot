@@ -395,7 +395,7 @@ def configure(cfg):
     kw['features'] = Utils.to_list(kw.get('features', [])) + ['ch_ap_library']
 
     env.CH_ROOT = srcpath('modules/ChibiOS')
-    env.LWIP_ROOT = srcpath('modules/lwip/src')
+    env.LWIP_ROOT = srcpath('modules/ChibiOS/ext/lwip/src')
     env.AP_HAL_ROOT = srcpath('libraries/AP_HAL_ChibiOS')
     env.BUILDDIR = bldpath('modules/ChibiOS')
     env.BUILDROOT = bldpath('')

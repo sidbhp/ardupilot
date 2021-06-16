@@ -36,6 +36,10 @@ REGION_ALIAS("BSS_RAM", ram0);
 /* RAM region to be used for the default heap.*/
 REGION_ALIAS("HEAP_RAM", ram0);
 
+/* SRAM3 is assumed to be marked non-cacheable using MPU.                    */
+/* RAM region to be used for eth segment.*/
+REGION_ALIAS("ETH_RAM", ram1);
+
 __ram0_start__          = ORIGIN(ram0);
 __ram0_size__           = LENGTH(ram0);
 __ram0_end__            = __ram0_start__ + __ram0_size__;
@@ -192,4 +196,15 @@ SECTIONS
         . = ORIGIN(HEAP_RAM) + LENGTH(HEAP_RAM);
         __heap_end__ = .;
     } > HEAP_RAM
+
+    /* Special section for Ethernet DMA non cache-able areas.*/
+    .eth (NOLOAD) : ALIGN(4)
+    {
+        __eth_base__ = .;
+        *(.eth)
+        *(.eth.*)
+        *(.bss.__eth_*)
+        . = ALIGN(4);
+        __eth_end__ = .;
+    } > ETH_RAM
 }

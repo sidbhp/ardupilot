@@ -716,6 +716,7 @@ def write_mcu_config(f):
         f.write('#define CH_CFG_USE_MAILBOXES                TRUE\n')
         f.write('#define HAL_USE_MAC                         TRUE\n')
         f.write('#define MAC_USE_EVENTS                      TRUE\n')
+        f.write('#define STM32_NOCACHE_SRAM3                 TRUE\n')
         build_flags.append('USE_LWIP=yes')
     else:
         build_flags.append('USE_LWIP=no')
@@ -922,6 +923,8 @@ def write_ldscript(fname):
     ram0_start = ram_map[0][0]
     ram0_len = ram_map[0][1] * 1024
 
+    ram1_start = ram_map[1][0]
+    ram1_len = ram_map[1][1] * 1024
     # possibly reserve some memory for app/bootloader comms
     ram_reserve_start = get_config('RAM_RESERVE_START', default=0, type=int)
     ram0_start += ram_reserve_start
@@ -934,10 +937,13 @@ MEMORY
 {
     flash : org = 0x%08x, len = %uK
     ram0  : org = 0x%08x, len = %u
+    ram1  : org = 0x%08x, len = %u
 }
 
 INCLUDE common.ld
-''' % (flash_base, flash_length, ram0_start, ram0_len))
+''' % (flash_base, flash_length, 
+        ram0_start, ram0_len,
+        ram1_start, ram1_len))
     else:
         if ext_flash_length > 32:
             error("We only support 24bit addressing over external flash")
@@ -948,12 +954,14 @@ MEMORY
     default_flash : org = 0x%08x, len = %uM
     irq_flash : org = 0x%08x, len = %uK
     ram0  : org = 0x%08x, len = %u
+    ram1  : org = 0x%08x, len = %u
 }
 
 INCLUDE common_extf.ld
 ''' % (ext_flash_base, ext_flash_length,
        flash_base, flash_length,
-       ram0_start, ram0_len))
+       ram0_start, ram0_len,
+       ram1_start, ram1_len))
 
 def copy_common_linkerscript(outdir, hwdef):
     dirpath = os.path.dirname(hwdef)
