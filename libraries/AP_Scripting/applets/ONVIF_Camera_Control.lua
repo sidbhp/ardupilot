@@ -7,7 +7,7 @@ local last_tilt_cmd = 0.0
 function update()
   if onvif and onvif.start and counter >= 100 and running == 0 then
     gcs:send_text(0, "onvif starting")
-    if onvif:start("user","123456","http://10.211.55.3:10000") then
+    if onvif:start("user","123456","http://192.168.1.19:10000") then
         gcs:send_text(0, "onvif started")
         running = 1
     end

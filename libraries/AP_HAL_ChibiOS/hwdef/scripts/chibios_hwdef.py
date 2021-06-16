@@ -30,7 +30,7 @@ f4f7_vtypes = ['MODER', 'OTYPER', 'OSPEEDR', 'PUPDR', 'ODR', 'AFRL', 'AFRH']
 f1_vtypes = ['CRL', 'CRH', 'ODR']
 f1_input_sigs = ['RX', 'MISO', 'CTS']
 f1_output_sigs = ['TX', 'MOSI', 'SCK', 'RTS', 'CH1', 'CH2', 'CH3', 'CH4']
-af_labels = ['USART', 'UART', 'SPI', 'I2C', 'SDIO', 'SDMMC', 'OTG', 'JT', 'TIM', 'CAN', 'QUADSPI']
+af_labels = ['USART', 'UART', 'SPI', 'I2C', 'SDIO', 'SDMMC', 'OTG', 'JT', 'TIM', 'CAN', 'QUADSPI', 'ETH']
 
 default_gpio = ['INPUT', 'FLOATING']
 
@@ -711,6 +711,14 @@ def write_mcu_config(f):
         f.write('#define HAL_USE_SDC FALSE\n')
         build_flags.append('USE_FATFS=no')
         env_vars['DISABLE_SCRIPTING'] = True
+    if 'ETH1' in bytype:
+        f.write('// Configure for TCP/IP support\n')
+        f.write('#define CH_CFG_USE_MAILBOXES                TRUE\n')
+        f.write('#define HAL_USE_MAC                         TRUE\n')
+        f.write('#define MAC_USE_EVENTS                      TRUE\n')
+        build_flags.append('USE_LWIP=yes')
+    else:
+        build_flags.append('USE_LWIP=no')
     if 'OTG1' in bytype:
         f.write('#define STM32_USB_USE_OTG1                  TRUE\n')
         f.write('#define HAL_USE_USB TRUE\n')

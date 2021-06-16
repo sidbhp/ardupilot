@@ -17,9 +17,9 @@
 //  Trimble GPS driver for ArduPilot.
 //  Code by Michael Oborne
 //
-
+#ifndef ALLOW_DOUBLE_MATH_FUNCTIONS
 #define ALLOW_DOUBLE_MATH_FUNCTIONS
-
+#endif
 #include "AP_GPS.h"
 #include "AP_GPS_GSOF.h"
 #include <AP_Logger/AP_Logger.h>

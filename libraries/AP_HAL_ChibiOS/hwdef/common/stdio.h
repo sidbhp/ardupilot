@@ -47,8 +47,10 @@ void free(void *ptr);
 void *realloc(void* ptr, size_t size) __attribute__((deprecated));
 extern int (*vprintf_console_hook)(const char *fmt, va_list arg);
 void malloc_check(const void *ptr);
+unsigned int chibios_rand_generate(void);
 
 #define L_tmpnam 32
+#define EOF     (-1)
 
 #ifdef __cplusplus
 }

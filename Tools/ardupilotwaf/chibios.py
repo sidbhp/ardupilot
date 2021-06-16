@@ -147,9 +147,10 @@ class generate_bin(Task.Task):
                 return ret
             return ret
         else:
-            cmd = "{} -O binary {} {}".format(self.env.get_flat('OBJCOPY'), self.inputs[0], self.outputs[0])
             # empty extf file
             cmd = "cp /dev/null {}".format(self.outputs[1])
+            self.exec_command(cmd)
+            cmd = "{} -O binary {} {}".format(self.env.get_flat('OBJCOPY'), self.inputs[0], self.outputs[0])
             return self.exec_command(cmd)
 
     def __str__(self):
@@ -394,6 +395,7 @@ def configure(cfg):
     kw['features'] = Utils.to_list(kw.get('features', [])) + ['ch_ap_library']
 
     env.CH_ROOT = srcpath('modules/ChibiOS')
+    env.LWIP_ROOT = srcpath('modules/lwip/src')
     env.AP_HAL_ROOT = srcpath('libraries/AP_HAL_ChibiOS')
     env.BUILDDIR = bldpath('modules/ChibiOS')
     env.BUILDROOT = bldpath('')
@@ -408,6 +410,7 @@ def configure(cfg):
 
     # relative paths to pass to make, relative to directory that make is run from
     env.CH_ROOT_REL = os.path.relpath(env.CH_ROOT, env.BUILDROOT)
+    env.LWIP_ROOT_REL = os.path.relpath(env.LWIP_ROOT, env.BUILDROOT)
     env.AP_HAL_REL = os.path.relpath(env.AP_HAL_ROOT, env.BUILDROOT)
     env.BUILDDIR_REL = os.path.relpath(env.BUILDDIR, env.BUILDROOT)
 
@@ -483,7 +486,7 @@ def build(bld):
     
     bld(
         # create the file modules/ChibiOS/include_dirs
-        rule="touch Makefile && BUILDDIR=${BUILDDIR_REL} CHIBIOS=${CH_ROOT_REL} AP_HAL=${AP_HAL_REL} ${CHIBIOS_BUILD_FLAGS} ${CHIBIOS_BOARD_NAME} ${MAKE} pass -f '${BOARD_MK}'",
+        rule="touch Makefile && BUILDDIR=${BUILDDIR_REL} LWIPDIR=${LWIP_ROOT_REL} CHIBIOS=${CH_ROOT_REL} AP_HAL=${AP_HAL_REL} ${CHIBIOS_BUILD_FLAGS} ${CHIBIOS_BOARD_NAME} ${MAKE} pass -f '${BOARD_MK}'",
         group='dynamic_sources',
         target=bld.bldnode.find_or_declare('modules/ChibiOS/include_dirs')
     )
@@ -499,7 +502,7 @@ def build(bld):
         common_src += [bld.bldnode.find_or_declare('ap_romfs_embedded.h')]
     ch_task = bld(
         # build libch.a from ChibiOS sources and hwdef.h
-        rule="BUILDDIR='${BUILDDIR_REL}' CHIBIOS='${CH_ROOT_REL}' AP_HAL=${AP_HAL_REL} ${CHIBIOS_BUILD_FLAGS} ${CHIBIOS_BOARD_NAME} '${MAKE}' -j%u lib -f '${BOARD_MK}'" % bld.options.jobs,
+        rule="BUILDDIR='${BUILDDIR_REL}' LWIPDIR='${LWIP_ROOT_REL}' CHIBIOS='${CH_ROOT_REL}' AP_HAL=${AP_HAL_REL} ${CHIBIOS_BUILD_FLAGS} ${CHIBIOS_BOARD_NAME} '${MAKE}' -j%u lib -f '${BOARD_MK}'" % bld.options.jobs,
         group='dynamic_sources',
         source=common_src,
         target=bld.bldnode.find_or_declare('modules/ChibiOS/libch.a')

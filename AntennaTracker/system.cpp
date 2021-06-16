@@ -22,8 +22,8 @@ void Tracker::init_ardupilot()
     battery.init();
 
     // init baro before we start the GCS, so that the CLI baro test works
-    barometer.set_log_baro_bit(MASK_LOG_IMU);
-    barometer.init();
+    // barometer.set_log_baro_bit(MASK_LOG_IMU);
+    // barometer.init();
 
     // setup telem slots with serial ports
     gcs().setup_uarts();
@@ -47,10 +47,10 @@ void Tracker::init_ardupilot()
     ahrs.init();
     ahrs.set_fly_forward(false);
 
-    ins.init(scheduler.get_loop_rate_hz());
-    ahrs.reset();
+    // ins.init(scheduler.get_loop_rate_hz());
+    // ahrs.reset();
 
-    barometer.calibrate();
+    // barometer.calibrate();
 
     // initialise AP_Logger library
     logger.setVehicle_Startup_Writer(FUNCTOR_BIND(&tracker, &Tracker::Log_Write_Vehicle_Startup_Messages, void));

@@ -6,7 +6,7 @@
 
 #include <AP_HAL/AP_HAL.h>
 #include <stdlib.h>
-
+#include <cstdio>
 /*
   globally override new and delete to ensure that we always start with
   zero memory. This ensures consistent behaviour.
@@ -36,3 +36,10 @@ void operator delete[](void * ptr)
 {
     if (ptr) free(ptr);
 }
+
+
+int std::vsnprintf(char* s, size_t n, const char* format, va_list arg)
+{
+    return vsnprintf(s,n,format,arg);
+}
+

@@ -16,7 +16,9 @@
   suppport for serial connected AHRS systems
  */
 
+#ifndef ALLOW_DOUBLE_MATH_FUNCTIONS
 #define ALLOW_DOUBLE_MATH_FUNCTIONS
+#endif
 
 #include "AP_ExternalAHRS_VectorNav.h"
 #include <AP_Math/AP_Math.h>

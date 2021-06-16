@@ -23,7 +23,7 @@ APJ_BOARD_ID 1402
 FLASH_SIZE_KB 2048
 
 # setup build for a peripheral firmware
-env AP_PERIPH 1
+# env AP_PERIPH 1
 
 EXTERNAL_PROG_FLASH_MB 32
 

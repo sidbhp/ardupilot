@@ -37,6 +37,9 @@
 
 #include "onvifhelpers.h"
 
+#ifndef __BYTE_ORDER
+#include <endian.h>
+#endif
 #ifdef __BYTE_ORDER
 #define SHA1_BLOCK_SIZE  64
 

@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -g -fomit-frame-pointer -falign-functions=16
+  USE_OPT = -g -fomit-frame-pointer -falign-functions=16 -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf -fno-builtin-vfprintf -fno-builtin-puts
 endif
 
 # C specific options here (added to USE_OPT).
@@ -109,6 +109,9 @@ include $(CHIBIOS)/os/various/cpp_wrappers/chcpp.mk
 include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
 endif
 
+ifeq ($(USE_LWIP),yes)
+include $(CHIBIOS)/os/various/lwip_bindings/lwip.mk
+endif
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 

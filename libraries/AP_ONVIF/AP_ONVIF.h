@@ -19,6 +19,7 @@
 #include <AP_HAL/AP_HAL.h>
 
 #if ENABLE_ONVIF
+#undef FILE
 #include <AP_ONVIF/onvifDeviceBindingProxy.h>
 #include <AP_ONVIF/onvifMediaBindingProxy.h>
 #include <AP_ONVIF/onvifPTZBindingProxy.h>

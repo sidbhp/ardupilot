@@ -77,6 +77,12 @@ class Board:
             env.DEFINES.update(
                 ENABLE_ONVIF=1,
                 SCRIPTING_ENABLE_DEFAULT=1,
+                WITH_LEAN = 1, # use lean config for build using gsoap
+                LWIP_EMBEDDED = 1,
+                WITH_COMPAT = 1,
+                WITH_SOAPDEFS_H=1,
+                WITH_NOSTDLIB=1,
+                ALLOW_DOUBLE_MATH_FUNCTIONS=1,
             )
             env.AP_LIBRARIES += [
                 'AP_ONVIF'
@@ -84,7 +90,9 @@ class Board:
             env.CXXFLAGS += [
                 '-Wno-shadow',
                 '-Wno-undef',
-                '-Wno-cast-align'
+                '-Wno-cast-align',
+                '-Wno-logical-op',
+                '-Wno-narrowing',
             ]
             if 'clang++' not in cfg.env.COMPILER_CXX:
                 env.CXXFLAGS += [
@@ -233,7 +241,7 @@ class Board:
             '-Wno-reorder',
             '-Wno-redundant-decls',
             '-Wno-unknown-pragmas',
-            '-Wno-expansion-to-defined',
+            # '-Wno-expansion-to-defined',
             '-Werror=cast-align',
             '-Werror=attributes',
             '-Werror=format-security',
@@ -629,7 +637,7 @@ class chibios(Board):
             '-Wno-cast-align',
             '-Wlogical-op',
             '-Wframe-larger-than=1300',
-            '-fsingle-precision-constant',
+            # '-fsingle-precision-constant',
             '-Wno-attributes',
             '-fno-exceptions',
             '-Wall',
