@@ -48,6 +48,8 @@
 #define LWIP_PLATFORM_DIAG(x)    do {printf x; } while(0)
 #define LWIP_DEBUG
 #define U16_F "u"
+#define X8_F  "x"
+#define X16_F  "x"
 /**
  * SYS_LIGHTWEIGHT_PROT==1: if you want inter-task protection for certain
  * critical regions during buffer allocation, deallocation and memory
@@ -1892,7 +1894,7 @@
  * ETHARP_DEBUG: Enable debugging in etharp.c.
  */
 #ifndef ETHARP_DEBUG
-#define ETHARP_DEBUG                    LWIP_DBG_OFF
+#define ETHARP_DEBUG                    LWIP_DBG_ON
 #endif
 
 /**
