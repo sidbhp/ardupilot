@@ -788,7 +788,11 @@ def write_mcu_config(f):
     f.write('// memory regions\n')
     regions = []
     total_memory = 0
+    i = 0
     for (address, size, flags) in ram_map:
+        i = i+1
+        if (i == 2):
+            continue
         regions.append('{(void*)0x%08x, 0x%08x, 0x%02x }' % (address, size*1024, flags))
         total_memory += size
     f.write('#define HAL_MEMORY_REGIONS %s\n' % ', '.join(regions))
