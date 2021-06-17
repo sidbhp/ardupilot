@@ -1889,14 +1889,14 @@
  * debug messages of certain types.
  */
 #ifndef LWIP_DBG_TYPES_ON
-#define LWIP_DBG_TYPES_ON               LWIP_DBG_ON
+#define LWIP_DBG_TYPES_ON               LWIP_DBG_OFF
 #endif
 
 /**
  * ETHARP_DEBUG: Enable debugging in etharp.c.
  */
 #ifndef ETHARP_DEBUG
-#define ETHARP_DEBUG                    LWIP_DBG_ON
+#define ETHARP_DEBUG                    LWIP_DBG_OFF
 #endif
 
 /**
@@ -1973,14 +1973,14 @@
  * RAW_DEBUG: Enable debugging in raw.c.
  */
 #ifndef RAW_DEBUG
-#define RAW_DEBUG                       LWIP_DBG_ON
+#define RAW_DEBUG                       LWIP_DBG_OFF
 #endif
 
 /**
  * MEM_DEBUG: Enable debugging in mem.c.
  */
 #ifndef MEM_DEBUG
-#define MEM_DEBUG                       LWIP_DBG_ON
+#define MEM_DEBUG                       LWIP_DBG_OFF
 #endif
 
 /**
@@ -1994,7 +1994,7 @@
  * SYS_DEBUG: Enable debugging in sys.c.
  */
 #ifndef SYS_DEBUG
-#define SYS_DEBUG                       LWIP_DBG_ON
+#define SYS_DEBUG                       LWIP_DBG_OFF
 #endif
 
 /**
@@ -2079,7 +2079,7 @@
  * TCPIP_DEBUG: Enable debugging in tcpip.c.
  */
 #ifndef TCPIP_DEBUG
-#define TCPIP_DEBUG                     LWIP_DBG_ON
+#define TCPIP_DEBUG                     LWIP_DBG_OFF
 #endif
 
 /**

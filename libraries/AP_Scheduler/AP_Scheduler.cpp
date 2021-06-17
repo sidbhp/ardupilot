@@ -266,6 +266,7 @@ void AP_Scheduler::loop()
     hal.util->persistent_data.scheduler_task = -3;
     _rsem.give();
     // AP::ins().wait_for_sample();
+    hal.scheduler->delay(20);
     _rsem.take_blocking();
     hal.util->persistent_data.scheduler_task = -1;
 
