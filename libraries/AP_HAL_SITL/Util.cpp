@@ -162,3 +162,26 @@ void HALSITL::Util::commandline_arguments(uint8_t &argc, char * const *&argv)
     argv = saved_argv;
 }
 
+/**
+ * This method will read random values with set size. Please be aware that this method will block until
+ * the requested amount of data is read at proper entropy level, only use if true randomness is desired
+ * otherwise AP_Math's get_random16() should be used.
+ */
+bool HALSITL::Util::get_random_vals(uint8_t* data, size_t size)
+{
+    int dev_random = open("/dev/random", O_RDONLY);
+    if (dev_random < 0) {
+        return false;
+    }
+    size_t read_data_len = 0;
+    while (read_data_len < size) {
+        ssize_t result = read(dev_random, data + read_data_len, size - read_data_len);
+        if (result < 0) {
+            close(dev_random);
+            return false;
+        }
+        read_data_len += result;
+    }
+    close(dev_random);
+    return true;
+}
