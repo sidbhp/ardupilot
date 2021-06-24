@@ -599,3 +599,18 @@ void Util::uart_info(ExpandingString &str)
 #endif
 #endif // HAL_NO_UARTDRIVER
 }
+
+/**
+ * This method will read random values with set size. Please be aware that this method will block until
+ * the requested amount of data is read at proper entropy level, only use if true randomness is desired
+ * otherwise AP_Math's get_random16() should be used.
+ */
+bool Util::get_random_vals(uint8_t* data, size_t size)
+{
+#ifdef RNG
+    stm32_rand_generate_block(data, size);
+    return true;
+#else
+    return false;
+#endif
+}

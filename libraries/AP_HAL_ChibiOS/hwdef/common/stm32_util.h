@@ -128,6 +128,13 @@ void stack_overflow(thread_t *tp);
  */
 uint32_t stack_free(void *stack_base);
 
+/**
+ * Generates a block of random values, returns total values generated
+ */
+#ifdef RNG
+void stm32_rand_generate_block(unsigned char* output, unsigned int sz);
+#endif
+
 // allow stack view code to show free ISR stack
 extern uint32_t __main_stack_base__;
 extern uint32_t __main_stack_end__;
