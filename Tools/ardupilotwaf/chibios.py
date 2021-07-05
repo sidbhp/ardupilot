@@ -104,6 +104,7 @@ class generate_bin(Task.Task):
             intf_sections = []
             is_text_in_extf = False
             found_text_section = False
+            ramsections = []
             for line in out.splitlines():
                 section_line = line.split()
                 if (len(section_line) < 3):
@@ -126,16 +127,22 @@ class generate_bin(Task.Task):
                         is_text_in_extf = False
                         found_text_section = True
                 else:   # most likely RAM data, we place it in the same bin as text
-                    if found_text_section:
-                        if is_text_in_extf:
-                            extf_sections.append("--only-section=%s" % section_line[0])
-                        else:
-                            intf_sections.append("--only-section=%s" % section_line[0])
+                    ramsections.append(section_line[0])
+
+            if found_text_section:
+                for section in ramsections:
+                    if is_text_in_extf:
+                        extf_sections.append("--only-section=%s" % section)
                     else:
-                        Logs.error("Couldn't find .text section before RAM sections")
+                        intf_sections.append("--only-section=%s" % section)
+            else:
+                Logs.error("Couldn't find .text section")
             # create intf binary
-            cmd = "{} {} -O binary {} {}".format(self.env.get_flat('OBJCOPY'),
-                                                 ' '.join(intf_sections), self.inputs[0], self.outputs[0])
+            if len(intf_sections):
+                cmd = "{} {} -O binary {} {}".format(self.env.get_flat('OBJCOPY'),
+                                                    ' '.join(intf_sections), self.inputs[0], self.outputs[0])
+            else:
+                cmd = "cp /dev/null {}".format(self.outputs[0])
             ret = self.exec_command(cmd)
             if (ret < 0):
                 return ret
@@ -283,7 +290,7 @@ def chibios_firmware(self):
     if self.bld.env.HAVE_INTEL_HEX:
         if os.path.exists(bootloader_bin.abspath()):
             hex_target = self.bld.bldnode.find_or_declare('bin/' + link_output.change_ext('.hex').name)
-            hex_task = self.create_task('build_intel_hex', src=[bin_target, bootloader_bin], tgt=hex_target)
+            hex_task = self.create_task('build_intel_hex', src=[bin_target[0], bootloader_bin], tgt=hex_target)
             hex_task.set_run_after(generate_bin_task)
         else:
             print("Not embedding bootloader; %s does not exist" % bootloader_bin)
