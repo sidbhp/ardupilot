@@ -1022,8 +1022,8 @@ void AP_GPS::update_primary(void)
     // rover as it typically is in fix type 6 (RTK) whereas base is
     // usually fix type 3
     for (uint8_t i=0; i<GPS_MAX_RECEIVERS; i++) {
-        if (_type[i] == GPS_TYPE_UBLOX_RTK_BASE &&
-            _type[i^1] == GPS_TYPE_UBLOX_RTK_ROVER &&
+        if (((_type[i] == GPS_TYPE_UBLOX_RTK_BASE) || (_type[i] == GPS_TYPE_UAVCAN_RTK_BASE)) &&
+            ((_type[i^1] == GPS_TYPE_UBLOX_RTK_ROVER) || (_type[i^1] == GPS_TYPE_UAVCAN_RTK_ROVER)) &&
             ((state[i].status >= GPS_OK_FIX_3D) || (state[i].status >= state[i^1].status))) {
             if (primary_instance != i) {
                 _last_instance_swap_ms = now;
@@ -1878,7 +1878,7 @@ bool AP_GPS::is_healthy(uint8_t instance) const
       happens with the RTCMv3 data
      */
     const uint8_t delay_threshold = 2;
-    const float delay_avg_max = _type[instance] == GPS_TYPE_UBLOX_RTK_ROVER?245:215;
+    const float delay_avg_max = _type[instance] == (GPS_TYPE_UBLOX_RTK_ROVER || GPS_TYPE_UAVCAN_RTK_ROVER)?245:215;
     const GPS_timing &t = timing[instance];
     bool delay_ok = (t.delayed_count < delay_threshold) &&
         t.average_delta_ms < delay_avg_max &&
