@@ -1554,7 +1554,11 @@ void AP_Periph_FW::can_update()
     rcout_update();
 #endif
     processTx();
-    processRx();
+    const uint32_t now_us = AP_HAL::micros();
+    while ((AP_HAL::micros() - now_us) < 1000) {
+        hal.scheduler->delay_microseconds(64);
+        processRx();
+    }
 }
 
 /*
