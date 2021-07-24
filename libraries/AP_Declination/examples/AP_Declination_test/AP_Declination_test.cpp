@@ -6,7 +6,7 @@
 #include <AP_Math/AP_Math.h>
 #include <AP_Declination/AP_Declination.h>
 #include <Filter/Filter.h>
-
+#include <stdio.h>
 void setup();
 void loop();
 
@@ -80,27 +80,31 @@ void setup(void)
     uint16_t pass = 0, fail = 0;
     uint32_t total_time = 0;
 
-    hal.console->printf("Beginning Test. Please wait...\n");
-
-    for (int16_t i = -90; i <= 90; i += 5) {
-        for (int16_t j = -180; j <= 180; j += 5) {
+    printf("Beginning Test. Please wait...\n");
+    static const float start_search_lat = -90.0;
+    static const float end_search_lat = 90.0;
+    static const float start_search_long = -180.0;
+    static const float end_search_long = 180.0;
+    static const float search_decl_rad = 0.2;
+    for (float i = start_search_lat; i <= end_search_lat; i += 0.0001) {
+        for (float j = start_search_long; j <= end_search_long; j += 0.0001) {
             uint32_t t1 = AP_HAL::micros();
             const float declination = AP_Declination::get_declination(i, j);
             total_time += AP_HAL::micros() - t1;
-            const float declination_test = get_declination(i, j);
+            const float declination_test = degrees(search_decl_rad);
             if (is_equal(declination, declination_test)) {
-                hal.console->printf("Pass: %i, %i : %f, %f\n", i, j, (double)declination, (double)declination_test);
+                printf("Pass: %f, %f : %f, %f\n", i, j, (double)declination, (double)declination_test);
                 pass++;
             } else {
-                hal.console->printf("FAIL: %i, %i : %f, %f\n", i, j, (double)declination, (double)declination_test);
+                // printf("FAIL: %f, %f : %f, %f, %f\n", i, j, (double)declination, (double)declination_test, (double)(declination - declination_test));
                 fail++;
             }
         }
     }
-    hal.console->printf("Ending Test.\n\n");
-    hal.console->printf("Total Pass: %i\n", pass);
-    hal.console->printf("Total Fail: %i\n", fail);
-    hal.console->printf("Average time per call: %.1f usec\n",
+    printf("Ending Test.\n\n");
+    printf("Total Pass: %i\n", pass);
+    printf("Total Fail: %i\n", fail);
+    printf("Average time per call: %.1f usec\n",
                         (double)(total_time / (float)(pass + fail)));
 }
 
