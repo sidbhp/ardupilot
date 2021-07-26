@@ -87,6 +87,7 @@ public:
     enum DriverOptions : int16_t {
         UBX_MBUseUart2    = (1 << 0U),
         SBF_UseBaseForYaw = (1 << 1U),
+        UAVCAN_MBUseDedicatedBus  = (1 << 2U),
     };
 
 protected:
